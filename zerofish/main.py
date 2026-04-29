@@ -3,6 +3,7 @@
 
 Landscape orientation: hold the device with the short edge at top/bottom
 (rotated 90° clockwise from portrait, USB port on the left side).
+Score sheet uses portrait orientation (USB at bottom).
 """
 
 import os
@@ -31,20 +32,24 @@ W, H = 250, 122
 
 _FONT_DIR = os.path.join(_REPO, 'Touch_e-Paper_Code', 'python', 'pic')
 
-# System fonts that include Unicode chess piece glyphs (♟♞♝♜♛♚)
 _PIECE_FONT_PATHS = [
     '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
     '/usr/share/fonts/truetype/freefont/FreeSerif.ttf',
 ]
 
-# ── Shared layout ─────────────────────────────────────────────────────────────
+# ── Shared landscape layout ────────────────────────────────────────────────────
 TITLE_H = 21
 
 VSEP_X = 192
 OK_X0  = 195
 OK_X1  = 247
-OK_Y0  = TITLE_H + 6
-OK_Y1  = H - 6
+OK_Y0  = TITLE_H + 6      # 27
+OK_Y1  = H - 6            # 116
+
+_OK_MID     = OK_Y0 + (OK_Y1 - OK_Y0) // 2   # 71
+OK_Y1_SPLIT = _OK_MID - 2                      # 69
+SEC_Y0      = _OK_MID + 2                      # 73
+SEC_Y1      = OK_Y1                            # 116
 
 # ── Difficulty screen ─────────────────────────────────────────────────────────
 BTN_MARGIN = 2
@@ -64,27 +69,54 @@ COLOR_BTN_Y1  = COLOR_BTN_Y0 + COLOR_BTN_H - 1
 COLOR_BTN_X   = [2 + i * (COLOR_BTN_W + COLOR_BTN_GAP) for i in range(3)]
 
 # ── Player move input screen ──────────────────────────────────────────────────
-PIECES = ['P', 'N', 'B', 'R', 'Q', 'K']
-# Filled Unicode chess glyphs — one per piece, same order as PIECES
+PIECES       = ['P', 'N', 'B', 'R', 'Q', 'K']
 PIECE_SYMBOLS = ['♟', '♞', '♝', '♜', '♛', '♚']
-FILES  = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-RANKS  = ['1', '2', '3', '4', '5', '6', '7', '8']
+FILES        = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+RANKS        = ['1', '2', '3', '4', '5', '6', '7', '8']
 
-PM_MARGIN  = 2
-PM_GAP     = 2
-PM_ROW_H   = 28
-PM_ROW1_Y  = TITLE_H + 5                      # pieces
-PM_ROW2_Y  = PM_ROW1_Y + PM_ROW_H + 3         # files
-PM_ROW3_Y  = PM_ROW2_Y + PM_ROW_H + 3         # ranks
-
-# 3 px clearance so buttons never touch the vertical separator
-PM_MAX_X   = VSEP_X - 3
-
-# 6 piece buttons
+PM_MARGIN = 2
+PM_GAP    = 2
+PM_ROW_H  = 28
+PM_ROW1_Y = TITLE_H + 5
+PM_ROW2_Y = PM_ROW1_Y + PM_ROW_H + 3
+PM_ROW3_Y = PM_ROW2_Y + PM_ROW_H + 3
+PM_MAX_X  = VSEP_X - 3
 PM_PIECE_W = (PM_MAX_X - PM_MARGIN - 5 * PM_GAP) // 6
-
-# 8 file/rank buttons
 PM_FILE_W  = (PM_MAX_X - PM_MARGIN - 7 * PM_GAP) // 8
+
+# ── Promotion screen ──────────────────────────────────────────────────────────
+PROMO_GLYPHS      = ['♞', '♝', '♜', '♛']
+PROMO_PIECE_TYPES = [chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]
+
+PROMO_BTN_W   = 40
+PROMO_BTN_H   = 60
+PROMO_BTN_GAP = 4
+_PROMO_TOT_W  = 4 * PROMO_BTN_W + 3 * PROMO_BTN_GAP
+PROMO_BTN_X0  = (VSEP_X - _PROMO_TOT_W) // 2
+PROMO_BTN_Y0  = TITLE_H + (H - TITLE_H - PROMO_BTN_H) // 2
+PROMO_BTN_Y1  = PROMO_BTN_Y0 + PROMO_BTN_H - 1
+
+# ── In-game menu ──────────────────────────────────────────────────────────────
+IGMENU_BTN_LABELS = ['Resign', 'Score Sheet', 'Back']
+IGMENU_BTN_H      = 26
+IGMENU_BTN_GAP    = 5
+IGMENU_BTN_X0     = 5
+IGMENU_BTN_X1     = VSEP_X - 5
+_IGMENU_TOT_H     = len(IGMENU_BTN_LABELS) * IGMENU_BTN_H + (len(IGMENU_BTN_LABELS) - 1) * IGMENU_BTN_GAP
+IGMENU_BTN_Y0     = TITLE_H + (H - TITLE_H - _IGMENU_TOT_H) // 2
+
+# ── Portrait score sheet (122 × 250) ──────────────────────────────────────────
+SCORE_W       = 122
+SCORE_H       = 250
+SCORE_TITLE_H = 21
+SCORE_ROW_H   = 13
+SCORE_ROWS    = 15                             # full moves shown
+SCORE_BACK_H  = 22
+SCORE_BACK_Y0 = SCORE_H - SCORE_BACK_H        # 228
+SCORE_BACK_Y1 = SCORE_H - 1                   # 249
+
+# ── SAN glyph map ─────────────────────────────────────────────────────────────
+_SAN_TO_GLYPH = {'N': '♞', 'B': '♝', 'R': '♜', 'Q': '♛', 'K': '♚'}
 
 # ── Screens ───────────────────────────────────────────────────────────────────
 SCREEN_DIFFICULTY  = 0
@@ -93,6 +125,10 @@ SCREEN_THINKING    = 2
 SCREEN_SF_MOVE     = 3
 SCREEN_PLAYER_MOVE = 4
 SCREEN_GAME_OVER   = 5
+SCREEN_PROMOTION   = 6
+SCREEN_DISAMBIG    = 7
+SCREEN_INGAME_MENU = 8
+SCREEN_SCORESHEET  = 9
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -100,8 +136,13 @@ def _to_landscape(tx: int, ty: int) -> tuple[int, int]:
     return (249 - ty, tx)
 
 
-def _hit_ok(lx: int, ly: int) -> bool:
-    return OK_X0 <= lx <= OK_X1 and OK_Y0 <= ly <= OK_Y1
+def _hit_ok(lx: int, ly: int, split: bool = False) -> bool:
+    y1 = OK_Y1_SPLIT if split else OK_Y1
+    return OK_X0 <= lx <= OK_X1 and OK_Y0 <= ly <= y1
+
+
+def _hit_sec(lx: int, ly: int) -> bool:
+    return OK_X0 <= lx <= OK_X1 and SEC_Y0 <= ly <= SEC_Y1
 
 
 def _load_fonts() -> dict:
@@ -119,14 +160,21 @@ def _load_fonts() -> dict:
         }
         for path in _PIECE_FONT_PATHS:
             if os.path.exists(path):
-                fonts['piece'] = ImageFont.truetype(path, 20)
+                fonts['piece']      = ImageFont.truetype(path, 24)
+                fonts['move_piece'] = ImageFont.truetype(path, 42)
+                fonts['promo']      = ImageFont.truetype(path, 36)
                 break
         else:
-            fonts['piece'] = fonts['btn']
+            fonts['piece']      = fonts['btn']
+            fonts['move_piece'] = fonts['move']
+            fonts['promo']      = fonts['move']
         return fonts
     except Exception:
         f = ImageFont.load_default()
-        return {k: f for k in ('title', 'ver', 'btn', 'ok', 'move', 'result', 'small', 'piece')}
+        return {k: f for k in (
+            'title', 'ver', 'btn', 'ok', 'move', 'result', 'small',
+            'piece', 'move_piece', 'promo',
+        )}
 
 
 def _draw_centered(draw, cx, cy, text, font, fill):
@@ -138,7 +186,7 @@ def _draw_centered(draw, cx, cy, text, font, fill):
     )
 
 
-def _draw_chrome(draw, f, screen_title='', ok_active=False):
+def _draw_chrome(draw, f, screen_title='', ok_active=False, sec_label=None):
     draw.rectangle([(0, 0), (W - 1, TITLE_H - 1)], fill=0)
     label = f'ZeroFish: {screen_title}' if screen_title else 'ZeroFish'
     draw.text((4, 3), label, font=f['title'], fill=255)
@@ -148,14 +196,36 @@ def _draw_chrome(draw, f, screen_title='', ok_active=False):
 
     draw.line([(VSEP_X, TITLE_H), (VSEP_X, H - 1)], fill=0)
 
-    cx = (OK_X0 + OK_X1) // 2
-    cy = (OK_Y0 + OK_Y1) // 2
+    cx    = (OK_X0 + OK_X1) // 2
+    ok_y1 = OK_Y1_SPLIT if sec_label else OK_Y1
+    ok_cy = (OK_Y0 + ok_y1) // 2
     if ok_active:
-        draw.rectangle([(OK_X0, OK_Y0), (OK_X1, OK_Y1)], fill=0)
-        _draw_centered(draw, cx, cy, 'OK', f['ok'], 255)
+        draw.rectangle([(OK_X0, OK_Y0), (OK_X1, ok_y1)], fill=0)
+        _draw_centered(draw, cx, ok_cy, 'OK', f['ok'], 255)
     else:
-        draw.rectangle([(OK_X0, OK_Y0), (OK_X1, OK_Y1)], outline=0)
-        _draw_centered(draw, cx, cy, 'OK', f['ok'], 0)
+        draw.rectangle([(OK_X0, OK_Y0), (OK_X1, ok_y1)], outline=0)
+        _draw_centered(draw, cx, ok_cy, 'OK', f['ok'], 0)
+
+    if sec_label:
+        sec_cy = (SEC_Y0 + SEC_Y1) // 2
+        draw.rectangle([(OK_X0, SEC_Y0), (OK_X1, SEC_Y1)], outline=0)
+        _draw_centered(draw, cx, sec_cy, sec_label, f['btn'], 0)
+
+
+def _san_with_glyph(san: str) -> str:
+    """Replace piece letter(s) in SAN with Unicode chess glyphs."""
+    if san and san[0] in _SAN_TO_GLYPH:
+        san = _SAN_TO_GLYPH[san[0]] + san[1:]
+    eq = san.find('=')
+    if eq != -1 and eq + 1 < len(san) and san[eq + 1] in _SAN_TO_GLYPH:
+        san = san[:eq + 1] + _SAN_TO_GLYPH[san[eq + 1]] + san[eq + 2:]
+    return san
+
+
+def _move_label(board: chess.Board) -> str:
+    """Return '#N' (white) or '…#N' (black) for the move about to be played."""
+    n = board.fullmove_number
+    return f'#{n}' if board.turn == chess.WHITE else f'…#{n}'
 
 
 # ── Difficulty screen ─────────────────────────────────────────────────────────
@@ -200,7 +270,8 @@ def build_color_screen(selected=None):
     img = Image.new('1', (W, H), 255)
     draw = ImageDraw.Draw(img)
     f = _load_fonts()
-    _draw_chrome(draw, f, 'Select Side', ok_active=(selected is not None))
+    _draw_chrome(draw, f, 'Select Side', ok_active=(selected is not None),
+                 sec_label='Back')
     for i, label in enumerate(COLORS):
         x0 = COLOR_BTN_X[i]
         x1 = x0 + COLOR_BTN_W - 1
@@ -220,24 +291,20 @@ def build_thinking_screen():
     img = Image.new('1', (W, H), 255)
     draw = ImageDraw.Draw(img)
     f = _load_fonts()
-    _draw_chrome(draw, f, 'Thinking…', ok_active=False)
+    _draw_chrome(draw, f, 'Thinking…')
     _draw_centered(draw, VSEP_X // 2, (TITLE_H + H) // 2, '…', f['move'], 0)
     return img
 
 
 # ── Stockfish move screen ─────────────────────────────────────────────────────
 
-def build_sf_move_screen(san, move_num):
+def build_sf_move_screen(san, move_label):
     img = Image.new('1', (W, H), 255)
     draw = ImageDraw.Draw(img)
     f = _load_fonts()
-    _draw_chrome(draw, f, 'Stockfish', ok_active=True)
-
+    _draw_chrome(draw, f, move_label, ok_active=True)
     cx = VSEP_X // 2
-    # Large move notation, centred in content area
-    _draw_centered(draw, cx, (TITLE_H + H) // 2 - 4, san, f['move'], 0)
-    # Small move number at bottom left
-    draw.text((4, H - 14), f'move {move_num}', font=f['small'], fill=0)
+    _draw_centered(draw, cx, (TITLE_H + H) // 2 - 4, _san_with_glyph(san), f['move_piece'], 0)
     return img
 
 
@@ -306,14 +373,13 @@ def _hit_pm_rank(idx, lx, ly):
     return x0 <= lx <= x1 and y0 <= ly <= y1
 
 
-def build_player_move_screen(sel_piece, sel_file, sel_rank, inv_count=0):
-    """sel_piece/file/rank are indices (int) or None."""
+def build_player_move_screen(sel_piece, sel_file, sel_rank, inv_count=0, move_label=''):
     img = Image.new('1', (W, H), 255)
     draw = ImageDraw.Draw(img)
     f = _load_fonts()
     ok_ready = (sel_piece is not None and sel_file is not None and sel_rank is not None)
-    title = f'Your Move Inv:{inv_count}' if inv_count else 'Your Move'
-    _draw_chrome(draw, f, title, ok_active=ok_ready)
+    base = f'Inv:{inv_count} {move_label}' if inv_count else move_label
+    _draw_chrome(draw, f, base, ok_active=ok_ready, sec_label='More')
 
     def _row(items, rects_fn, selected_idx, font=None):
         _f = font or f['btn']
@@ -333,41 +399,180 @@ def build_player_move_screen(sel_piece, sel_file, sel_rank, inv_count=0):
     return img
 
 
+# ── Promotion screen ──────────────────────────────────────────────────────────
+
+def _promo_rect(idx):
+    x0 = PROMO_BTN_X0 + idx * (PROMO_BTN_W + PROMO_BTN_GAP)
+    return (x0, PROMO_BTN_Y0, x0 + PROMO_BTN_W - 1, PROMO_BTN_Y1)
+
+
+def _hit_promo(idx, lx, ly):
+    x0, y0, x1, y1 = _promo_rect(idx)
+    return x0 <= lx <= x1 and y0 <= ly <= y1
+
+
+def build_promotion_screen(selected=None, move_label=''):
+    img = Image.new('1', (W, H), 255)
+    draw = ImageDraw.Draw(img)
+    f = _load_fonts()
+    _draw_chrome(draw, f, f'Promote {move_label}', ok_active=(selected is not None))
+    for i, glyph in enumerate(PROMO_GLYPHS):
+        x0, y0, x1, y1 = _promo_rect(i)
+        cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+        if i == selected:
+            draw.rectangle([(x0, y0), (x1, y1)], fill=0)
+            _draw_centered(draw, cx, cy, glyph, f['promo'], 255)
+        else:
+            draw.rectangle([(x0, y0), (x1, y1)], outline=0)
+            _draw_centered(draw, cx, cy, glyph, f['promo'], 0)
+    return img
+
+
+# ── Disambiguation screen ─────────────────────────────────────────────────────
+
+def _disambig_rects(n):
+    gap   = 8
+    btn_w = min(70, (VSEP_X - 10 - (n - 1) * gap) // n)
+    btn_h = 50
+    total = n * btn_w + (n - 1) * gap
+    x0    = (VSEP_X - total) // 2
+    y0    = TITLE_H + (H - TITLE_H - btn_h) // 2
+    return [(x0 + i * (btn_w + gap), y0,
+             x0 + i * (btn_w + gap) + btn_w - 1, y0 + btn_h - 1)
+            for i in range(n)]
+
+
+def _hit_disambig(idx, rects, lx, ly):
+    x0, y0, x1, y1 = rects[idx]
+    return x0 <= lx <= x1 and y0 <= ly <= y1
+
+
+def build_disambig_screen(labels, rects, selected=None, move_label=''):
+    img = Image.new('1', (W, H), 255)
+    draw = ImageDraw.Draw(img)
+    f = _load_fonts()
+    _draw_chrome(draw, f, f'Which? {move_label}', ok_active=(selected is not None))
+    for i, label in enumerate(labels):
+        x0, y0, x1, y1 = rects[i]
+        cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+        if i == selected:
+            draw.rectangle([(x0, y0), (x1, y1)], fill=0)
+            _draw_centered(draw, cx, cy, label, f['piece'], 255)
+        else:
+            draw.rectangle([(x0, y0), (x1, y1)], outline=0)
+            _draw_centered(draw, cx, cy, label, f['piece'], 0)
+    return img
+
+
+# ── In-game menu screen ───────────────────────────────────────────────────────
+
+def _igmenu_rect(idx):
+    y0 = IGMENU_BTN_Y0 + idx * (IGMENU_BTN_H + IGMENU_BTN_GAP)
+    return (IGMENU_BTN_X0, y0, IGMENU_BTN_X1, y0 + IGMENU_BTN_H - 1)
+
+
+def _hit_igmenu(idx, lx, ly):
+    x0, y0, x1, y1 = _igmenu_rect(idx)
+    return x0 <= lx <= x1 and y0 <= ly <= y1
+
+
+def build_ingame_menu_screen(move_label=''):
+    img = Image.new('1', (W, H), 255)
+    draw = ImageDraw.Draw(img)
+    f = _load_fonts()
+    _draw_chrome(draw, f, move_label or 'Menu')
+    for i, label in enumerate(IGMENU_BTN_LABELS):
+        x0, y0, x1, y1 = _igmenu_rect(i)
+        cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+        draw.rectangle([(x0, y0), (x1, y1)], outline=0)
+        _draw_centered(draw, cx, cy, label, f['btn'], 0)
+    return img
+
+
+# ── Score sheet screen (portrait 122 × 250) ───────────────────────────────────
+
+def build_scoresheet_screen(move_history, move_label=''):
+    """Portrait image — getbuffer handles 122×250 with 180° rotation."""
+    img = Image.new('1', (SCORE_W, SCORE_H), 255)
+    draw = ImageDraw.Draw(img)
+    f = _load_fonts()
+
+    # Title bar
+    draw.rectangle([(0, 0), (SCORE_W - 1, SCORE_TITLE_H - 1)], fill=0)
+    title = f'Score {move_label}' if move_label else 'Score Sheet'
+    _draw_centered(draw, SCORE_W // 2, SCORE_TITLE_H // 2, title, f['title'], 255)
+
+    # Back button
+    draw.rectangle([(2, SCORE_BACK_Y0), (SCORE_W - 3, SCORE_BACK_Y1)], outline=0)
+    _draw_centered(draw, SCORE_W // 2, (SCORE_BACK_Y0 + SCORE_BACK_Y1) // 2,
+                   'Back', f['btn'], 0)
+
+    # Move list — last SCORE_ROWS full moves
+    total = len(move_history)
+    # align to white's move (even index)
+    start = max(0, total - SCORE_ROWS * 2)
+    if start % 2 == 1:
+        start -= 1
+    recent = move_history[start:]
+    start_full = start // 2 + 1
+
+    y = SCORE_TITLE_H + 3
+    for j in range(0, len(recent), 2):
+        full_num = start_full + j // 2
+        w = _san_with_glyph(recent[j]) if j < len(recent) else ''
+        b = _san_with_glyph(recent[j + 1]) if j + 1 < len(recent) else ''
+        draw.text((2, y), f'{full_num}. {w}  {b}', font=f['small'], fill=0)
+        y += SCORE_ROW_H
+        if y >= SCORE_BACK_Y0 - 4:
+            break
+
+    return img
+
+
+def _hit_scoresheet_back(tx, ty):
+    # Portrait: raw (tx, ty) map directly to portrait PIL coords
+    return 0 <= tx <= SCORE_W - 1 and SCORE_BACK_Y0 <= ty <= SCORE_BACK_Y1
+
+
 # ── Game logic ────────────────────────────────────────────────────────────────
 
 def _skill_level(difficulty):
     return round((difficulty - 1) * 20 / 9)
 
 
-def _find_move(board, piece_idx, file_idx, rank_idx):
-    """Return the unique legal move for piece+target, or None."""
+def _find_candidates(board, piece_idx, file_idx, rank_idx, promo_idx=None):
+    """Return all legal moves matching piece+target square."""
     piece_type = [chess.PAWN, chess.KNIGHT, chess.BISHOP,
                   chess.ROOK, chess.QUEEN, chess.KING][piece_idx]
-    target = chess.square(file_idx, rank_idx)
-
-    matches = []
+    target     = chess.square(file_idx, rank_idx)
+    promo_type = PROMO_PIECE_TYPES[promo_idx] if promo_idx is not None else chess.QUEEN
+    out = []
     for m in board.legal_moves:
         if board.piece_type_at(m.from_square) != piece_type:
             continue
         if m.to_square != target:
             continue
-        # Skip non-queen pawn promotions
-        if m.promotion and m.promotion != chess.QUEEN:
+        if m.promotion and m.promotion != promo_type:
             continue
-        matches.append(m)
+        out.append(m)
+    return out
 
-    if len(matches) == 1:
-        return matches[0]
-    if len(matches) > 1:
-        log.warning('Ambiguous move — taking first match')
-        return matches[0]
-    return None
+
+def _needs_promotion(board, piece_idx, file_idx, rank_idx) -> bool:
+    if piece_idx != 0:
+        return False
+    target = chess.square(file_idx, rank_idx)
+    return any(
+        board.piece_type_at(m.from_square) == chess.PAWN
+        and m.to_square == target
+        and m.promotion is not None
+        for m in board.legal_moves
+    )
 
 
 # ── Display helpers ───────────────────────────────────────────────────────────
 
 def _transition(epd, img, partial_count):
-    """Full refresh — used for every screen change."""
     epd.init(epd.FULL_UPDATE)
     epd.displayPartBaseImage(epd.getbuffer(img))
     epd.init(epd.PART_UPDATE)
@@ -375,7 +580,6 @@ def _transition(epd, img, partial_count):
 
 
 def _show(epd, img, partial_count):
-    """Partial refresh with periodic full refresh to clear ghosting."""
     buf = epd.getbuffer(img)
     partial_count[0] += 1
     if partial_count[0] % 5 == 0:
@@ -385,6 +589,35 @@ def _show(epd, img, partial_count):
         epd.init(epd.PART_UPDATE)
     else:
         epd.displayPartial_Wait(buf)
+
+
+def _push_and_continue(board, move, move_history, engine, epd, partial_count,
+                        player_is_white, inv_count, cur_move_label):
+    """Push player move, check game over, otherwise trigger Stockfish reply.
+
+    Returns (screen, cur_move_label) for the caller to update state.
+    """
+    san = board.san(move)
+    board.push(move)
+    move_history.append(san)
+    log.info('Player: %s', san)
+
+    if board.is_game_over():
+        log.info('Game over: %s', board.result())
+        line1, line2 = _game_over_message(board, player_is_white)
+        _transition(epd, build_game_over_screen(line1, line2), partial_count)
+        return SCREEN_GAME_OVER, cur_move_label
+
+    # Stockfish replies
+    sf_label = _move_label(board)
+    _transition(epd, build_thinking_screen(), partial_count)
+    result = engine.play(board, chess.engine.Limit(time=1.0))
+    sf_san  = board.san(result.move)
+    board.push(result.move)
+    move_history.append(sf_san)
+    log.info('Stockfish: %s', sf_san)
+    _transition(epd, build_sf_move_screen(sf_san, sf_label), partial_count)
+    return SCREEN_SF_MOVE, sf_label
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -403,12 +636,12 @@ def main():
     epd.displayPartBaseImage(epd.getbuffer(build_difficulty_screen()))
     epd.init(epd.PART_UPDATE)
 
-    screen         = SCREEN_DIFFICULTY
-    diff_sel       = None
-    color_sel      = None
-    partial_count  = [0]
+    screen        = SCREEN_DIFFICULTY
+    diff_sel      = None
+    color_sel     = None
+    partial_count = [0]
 
-    # Game state (set after setup screens)
+    # Game state
     board           = None
     engine          = None
     player_is_white = True
@@ -416,6 +649,18 @@ def main():
     sel_file        = None
     sel_rank        = None
     inv_count       = 0
+    cur_move_label  = ''
+    move_history    = []
+
+    # Promotion state
+    prom_piece = prom_file = prom_rank = None
+    sel_promo  = None
+
+    # Disambiguation state
+    disambig_candidates = []
+    disambig_labels     = []
+    disambig_rects      = []
+    sel_disambig        = None
 
     running = True
     def irq_poll():
@@ -427,22 +672,36 @@ def main():
 
     try:
         while True:
+            had_irq = (dev.Touch == 1)
             gt.GT_Scan(dev, old)
-            if (old.X[0] == dev.X[0] and old.Y[0] == dev.Y[0]
-                    and old.S[0] == dev.S[0]):
+
+            same_coords = (old.X[0] == dev.X[0]
+                           and old.Y[0] == dev.Y[0]
+                           and old.S[0] == dev.S[0])
+
+            if same_coords:
+                if had_irq and not dev.TouchpointFlag:
+                    old.X[0] = old.Y[0] = old.S[0] = 0
+                    dev.X[0] = dev.Y[0] = dev.S[0] = 0
+                time.sleep(0.01)
                 continue
+
             if not dev.TouchpointFlag:
+                time.sleep(0.01)
                 continue
+
             dev.TouchpointFlag = 0
 
+            # Landscape coordinates (most screens)
             lx, ly = _to_landscape(dev.X[0], dev.Y[0])
+            # Raw coordinates (portrait scoresheet)
+            tx, ty = dev.X[0], dev.Y[0]
 
             # ── Setup: difficulty ─────────────────────────────────────────────
             if screen == SCREEN_DIFFICULTY:
                 for lvl in range(1, 11):
                     if _hit_diff(lvl, lx, ly) and lvl != diff_sel:
                         diff_sel = lvl
-                        log.info('Difficulty → %d', diff_sel)
                         _show(epd, build_difficulty_screen(diff_sel), partial_count)
                         break
                 if _hit_ok(lx, ly) and diff_sel is not None:
@@ -452,42 +711,50 @@ def main():
 
             # ── Setup: side ───────────────────────────────────────────────────
             elif screen == SCREEN_COLOR:
-                for i in range(len(COLORS)):
-                    if _hit_color(i, lx, ly) and i != color_sel:
-                        color_sel = i
-                        log.info('Side → %s', COLORS[color_sel])
-                        _show(epd, build_color_screen(color_sel), partial_count)
-                        break
-                if _hit_ok(lx, ly) and color_sel is not None:
-                    # ── Start game ─────────────────────────────────────────
-                    if color_sel == 2:  # Random
-                        player_is_white = random.choice([True, False])
-                    else:
-                        player_is_white = (color_sel == 0)
-                    log.info('Starting game — player is %s, difficulty %d',
-                             'White' if player_is_white else 'Black', diff_sel)
+                if _hit_sec(lx, ly):
+                    screen = SCREEN_DIFFICULTY
+                    _transition(epd, build_difficulty_screen(diff_sel), partial_count)
+                else:
+                    for i in range(len(COLORS)):
+                        if _hit_color(i, lx, ly) and i != color_sel:
+                            color_sel = i
+                            _show(epd, build_color_screen(color_sel), partial_count)
+                            break
+                    if _hit_ok(lx, ly, split=True) and color_sel is not None:
+                        if color_sel == 2:
+                            player_is_white = random.choice([True, False])
+                        else:
+                            player_is_white = (color_sel == 0)
+                        log.info('Starting — player %s, diff %d',
+                                 'White' if player_is_white else 'Black', diff_sel)
 
-                    board     = chess.Board()
-                    inv_count = 0
-                    engine    = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
-                    engine.configure({'Skill Level': _skill_level(diff_sel)})
+                        board        = chess.Board()
+                        inv_count    = 0
+                        move_history = []
+                        engine       = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
+                        engine.configure({'Skill Level': _skill_level(diff_sel)})
 
-                    if player_is_white:
-                        # Player moves first
-                        sel_piece = sel_file = sel_rank = None
-                        screen = SCREEN_PLAYER_MOVE
-                        _transition(epd, build_player_move_screen(None, None, None, inv_count),
-                                    partial_count)
-                    else:
-                        # Stockfish moves first
-                        _transition(epd, build_thinking_screen(), partial_count)
-                        result  = engine.play(board, chess.engine.Limit(time=1.0))
-                        sf_san  = board.san(result.move)
-                        board.push(result.move)
-                        log.info('Stockfish: %s', sf_san)
-                        screen = SCREEN_SF_MOVE
-                        _transition(epd, build_sf_move_screen(sf_san, board.fullmove_number),
-                                    partial_count)
+                        if player_is_white:
+                            cur_move_label = _move_label(board)
+                            sel_piece = sel_file = sel_rank = None
+                            screen = SCREEN_PLAYER_MOVE
+                            _transition(epd,
+                                        build_player_move_screen(None, None, None, 0,
+                                                                  cur_move_label),
+                                        partial_count)
+                        else:
+                            sf_label = _move_label(board)
+                            _transition(epd, build_thinking_screen(), partial_count)
+                            result = engine.play(board, chess.engine.Limit(time=1.0))
+                            sf_san = board.san(result.move)
+                            board.push(result.move)
+                            move_history.append(sf_san)
+                            log.info('Stockfish: %s', sf_san)
+                            cur_move_label = sf_label
+                            screen = SCREEN_SF_MOVE
+                            _transition(epd,
+                                        build_sf_move_screen(sf_san, sf_label),
+                                        partial_count)
 
             # ── Stockfish move — wait for player to confirm ───────────────────
             elif screen == SCREEN_SF_MOVE:
@@ -497,82 +764,193 @@ def main():
                         screen = SCREEN_GAME_OVER
                         _transition(epd, build_game_over_screen(line1, line2), partial_count)
                     else:
+                        cur_move_label = _move_label(board)
                         sel_piece = sel_file = sel_rank = None
                         screen = SCREEN_PLAYER_MOVE
-                        _transition(epd, build_player_move_screen(None, None, None, inv_count),
+                        _transition(epd,
+                                    build_player_move_screen(None, None, None, inv_count,
+                                                              cur_move_label),
                                     partial_count)
 
             # ── Player move input ─────────────────────────────────────────────
             elif screen == SCREEN_PLAYER_MOVE:
-                changed = False
-                for i in range(len(PIECES)):
-                    if _hit_pm_piece(i, lx, ly) and i != sel_piece:
-                        sel_piece = i
-                        changed = True
-                        break
-                if not changed:
-                    for i in range(len(FILES)):
-                        if _hit_pm_file(i, lx, ly) and i != sel_file:
-                            sel_file = i
-                            changed = True
-                            break
-                if not changed:
-                    for i in range(len(RANKS)):
-                        if _hit_pm_rank(i, lx, ly) and i != sel_rank:
-                            sel_rank = i
-                            changed = True
-                            break
-                if changed:
-                    _show(epd, build_player_move_screen(sel_piece, sel_file, sel_rank, inv_count),
-                          partial_count)
+                if _hit_sec(lx, ly):
+                    screen = SCREEN_INGAME_MENU
+                    _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
+                else:
+                    changed = False
+                    for i in range(len(PIECES)):
+                        if _hit_pm_piece(i, lx, ly) and i != sel_piece:
+                            sel_piece = i; changed = True; break
+                    if not changed:
+                        for i in range(len(FILES)):
+                            if _hit_pm_file(i, lx, ly) and i != sel_file:
+                                sel_file = i; changed = True; break
+                    if not changed:
+                        for i in range(len(RANKS)):
+                            if _hit_pm_rank(i, lx, ly) and i != sel_rank:
+                                sel_rank = i; changed = True; break
 
-                if (_hit_ok(lx, ly)
-                        and sel_piece is not None
-                        and sel_file  is not None
-                        and sel_rank  is not None):
-                    move = _find_move(board, sel_piece, sel_file, sel_rank)
-                    if move is None:
-                        log.warning('Illegal move: %s%s%s — try again',
-                                    PIECES[sel_piece], FILES[sel_file], RANKS[sel_rank])
-                        inv_count += 1
-                        sel_piece = sel_file = sel_rank = None
-                        _show(epd, build_player_move_screen(None, None, None, inv_count),
+                    if changed:
+                        _show(epd,
+                              build_player_move_screen(sel_piece, sel_file, sel_rank,
+                                                        inv_count, cur_move_label),
                               partial_count)
-                    else:
-                        player_san = board.san(move)
-                        board.push(move)
-                        log.info('Player: %s', player_san)
-
-                        if board.is_game_over():
-                            log.info('Game over: %s', board.result())
-                            line1, line2 = _game_over_message(board, player_is_white)
-                            screen = SCREEN_GAME_OVER
-                            _transition(epd, build_game_over_screen(line1, line2), partial_count)
-                        else:
-                            # Stockfish replies
-                            _transition(epd, build_thinking_screen(), partial_count)
-                            result  = engine.play(board, chess.engine.Limit(time=1.0))
-                            sf_san  = board.san(result.move)
-                            board.push(result.move)
-                            log.info('Stockfish: %s', sf_san)
-                            screen = SCREEN_SF_MOVE
-                            _transition(epd,
-                                        build_sf_move_screen(sf_san, board.fullmove_number),
+                    elif (_hit_ok(lx, ly, split=True)
+                            and sel_piece is not None
+                            and sel_file  is not None
+                            and sel_rank  is not None):
+                        if _needs_promotion(board, sel_piece, sel_file, sel_rank):
+                            prom_piece, prom_file, prom_rank = sel_piece, sel_file, sel_rank
+                            sel_promo = None
+                            screen = SCREEN_PROMOTION
+                            _transition(epd, build_promotion_screen(None, cur_move_label),
                                         partial_count)
+                        else:
+                            candidates = _find_candidates(board, sel_piece, sel_file, sel_rank)
+                            if not candidates:
+                                inv_count += 1
+                                sel_piece = sel_file = sel_rank = None
+                                _show(epd,
+                                      build_player_move_screen(None, None, None,
+                                                                inv_count, cur_move_label),
+                                      partial_count)
+                            elif len(candidates) == 1:
+                                screen, cur_move_label = _push_and_continue(
+                                    board, candidates[0], move_history, engine,
+                                    epd, partial_count, player_is_white,
+                                    inv_count, cur_move_label)
+                                if screen == SCREEN_PLAYER_MOVE:
+                                    sel_piece = sel_file = sel_rank = None
+                            else:
+                                # Ambiguous — ask which piece
+                                disambig_candidates = candidates
+                                disambig_labels = [
+                                    PIECE_SYMBOLS[sel_piece]
+                                    + chess.square_name(m.from_square)
+                                    for m in candidates
+                                ]
+                                disambig_rects = _disambig_rects(len(candidates))
+                                sel_disambig = None
+                                screen = SCREEN_DISAMBIG
+                                _transition(epd,
+                                            build_disambig_screen(disambig_labels,
+                                                                   disambig_rects,
+                                                                   None, cur_move_label),
+                                            partial_count)
 
-            # ── Game over — OK restarts from difficulty selection ─────────────
+            # ── Pawn promotion ────────────────────────────────────────────────
+            elif screen == SCREEN_PROMOTION:
+                changed = False
+                for i in range(4):
+                    if _hit_promo(i, lx, ly) and i != sel_promo:
+                        sel_promo = i; changed = True; break
+                if changed:
+                    _show(epd, build_promotion_screen(sel_promo, cur_move_label),
+                          partial_count)
+                elif _hit_ok(lx, ly) and sel_promo is not None:
+                    candidates = _find_candidates(board, prom_piece, prom_file,
+                                                   prom_rank, sel_promo)
+                    if not candidates:
+                        log.warning('Promotion move not found')
+                        sel_promo = None
+                        _show(epd, build_promotion_screen(None, cur_move_label),
+                              partial_count)
+                    elif len(candidates) == 1:
+                        sel_piece = sel_file = sel_rank = None
+                        prom_piece = prom_file = prom_rank = sel_promo = None
+                        screen, cur_move_label = _push_and_continue(
+                            board, candidates[0], move_history, engine,
+                            epd, partial_count, player_is_white,
+                            inv_count, cur_move_label)
+                    else:
+                        # Two pawns capturing same promotion square (very rare)
+                        disambig_candidates = candidates
+                        disambig_labels = [
+                            PIECE_SYMBOLS[prom_piece]
+                            + chess.square_name(m.from_square)
+                            for m in candidates
+                        ]
+                        disambig_rects = _disambig_rects(len(candidates))
+                        sel_disambig = None
+                        prom_piece = prom_file = prom_rank = sel_promo = None
+                        screen = SCREEN_DISAMBIG
+                        _transition(epd,
+                                    build_disambig_screen(disambig_labels,
+                                                           disambig_rects,
+                                                           None, cur_move_label),
+                                    partial_count)
+
+            # ── Disambiguation ────────────────────────────────────────────────
+            elif screen == SCREEN_DISAMBIG:
+                changed = False
+                for i in range(len(disambig_candidates)):
+                    if _hit_disambig(i, disambig_rects, lx, ly) and i != sel_disambig:
+                        sel_disambig = i; changed = True; break
+                if changed:
+                    _show(epd,
+                          build_disambig_screen(disambig_labels, disambig_rects,
+                                                 sel_disambig, cur_move_label),
+                          partial_count)
+                elif _hit_ok(lx, ly) and sel_disambig is not None:
+                    move = disambig_candidates[sel_disambig]
+                    sel_disambig = None
+                    sel_piece = sel_file = sel_rank = None
+                    screen, cur_move_label = _push_and_continue(
+                        board, move, move_history, engine,
+                        epd, partial_count, player_is_white,
+                        inv_count, cur_move_label)
+
+            # ── In-game menu ──────────────────────────────────────────────────
+            elif screen == SCREEN_INGAME_MENU:
+                if _hit_igmenu(0, lx, ly):   # Resign
+                    log.info('Player resigned')
+                    if engine:
+                        engine.quit()
+                        engine = None
+                    board = None
+                    inv_count = 0
+                    move_history = []
+                    diff_sel = color_sel = None
+                    sel_piece = sel_file = sel_rank = None
+                    screen = SCREEN_DIFFICULTY
+                    _transition(epd, build_difficulty_screen(), partial_count)
+
+                elif _hit_igmenu(1, lx, ly):  # Score Sheet
+                    screen = SCREEN_SCORESHEET
+                    _transition(epd,
+                                build_scoresheet_screen(move_history, cur_move_label),
+                                partial_count)
+
+                elif _hit_igmenu(2, lx, ly):  # Back → player move
+                    screen = SCREEN_PLAYER_MOVE
+                    _transition(epd,
+                                build_player_move_screen(sel_piece, sel_file, sel_rank,
+                                                          inv_count, cur_move_label),
+                                partial_count)
+
+            # ── Score sheet (portrait) ────────────────────────────────────────
+            elif screen == SCREEN_SCORESHEET:
+                if _hit_scoresheet_back(tx, ty):
+                    screen = SCREEN_INGAME_MENU
+                    _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
+
+            # ── Game over ─────────────────────────────────────────────────────
             elif screen == SCREEN_GAME_OVER:
                 if _hit_ok(lx, ly):
                     if engine:
                         engine.quit()
                         engine = None
-                    board     = None
-                    inv_count = 0
-                    diff_sel  = None
-                    color_sel = None
-                    sel_piece = sel_file = sel_rank = None
+                    board        = None
+                    inv_count    = 0
+                    move_history = []
+                    diff_sel     = None
+                    color_sel    = None
+                    sel_piece    = sel_file = sel_rank = None
                     screen = SCREEN_DIFFICULTY
                     _transition(epd, build_difficulty_screen(), partial_count)
+
+            time.sleep(0.1)
 
     except KeyboardInterrupt:
         log.info('Shutting down')
