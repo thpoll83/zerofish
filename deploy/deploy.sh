@@ -39,6 +39,14 @@ ${RSYNC} \
     "${REMOTE}:~/deploy/"
 
 echo ""
+echo "--- Installing systemd service ---"
+ssh "${REMOTE}" "sudo cp ~/deploy/zerofish.service /etc/systemd/system/zerofish.service \
+    && sudo systemctl daemon-reload \
+    && sudo systemctl enable zerofish \
+    && sudo systemctl restart zerofish \
+    && echo 'Service enabled and started'"
+
+echo ""
 echo "=== Deploy complete ==="
-echo "To run ZeroFish:"
-echo "  ssh ${REMOTE} python3 ~/zerofish/main.py"
+echo "Service status:  ssh ${REMOTE} systemctl status zerofish"
+echo "Live logs:       ssh ${REMOTE} journalctl -fu zerofish"

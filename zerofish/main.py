@@ -31,6 +31,12 @@ W, H = 250, 122
 
 _FONT_DIR = os.path.join(_REPO, 'Touch_e-Paper_Code', 'python', 'pic')
 
+# System fonts that include Unicode chess piece glyphs (♟♞♝♜♛♚)
+_PIECE_FONT_PATHS = [
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/truetype/freefont/FreeSerif.ttf',
+]
+
 # ── Shared layout ─────────────────────────────────────────────────────────────
 TITLE_H = 21
 
@@ -59,6 +65,8 @@ COLOR_BTN_X   = [2 + i * (COLOR_BTN_W + COLOR_BTN_GAP) for i in range(3)]
 
 # ── Player move input screen ──────────────────────────────────────────────────
 PIECES = ['P', 'N', 'B', 'R', 'Q', 'K']
+# Filled Unicode chess glyphs — one per piece, same order as PIECES
+PIECE_SYMBOLS = ['♟', '♞', '♝', '♜', '♛', '♚']
 FILES  = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 RANKS  = ['1', '2', '3', '4', '5', '6', '7', '8']
 
@@ -69,11 +77,14 @@ PM_ROW1_Y  = TITLE_H + 5                      # pieces
 PM_ROW2_Y  = PM_ROW1_Y + PM_ROW_H + 3         # files
 PM_ROW3_Y  = PM_ROW2_Y + PM_ROW_H + 3         # ranks
 
+# 3 px clearance so buttons never touch the vertical separator
+PM_MAX_X   = VSEP_X - 3
+
 # 6 piece buttons
-PM_PIECE_W = (VSEP_X - PM_MARGIN - 5 * PM_GAP) // 6   # 29 px
+PM_PIECE_W = (PM_MAX_X - PM_MARGIN - 5 * PM_GAP) // 6
 
 # 8 file/rank buttons
-PM_FILE_W  = (VSEP_X - PM_MARGIN - 7 * PM_GAP) // 8   # 21 px
+PM_FILE_W  = (PM_MAX_X - PM_MARGIN - 7 * PM_GAP) // 8
 
 # ── Screens ───────────────────────────────────────────────────────────────────
 SCREEN_DIFFICULTY  = 0
@@ -81,6 +92,7 @@ SCREEN_COLOR       = 1
 SCREEN_THINKING    = 2
 SCREEN_SF_MOVE     = 3
 SCREEN_PLAYER_MOVE = 4
+SCREEN_GAME_OVER   = 5
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -94,17 +106,27 @@ def _hit_ok(lx: int, ly: int) -> bool:
 
 def _load_fonts() -> dict:
     try:
-        return {
-            'title': ImageFont.truetype(os.path.join(_FONT_DIR, 'Roboto-Bold.ttf'),    15),
-            'ver':   ImageFont.truetype(os.path.join(_FONT_DIR, 'Roboto-Regular.ttf'), 10),
-            'btn':   ImageFont.truetype(os.path.join(_FONT_DIR, 'Roboto-Bold.ttf'),    14),
-            'ok':    ImageFont.truetype(os.path.join(_FONT_DIR, 'Roboto-Bold.ttf'),    16),
-            'move':  ImageFont.truetype(os.path.join(_FONT_DIR, 'Roboto-Bold.ttf'),    42),
-            'small': ImageFont.truetype(os.path.join(_FONT_DIR, 'Roboto-Regular.ttf'), 11),
+        bold = os.path.join(_FONT_DIR, 'Roboto-Bold.ttf')
+        reg  = os.path.join(_FONT_DIR, 'Roboto-Regular.ttf')
+        fonts = {
+            'title':  ImageFont.truetype(bold, 15),
+            'ver':    ImageFont.truetype(reg,  10),
+            'btn':    ImageFont.truetype(bold, 14),
+            'ok':     ImageFont.truetype(bold, 16),
+            'move':   ImageFont.truetype(bold, 42),
+            'result': ImageFont.truetype(bold, 28),
+            'small':  ImageFont.truetype(reg,  11),
         }
+        for path in _PIECE_FONT_PATHS:
+            if os.path.exists(path):
+                fonts['piece'] = ImageFont.truetype(path, 20)
+                break
+        else:
+            fonts['piece'] = fonts['btn']
+        return fonts
     except Exception:
         f = ImageFont.load_default()
-        return {k: f for k in ('title', 'ver', 'btn', 'ok', 'move', 'small')}
+        return {k: f for k in ('title', 'ver', 'btn', 'ok', 'move', 'result', 'small', 'piece')}
 
 
 def _draw_centered(draw, cx, cy, text, font, fill):
@@ -219,6 +241,39 @@ def build_sf_move_screen(san, move_num):
     return img
 
 
+# ── Game over screen ──────────────────────────────────────────────────────────
+
+def _game_over_message(board, player_is_white):
+    outcome = board.outcome()
+    if outcome is None:
+        return 'Game Over', board.result()
+    term = outcome.termination
+    if term == chess.Termination.CHECKMATE:
+        line1 = 'You win!' if (outcome.winner == player_is_white) else 'You lose'
+        return line1, 'Checkmate'
+    if term == chess.Termination.STALEMATE:
+        return 'Draw', 'Stalemate'
+    if term == chess.Termination.INSUFFICIENT_MATERIAL:
+        return 'Draw', 'Insuf. material'
+    if term in (chess.Termination.FIFTY_MOVES, chess.Termination.SEVENTYFIVE_MOVES):
+        return 'Draw', '50-move rule'
+    if term in (chess.Termination.THREEFOLD_REPETITION, chess.Termination.FIVEFOLD_REPETITION):
+        return 'Draw', 'Repetition'
+    return 'Game Over', board.result()
+
+
+def build_game_over_screen(line1, line2):
+    img = Image.new('1', (W, H), 255)
+    draw = ImageDraw.Draw(img)
+    f = _load_fonts()
+    _draw_chrome(draw, f, 'Game Over', ok_active=True)
+    cx = VSEP_X // 2
+    cy = (TITLE_H + H) // 2
+    _draw_centered(draw, cx, cy - 14, line1, f['result'], 0)
+    _draw_centered(draw, cx, cy + 22, line2, f['small'],  0)
+    return img
+
+
 # ── Player move input screen ──────────────────────────────────────────────────
 
 def _pm_piece_rect(idx):
@@ -251,28 +306,30 @@ def _hit_pm_rank(idx, lx, ly):
     return x0 <= lx <= x1 and y0 <= ly <= y1
 
 
-def build_player_move_screen(sel_piece, sel_file, sel_rank):
+def build_player_move_screen(sel_piece, sel_file, sel_rank, inv_count=0):
     """sel_piece/file/rank are indices (int) or None."""
     img = Image.new('1', (W, H), 255)
     draw = ImageDraw.Draw(img)
     f = _load_fonts()
     ok_ready = (sel_piece is not None and sel_file is not None and sel_rank is not None)
-    _draw_chrome(draw, f, 'Your Move', ok_active=ok_ready)
+    title = f'Your Move Inv:{inv_count}' if inv_count else 'Your Move'
+    _draw_chrome(draw, f, title, ok_active=ok_ready)
 
-    def _row(items, rects_fn, selected_idx):
+    def _row(items, rects_fn, selected_idx, font=None):
+        _f = font or f['btn']
         for i, label in enumerate(items):
             x0, y0, x1, y1 = rects_fn(i)
             cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
             if i == selected_idx:
                 draw.rectangle([(x0, y0), (x1, y1)], fill=0)
-                _draw_centered(draw, cx, cy, label, f['btn'], 255)
+                _draw_centered(draw, cx, cy, label, _f, 255)
             else:
                 draw.rectangle([(x0, y0), (x1, y1)], outline=0)
-                _draw_centered(draw, cx, cy, label, f['btn'], 0)
+                _draw_centered(draw, cx, cy, label, _f, 0)
 
-    _row(PIECES, _pm_piece_rect, sel_piece)
-    _row(FILES,  _pm_file_rect,  sel_file)
-    _row(RANKS,  _pm_rank_rect,  sel_rank)
+    _row(PIECE_SYMBOLS, _pm_piece_rect, sel_piece, f['piece'])
+    _row(FILES,         _pm_file_rect,  sel_file)
+    _row(RANKS,         _pm_rank_rect,  sel_rank)
     return img
 
 
@@ -352,12 +409,13 @@ def main():
     partial_count  = [0]
 
     # Game state (set after setup screens)
-    board          = None
-    engine         = None
+    board           = None
+    engine          = None
     player_is_white = True
-    sel_piece      = None
-    sel_file       = None
-    sel_rank       = None
+    sel_piece       = None
+    sel_file        = None
+    sel_rank        = None
+    inv_count       = 0
 
     running = True
     def irq_poll():
@@ -409,15 +467,16 @@ def main():
                     log.info('Starting game — player is %s, difficulty %d',
                              'White' if player_is_white else 'Black', diff_sel)
 
-                    board  = chess.Board()
-                    engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
+                    board     = chess.Board()
+                    inv_count = 0
+                    engine    = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
                     engine.configure({'Skill Level': _skill_level(diff_sel)})
 
                     if player_is_white:
                         # Player moves first
                         sel_piece = sel_file = sel_rank = None
                         screen = SCREEN_PLAYER_MOVE
-                        _transition(epd, build_player_move_screen(None, None, None),
+                        _transition(epd, build_player_move_screen(None, None, None, inv_count),
                                     partial_count)
                     else:
                         # Stockfish moves first
@@ -433,10 +492,15 @@ def main():
             # ── Stockfish move — wait for player to confirm ───────────────────
             elif screen == SCREEN_SF_MOVE:
                 if _hit_ok(lx, ly):
-                    sel_piece = sel_file = sel_rank = None
-                    screen = SCREEN_PLAYER_MOVE
-                    _transition(epd, build_player_move_screen(None, None, None),
-                                partial_count)
+                    if board.is_game_over():
+                        line1, line2 = _game_over_message(board, player_is_white)
+                        screen = SCREEN_GAME_OVER
+                        _transition(epd, build_game_over_screen(line1, line2), partial_count)
+                    else:
+                        sel_piece = sel_file = sel_rank = None
+                        screen = SCREEN_PLAYER_MOVE
+                        _transition(epd, build_player_move_screen(None, None, None, inv_count),
+                                    partial_count)
 
             # ── Player move input ─────────────────────────────────────────────
             elif screen == SCREEN_PLAYER_MOVE:
@@ -459,7 +523,7 @@ def main():
                             changed = True
                             break
                 if changed:
-                    _show(epd, build_player_move_screen(sel_piece, sel_file, sel_rank),
+                    _show(epd, build_player_move_screen(sel_piece, sel_file, sel_rank, inv_count),
                           partial_count)
 
                 if (_hit_ok(lx, ly)
@@ -470,19 +534,20 @@ def main():
                     if move is None:
                         log.warning('Illegal move: %s%s%s — try again',
                                     PIECES[sel_piece], FILES[sel_file], RANKS[sel_rank])
-                        # Flash: briefly clear selection to signal error
+                        inv_count += 1
                         sel_piece = sel_file = sel_rank = None
-                        _show(epd, build_player_move_screen(None, None, None),
+                        _show(epd, build_player_move_screen(None, None, None, inv_count),
                               partial_count)
                     else:
                         player_san = board.san(move)
                         board.push(move)
                         log.info('Player: %s', player_san)
 
-                        # Check game over
                         if board.is_game_over():
                             log.info('Game over: %s', board.result())
-                            # TODO: game over screen
+                            line1, line2 = _game_over_message(board, player_is_white)
+                            screen = SCREEN_GAME_OVER
+                            _transition(epd, build_game_over_screen(line1, line2), partial_count)
                         else:
                             # Stockfish replies
                             _transition(epd, build_thinking_screen(), partial_count)
@@ -494,6 +559,20 @@ def main():
                             _transition(epd,
                                         build_sf_move_screen(sf_san, board.fullmove_number),
                                         partial_count)
+
+            # ── Game over — OK restarts from difficulty selection ─────────────
+            elif screen == SCREEN_GAME_OVER:
+                if _hit_ok(lx, ly):
+                    if engine:
+                        engine.quit()
+                        engine = None
+                    board     = None
+                    inv_count = 0
+                    diff_sel  = None
+                    color_sel = None
+                    sel_piece = sel_file = sel_rank = None
+                    screen = SCREEN_DIFFICULTY
+                    _transition(epd, build_difficulty_screen(), partial_count)
 
     except KeyboardInterrupt:
         log.info('Shutting down')

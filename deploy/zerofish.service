@@ -1,0 +1,16 @@
+[Unit]
+Description=ZeroFish Chess Computer
+After=multi-user.target
+
+[Service]
+Type=simple
+User=zero
+WorkingDirectory=/home/zero/zerofish
+ExecStart=/usr/bin/python3 /home/zero/zerofish/main.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

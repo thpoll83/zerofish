@@ -3,8 +3,8 @@
 # It enables the required interfaces, installs Python dependencies, and verifies
 # the GT1151 touch controller is visible on the I2C bus.
 #
-# Usage (from dev machine, after SSH key is set up):
-#   ssh zero@192.168.68.55 bash deploy/rpi_setup.sh
+# Usage (run with an interactive terminal so sudo can prompt for a password):
+#   ssh -t zero@192.168.68.55 bash deploy/rpi_setup.sh
 
 set -e
 
@@ -24,11 +24,19 @@ sudo apt install -y \
     python3-numpy \
     python3-pip \
     i2c-tools \
-    stockfish
+    stockfish \
+    fonts-dejavu-core
 pip3 install chess --break-system-packages
 
 echo ""
-echo "=== 3. Verifying I2C bus (GT1151 touch controller should appear at 0x14) ==="
+echo "=== 3. Allowing passwordless sudo for deploy script ==="
+echo 'zero ALL=(ALL) NOPASSWD: /bin/cp, /usr/bin/systemctl' \
+    | sudo tee /etc/sudoers.d/zerofish > /dev/null
+sudo chmod 0440 /etc/sudoers.d/zerofish
+echo "Sudoers entry written."
+
+echo ""
+echo "=== 4. Verifying I2C bus (GT1151 touch controller should appear at 0x14) ==="
 sudo i2cdetect -y 1
 
 echo ""
