@@ -25,7 +25,8 @@ sudo apt install -y \
     python3-pip \
     i2c-tools \
     stockfish \
-    fonts-dejavu-core
+    fonts-dejavu-core \
+    fonts-dejavu-extra
 pip3 install chess --break-system-packages
 
 echo ""

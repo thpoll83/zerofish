@@ -15,13 +15,18 @@ The display attaches to the GPIO header. No additional wiring is needed beyond t
 ## First-time setup
 
 1. Flash a 64-bit Raspberry Pi OS (Trixie / Debian 13) image.
-2. Enable SSH, set hostname/user to `zero`, copy your SSH key.
+2. Enable SSH and set hostname/user to `zero` via RPi Imager advanced options, then copy your SSH key:
+
+```bash
+ssh-copy-id zero@<rpi-ip>
+```
+
 3. Clone or copy this repo to your development machine.
 4. Deploy files and run the setup script **once** (password prompt requires an interactive terminal):
 
 ```bash
-bash deploy/deploy.sh          # copies files to the RPi
-ssh -t zero@192.168.68.55 bash deploy/rpi_setup.sh
+bash deploy/deploy.sh <rpi-ip>
+ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh
 ```
 
 `rpi_setup.sh` handles:
@@ -42,11 +47,8 @@ bash deploy/deploy.sh
 This syncs all code, installs/updates the systemd service, and restarts it. The new code is live immediately.
 
 ```bash
-# Check service status
-ssh zero@192.168.68.55 systemctl status zerofish
-
-# Follow live logs
-ssh zero@192.168.68.55 journalctl -fu zerofish
+ssh zero@<rpi-ip> systemctl status zerofish
+ssh zero@<rpi-ip> journalctl -fu zerofish   # live log
 ```
 
 ## How to play
@@ -77,7 +79,7 @@ Touch_e-Paper_Code/
   python/pic/                   # Roboto fonts used by the UI
 ```
 
-## Known limitations / possible next steps
+## Possible next steps
 
-- Pawn promotion always promotes to queen (no piece selection)
-- No move history display
+- Persist game history to file
+- Bluetooth board integration (auto-detect moves)

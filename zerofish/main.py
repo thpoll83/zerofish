@@ -11,6 +11,7 @@ import sys
 import time
 import random
 import logging
+import subprocess
 import threading
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,6 +35,16 @@ _FONT_DIR = os.path.join(_REPO, 'Touch_e-Paper_Code', 'python', 'pic')
 _PIECE_FONT_PATHS = [
     '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
     '/usr/share/fonts/truetype/freefont/FreeSerif.ttf',
+]
+_TEXT_BOLD_PATHS = [
+    '/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    os.path.join(_FONT_DIR, 'Roboto-Bold.ttf'),
+]
+_TEXT_REG_PATHS = [
+    '/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    os.path.join(_FONT_DIR, 'Roboto-Regular.ttf'),
 ]
 
 # ── Shared landscape layout ────────────────────────────────────────────────────
@@ -74,11 +85,11 @@ FILES        = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 RANKS        = ['1', '2', '3', '4', '5', '6', '7', '8']
 
 PM_MARGIN  = 2
-PM_GAP     = 2
-PM_ROW_H   = 28
-PM_ROW1_Y  = TITLE_H + 5
-PM_ROW2_Y  = PM_ROW1_Y + PM_ROW_H + 3
-PM_ROW3_Y  = PM_ROW2_Y + PM_ROW_H + 3
+PM_GAP     = 1
+PM_ROW_H   = 31
+PM_ROW1_Y  = TITLE_H + 2
+PM_ROW2_Y  = PM_ROW1_Y + PM_ROW_H + 2
+PM_ROW3_Y  = PM_ROW2_Y + PM_ROW_H + 2
 PM_MAX_X   = VSEP_X - 3
 PM_PIECE_W = (PM_MAX_X - PM_MARGIN - 5 * PM_GAP) // 6
 PM_FILE_W  = (PM_MAX_X - PM_MARGIN - 7 * PM_GAP) // 8
@@ -97,8 +108,8 @@ PROMO_BTN_Y1  = PROMO_BTN_Y0 + PROMO_BTN_H - 1
 
 # ── In-game menu (2×2 grid) ───────────────────────────────────────────────────
 # Button order: 0=Resign  1=Board  (row 0)
-#               2=Score   3=Back   (row 1)
-IGMENU_BTN_LABELS = ['Resign', 'Board', 'Score', 'Back']
+#               2=Score Sheet  3=Time  (row 1)
+IGMENU_BTN_LABELS = ['Resign', 'Board', 'Score Sheet', 'Time']
 IGMENU_COLS    = 2
 IGMENU_BTN_GAP = 4
 IGMENU_X0      = 5
@@ -149,7 +160,45 @@ SCREEN_DISAMBIG    = 7
 SCREEN_INGAME_MENU = 8
 SCREEN_SCORESHEET  = 9
 SCREEN_BOARD       = 10
+SCREEN_SPLASH      = 11
+SCREEN_TIME        = 12
 # ─────────────────────────────────────────────────────────────────────────────
+
+# ── Splash screen ─────────────────────────────────────────────────────────────
+_LOGO_PATH      = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stockfish_logo.png')
+_SPLASH_OK_Y0   = 6
+_SPLASH_OK_Y1   = H - 6
+_SPLASH_LOGO_MAX = 65   # max logo width/height in px
+
+
+def _get_sf_info() -> tuple[str, str]:
+    """Return (id_name, bitness) strings from the installed Stockfish binary."""
+    name = 'Stockfish'
+    bits = ''
+    try:
+        proc = subprocess.run(
+            [STOCKFISH_PATH], input='uci\nquit\n',
+            capture_output=True, text=True, timeout=5,
+        )
+        for line in proc.stdout.splitlines():
+            if line.startswith('id name '):
+                name = line.split('id name ', 1)[1].strip()
+                break
+    except Exception:
+        pass
+    try:
+        proc = subprocess.run(
+            ['file', STOCKFISH_PATH],
+            capture_output=True, text=True, timeout=5,
+        )
+        out = proc.stdout.lower()
+        if '64-bit' in out or 'aarch64' in out or 'x86-64' in out:
+            bits = '64-bit'
+        elif '32-bit' in out:
+            bits = '32-bit'
+    except Exception:
+        pass
+    return name, bits
 
 
 def _to_landscape(tx: int, ty: int) -> tuple[int, int]:
@@ -167,23 +216,32 @@ def _hit_sec(lx: int, ly: int) -> bool:
 
 def _load_fonts() -> dict:
     try:
-        bold = os.path.join(_FONT_DIR, 'Roboto-Bold.ttf')
-        reg  = os.path.join(_FONT_DIR, 'Roboto-Regular.ttf')
+        bold = next((p for p in _TEXT_BOLD_PATHS if os.path.exists(p)),
+                    os.path.join(_FONT_DIR, 'Roboto-Bold.ttf'))
+        reg  = next((p for p in _TEXT_REG_PATHS  if os.path.exists(p)),
+                    os.path.join(_FONT_DIR, 'Roboto-Regular.ttf'))
+        # Non-condensed regular for prose contexts (scoresheet, time screen)
+        plain_reg = next((p for p in [
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+            os.path.join(_FONT_DIR, 'Roboto-Regular.ttf'),
+        ] if os.path.exists(p)), os.path.join(_FONT_DIR, 'Roboto-Regular.ttf'))
         fonts = {
-            'title':  ImageFont.truetype(bold, 15),
-            'ver':    ImageFont.truetype(reg,  10),
-            'btn':    ImageFont.truetype(bold, 14),
-            'ok':     ImageFont.truetype(bold, 16),
-            'move':   ImageFont.truetype(bold, 42),
-            'result': ImageFont.truetype(bold, 28),
-            'small':  ImageFont.truetype(reg,  11),
+            'title':    ImageFont.truetype(bold,      15),
+            'ver':      ImageFont.truetype(reg,       10),
+            'btn':      ImageFont.truetype(bold,      14),
+            'ok':       ImageFont.truetype(bold,      16),
+            'move':     ImageFont.truetype(bold,      42),
+            'result':   ImageFont.truetype(bold,      28),
+            'small':    ImageFont.truetype(reg,       11),
+            'plain':    ImageFont.truetype(plain_reg, 11),
+            'plain_lg': ImageFont.truetype(plain_reg, 13),
         }
         for path in _PIECE_FONT_PATHS:
             if os.path.exists(path):
-                fonts['piece']      = ImageFont.truetype(path, 24)
+                fonts['piece']      = ImageFont.truetype(path, 26)
                 fonts['move_piece'] = ImageFont.truetype(path, 42)
                 fonts['promo']      = ImageFont.truetype(path, 36)
-                fonts['board']      = ImageFont.truetype(path, 10)
+                fonts['board']      = ImageFont.truetype(path, 14)
                 break
         else:
             fonts['piece']      = fonts['btn']
@@ -195,20 +253,91 @@ def _load_fonts() -> dict:
         f = ImageFont.load_default()
         return {k: f for k in (
             'title', 'ver', 'btn', 'ok', 'move', 'result', 'small',
-            'piece', 'move_piece', 'promo', 'board',
+            'plain', 'plain_lg', 'piece', 'move_piece', 'promo', 'board',
         )}
+
+
+def build_splash_screen(sf_info: tuple[str, str] | None = None):
+    """Landscape splash: Stockfish logo on left, text centre, OK button right."""
+    img  = Image.new('1', (W, H), 255)
+    draw = ImageDraw.Draw(img)
+    f    = _load_fonts()
+
+    if sf_info is None:
+        sf_info = _get_sf_info()
+    sf_name, sf_bits = sf_info
+
+    # Right panel — full-height OK button (no title bar)
+    draw.line([(VSEP_X, 0), (VSEP_X, H - 1)], fill=0)
+    draw.rectangle([(OK_X0, _SPLASH_OK_Y0), (OK_X1, _SPLASH_OK_Y1)], fill=0)
+    ok_cx = (OK_X0 + OK_X1) // 2
+    ok_cy = (_SPLASH_OK_Y0 + _SPLASH_OK_Y1) // 2
+    bb = draw.textbbox((0, 0), 'OK', font=f['ok'])
+    draw.text(
+        (ok_cx - (bb[2] - bb[0]) // 2 - bb[0],
+         ok_cy - (bb[3] - bb[1]) // 2 - bb[1]),
+        'OK', font=f['ok'], fill=255)
+
+    # Logo
+    logo_w = 0
+    if os.path.exists(_LOGO_PATH):
+        try:
+            raw = Image.open(_LOGO_PATH).convert('RGBA')
+            bg  = Image.new('RGBA', raw.size, (255, 255, 255, 255))
+            bg.paste(raw, mask=raw.split()[3])
+            grey = bg.convert('L')
+            grey.thumbnail((_SPLASH_LOGO_MAX, H - 4), Image.LANCZOS)
+            logo_bw = grey.convert('1', dither=Image.Dither.FLOYDSTEINBERG)
+            lw, lh = logo_bw.size
+            img.paste(logo_bw, (2, (H - lh) // 2))
+            logo_w = lw + 3
+        except Exception:
+            pass
+
+    # Text block — centred in the space between logo and separator
+    text_x   = 2 + logo_w
+    area_w   = VSEP_X - text_x - 2
+    text_cx  = text_x + area_w // 2
+
+    lines = [
+        ('ZeroFish', f['title']),
+        ('powered by Stockfish', f['ver']),
+        (sf_name,               f['ver']),
+    ]
+    if sf_bits:
+        lines.append((sf_bits, f['ver']))
+
+    gap = 3
+    heights = [draw.textbbox((0, 0), t, font=fnt)[3] - draw.textbbox((0, 0), t, font=fnt)[1]
+               for t, fnt in lines]
+    total_h = sum(heights) + gap * (len(lines) - 1)
+    y = (H - total_h) // 2
+
+    for (text, fnt), h in zip(lines, heights):
+        bb = draw.textbbox((0, 0), text, font=fnt)
+        tw = bb[2] - bb[0]
+        draw.text((text_cx - tw // 2 - bb[0], y - bb[1]), text, font=fnt, fill=0)
+        y += h + gap
+
+    return img
+
+
+def _hit_splash_ok(lx: int, ly: int) -> bool:
+    return OK_X0 <= lx <= OK_X1 and _SPLASH_OK_Y0 <= ly <= _SPLASH_OK_Y1
 
 
 def _draw_centered(draw, cx, cy, text, font, fill):
     bb = draw.textbbox((0, 0), text, font=font)
+    tw = bb[2] - bb[0]
+    ascent, descent = font.getmetrics()
     draw.text(
-        (cx - (bb[2] - bb[0]) // 2 - bb[0],
-         cy - (bb[3] - bb[1]) // 2 - bb[1]),
+        (cx - tw // 2 - bb[0],
+         cy - (ascent + descent) // 2),
         text, font=font, fill=fill,
     )
 
 
-def _draw_chrome(draw, f, screen_title='', ok_active=False, sec_label=None):
+def _draw_chrome(draw, f, screen_title='', ok_active=False, sec_label=None, ok_label='OK'):
     draw.rectangle([(0, 0), (W - 1, TITLE_H - 1)], fill=0)
     label = f'ZeroFish: {screen_title}' if screen_title else 'ZeroFish'
     draw.text((4, 3), label, font=f['title'], fill=255)
@@ -223,10 +352,10 @@ def _draw_chrome(draw, f, screen_title='', ok_active=False, sec_label=None):
     ok_cy = (OK_Y0 + ok_y1) // 2
     if ok_active:
         draw.rectangle([(OK_X0, OK_Y0), (OK_X1, ok_y1)], fill=0)
-        _draw_centered(draw, cx, ok_cy, 'OK', f['ok'], 255)
+        _draw_centered(draw, cx, ok_cy, ok_label, f['ok'], 255)
     else:
         draw.rectangle([(OK_X0, OK_Y0), (OK_X1, ok_y1)], outline=0)
-        _draw_centered(draw, cx, ok_cy, 'OK', f['ok'], 0)
+        _draw_centered(draw, cx, ok_cy, ok_label, f['ok'], 0)
 
     if sec_label:
         sec_cy = (SEC_Y0 + SEC_Y1) // 2
@@ -414,8 +543,8 @@ def build_player_move_screen(sel_piece, sel_file, sel_rank, inv_count=0, move_la
                 _draw_centered(draw, cx, cy, label, _f, 0)
 
     _row(PIECE_SYMBOLS, _pm_piece_rect, sel_piece, f['piece'])
-    _row(FILES,         _pm_file_rect,  sel_file)
-    _row(RANKS,         _pm_rank_rect,  sel_rank)
+    _row(FILES,         _pm_file_rect,  sel_file,  f['btn'])
+    _row(RANKS,         _pm_rank_rect,  sel_rank,  f['btn'])
     return img
 
 
@@ -503,12 +632,43 @@ def build_ingame_menu_screen(move_label=''):
     img = Image.new('1', (W, H), 255)
     draw = ImageDraw.Draw(img)
     f = _load_fonts()
-    _draw_chrome(draw, f, move_label or 'Menu')
+    _draw_chrome(draw, f, move_label or 'Menu', ok_active=True, ok_label='Back')
     for i, label in enumerate(IGMENU_BTN_LABELS):
         x0, y0, x1, y1 = _igmenu_rect(i)
         cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
         draw.rectangle([(x0, y0), (x1, y1)], outline=0)
         _draw_centered(draw, cx, cy, label, f['btn'], 0)
+    return img
+
+
+# ── Time screen ───────────────────────────────────────────────────────────────
+
+def build_time_screen(game_start: float, sf_time: float):
+    img  = Image.new('1', (W, H), 255)
+    draw = ImageDraw.Draw(img)
+    f    = _load_fonts()
+    _draw_chrome(draw, f, 'Game Time', ok_active=True, ok_label='Back')
+
+    total      = time.time() - game_start if game_start else 0.0
+    player_t   = max(0.0, total - sf_time)
+
+    def _fmt(secs: float) -> str:
+        m, s = divmod(int(secs), 60)
+        return f'{m}m {s:02d}s'
+
+    rows = [
+        ('You',       player_t),
+        ('Stockfish', sf_time),
+        ('Total',     total),
+    ]
+    area_h  = H - TITLE_H
+    row_h   = area_h // (len(rows) + 1)
+    for i, (label, secs) in enumerate(rows):
+        y = TITLE_H + row_h * (i + 1)
+        text = f'{label}:  {_fmt(secs)}'
+        bb   = draw.textbbox((0, 0), text, font=f['plain_lg'])
+        ascent, descent = f['plain_lg'].getmetrics()
+        draw.text((6, y - (ascent + descent) // 2), text, font=f['plain_lg'], fill=0)
     return img
 
 
@@ -568,7 +728,7 @@ def build_scoresheet_screen(move_history, move_label=''):
     f = _load_fonts()
 
     draw.rectangle([(0, 0), (SCORE_W - 1, SCORE_TITLE_H - 1)], fill=0)
-    title = f'Score {move_label}' if move_label else 'Score Sheet'
+    title = 'Score Sheet'
     _draw_centered(draw, SCORE_W // 2, SCORE_TITLE_H // 2, title, f['title'], 255)
 
     draw.rectangle([(2, SCORE_BACK_Y0), (SCORE_W - 3, SCORE_BACK_Y1)], outline=0)
@@ -587,7 +747,7 @@ def build_scoresheet_screen(move_history, move_label=''):
         full_num = start_full + j // 2
         w = recent[j]                              if j     < len(recent) else ''
         b = recent[j + 1]                          if j + 1 < len(recent) else ''
-        draw.text((2, y), f'{full_num}. {w}  {b}', font=f['small'], fill=0)
+        draw.text((2, y), f'{full_num}. {w}  {b}', font=f['plain'], fill=0)
         y += SCORE_ROW_H
         if y >= SCORE_BACK_Y0 - 4:
             break
@@ -667,7 +827,8 @@ def _show(epd, img, partial_count):
 
 
 def _push_and_continue(board, move, move_history, engine, think_limit,
-                        epd, partial_count, player_is_white, inv_count, cur_move_label):
+                        epd, partial_count, player_is_white, inv_count,
+                        cur_move_label, sf_time_acc=None):
     """Push player move → check game over → Stockfish reply.
     Returns (new_screen, new_move_label).
     """
@@ -684,7 +845,10 @@ def _push_and_continue(board, move, move_history, engine, think_limit,
 
     sf_label = _move_label(board)
     _transition(epd, build_thinking_screen(), partial_count)
+    t0      = time.time()
     result  = engine.play(board, think_limit)
+    if sf_time_acc is not None:
+        sf_time_acc[0] += time.time() - t0
     sf_san  = board.san(result.move)
     board.push(result.move)
     move_history.append(sf_san)
@@ -712,13 +876,17 @@ def main():
 
     log.info('ZeroFish v%s starting', VERSION)
 
+    log.info('Probing Stockfish…')
+    sf_info = _get_sf_info()
+    log.info('Engine: %s  %s', sf_info[0], sf_info[1])
+
     epd.init(epd.FULL_UPDATE)
     gt.GT_Init()
     epd.Clear(0xFF)
-    epd.displayPartBaseImage(epd.getbuffer(build_difficulty_screen()))
+    epd.displayPartBaseImage(epd.getbuffer(build_splash_screen(sf_info)))
     epd.init(epd.PART_UPDATE)
 
-    screen        = SCREEN_DIFFICULTY
+    screen        = SCREEN_SPLASH
     diff_sel      = None
     color_sel     = None
     partial_count = [0]
@@ -740,6 +908,9 @@ def main():
     disambig_labels     = []
     disambig_rects      = []
     sel_disambig        = None
+    # Time tracking
+    game_start          = 0.0
+    sf_time_acc         = [0.0]
 
     running = True
     def irq_poll():
@@ -772,8 +943,15 @@ def main():
             lx, ly = _to_landscape(dev.X[0], dev.Y[0])   # landscape coords
             tx, ty = dev.X[0], dev.Y[0]                   # portrait / raw
 
+            # ── Splash ───────────────────────────────────────────────────────
+            if screen == SCREEN_SPLASH:
+                if _hit_splash_ok(lx, ly):
+                    screen = SCREEN_DIFFICULTY
+                    diff_sel = None
+                    _transition(epd, build_difficulty_screen(), partial_count)
+
             # ── Difficulty ────────────────────────────────────────────────────
-            if screen == SCREEN_DIFFICULTY:
+            elif screen == SCREEN_DIFFICULTY:
                 for lvl in range(1, 11):
                     if _hit_diff(lvl, lx, ly) and lvl != diff_sel:
                         diff_sel = lvl
@@ -805,6 +983,8 @@ def main():
                         board        = chess.Board()
                         inv_count    = 0
                         move_history = []
+                        sf_time_acc  = [0.0]
+                        game_start   = time.time()
                         engine       = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
                         engine.configure({'Skill Level': _skill_level(diff_sel)})
                         think_limit  = _think_limit(diff_sel)
@@ -821,7 +1001,9 @@ def main():
                         else:
                             sf_label = _move_label(board)
                             _transition(epd, build_thinking_screen(), partial_count)
+                            t0 = time.time()
                             result = engine.play(board, think_limit)
+                            sf_time_acc[0] += time.time() - t0
                             sf_san = board.san(result.move)
                             board.push(result.move)
                             move_history.append(sf_san)
@@ -895,7 +1077,8 @@ def main():
                                 screen, cur_move_label = _push_and_continue(
                                     board, candidates[0], move_history, engine,
                                     think_limit, epd, partial_count,
-                                    player_is_white, inv_count, cur_move_label)
+                                    player_is_white, inv_count, cur_move_label,
+                                    sf_time_acc)
                                 if screen == SCREEN_PLAYER_MOVE:
                                     sel_piece = sel_file = sel_rank = None
                             else:
@@ -937,7 +1120,8 @@ def main():
                         screen, cur_move_label = _push_and_continue(
                             board, candidates[0], move_history, engine,
                             think_limit, epd, partial_count,
-                            player_is_white, inv_count, cur_move_label)
+                            player_is_white, inv_count, cur_move_label,
+                            sf_time_acc)
                     else:
                         disambig_candidates = candidates
                         disambig_labels = [
@@ -973,11 +1157,19 @@ def main():
                     screen, cur_move_label = _push_and_continue(
                         board, move, move_history, engine,
                         think_limit, epd, partial_count,
-                        player_is_white, inv_count, cur_move_label)
+                        player_is_white, inv_count, cur_move_label,
+                        sf_time_acc)
 
             # ── In-game menu (2×2) ────────────────────────────────────────────
             elif screen == SCREEN_INGAME_MENU:
-                if _hit_igmenu(0, lx, ly):       # Resign → game over screen
+                if _hit_ok(lx, ly):               # Back → player move
+                    screen = SCREEN_PLAYER_MOVE
+                    _transition(epd,
+                                build_player_move_screen(sel_piece, sel_file, sel_rank,
+                                                          inv_count, cur_move_label),
+                                partial_count)
+
+                elif _hit_igmenu(0, lx, ly):      # Resign → game over screen
                     log.info('Player resigned')
                     screen = SCREEN_GAME_OVER
                     _transition(epd, build_game_over_screen('Resigned', ''), partial_count)
@@ -993,11 +1185,10 @@ def main():
                                 build_scoresheet_screen(move_history, cur_move_label),
                                 partial_count)
 
-                elif _hit_igmenu(3, lx, ly):      # Back → player move
-                    screen = SCREEN_PLAYER_MOVE
+                elif _hit_igmenu(3, lx, ly):      # Time
+                    screen = SCREEN_TIME
                     _transition(epd,
-                                build_player_move_screen(sel_piece, sel_file, sel_rank,
-                                                          inv_count, cur_move_label),
+                                build_time_screen(game_start, sf_time_acc[0]),
                                 partial_count)
 
             # ── Board display ─────────────────────────────────────────────────
@@ -1012,6 +1203,12 @@ def main():
                     screen = SCREEN_INGAME_MENU
                     _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
 
+            # ── Time screen ───────────────────────────────────────────────────
+            elif screen == SCREEN_TIME:
+                if _hit_ok(lx, ly):
+                    screen = SCREEN_INGAME_MENU
+                    _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
+
             # ── Game over ─────────────────────────────────────────────────────
             elif screen == SCREEN_GAME_OVER:
                 if _hit_ok(lx, ly):
@@ -1021,11 +1218,13 @@ def main():
                     board        = None
                     inv_count    = 0
                     move_history = []
+                    game_start   = 0.0
+                    sf_time_acc  = [0.0]
                     diff_sel     = None
                     color_sel    = None
                     sel_piece    = sel_file = sel_rank = None
-                    screen = SCREEN_DIFFICULTY
-                    _transition(epd, build_difficulty_screen(), partial_count)
+                    screen = SCREEN_SPLASH
+                    _transition(epd, build_splash_screen(sf_info), partial_count)
 
             time.sleep(0.1)
 
