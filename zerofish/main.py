@@ -39,20 +39,12 @@ from screen_scoresheet   import build_scoresheet_screen, hit_scoresheet_back
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s: %(message)s')
 log = logging.getLogger('zerofish')
 
-_THINK_SECONDS = {1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0, 5: 1.0,
-                  6: 3.0, 7: 5.0, 8: 10.0, 9: 20.0, 10: 60.0}
-
-# Hash table (MB) scaled to think time — no point giving 1s-think a large cache
-_HASH_MB = {1: 16, 2: 16, 3: 16, 4: 16, 5: 16,
-            6: 32, 7: 32, 8: 64, 9: 64, 10: 128}
-
-
 def _skill_level(difficulty):
-    return round((difficulty - 1) * 20 / 9)
+    return config.DIFF_SKILL_LEVELS.get(difficulty, 0)
 
 
 def _think_limit(difficulty):
-    return chess.engine.Limit(time=_THINK_SECONDS.get(difficulty, 1.0))
+    return chess.engine.Limit(time=config.DIFF_THINK_SECS.get(difficulty, 1.0))
 
 
 def _move_label(board: chess.Board) -> str:
@@ -238,7 +230,7 @@ def main():
                     sf_time_acc     = [0.0]
                     engine          = chess.engine.SimpleEngine.popen_uci(config.STOCKFISH_PATH)
                     engine.configure({'Skill Level': _skill_level(diff_sel),
-                                      'Hash': _HASH_MB[diff_sel]})
+                                      'Hash': config.DIFF_HASH_MB.get(diff_sel, 16)})
                     think_limit     = _think_limit(diff_sel)
                     cur_move_label  = _move_label(board)
                     sel_piece = sel_file = sel_rank = None
@@ -252,7 +244,7 @@ def main():
 
             # ── Difficulty ────────────────────────────────────────────────────
             elif screen == ui.SCREEN_DIFFICULTY:
-                for lvl in range(1, 11):
+                for lvl in range(1, 16):
                     if hit_diff(lvl, lx, ly) and lvl != diff_sel:
                         diff_sel = lvl
                         _show(epd, build_difficulty_screen(diff_sel), partial_count)
@@ -287,9 +279,9 @@ def main():
                         game_start   = time.time()
                         engine       = chess.engine.SimpleEngine.popen_uci(config.STOCKFISH_PATH)
                         engine.configure({'Skill Level': _skill_level(diff_sel),
-                                      'Hash': _HASH_MB[diff_sel]})
+                                      'Hash': config.DIFF_HASH_MB.get(diff_sel, 16)})
                         think_limit  = _think_limit(diff_sel)
-                        log.info('Think limit: %.1fs', _THINK_SECONDS.get(diff_sel, 1.0))
+                        log.info('Think limit: %.1fs', config.DIFF_THINK_SECS.get(diff_sel, 1.0))
 
                         if player_is_white:
                             cur_move_label = _move_label(board)

@@ -74,7 +74,7 @@ def build_splash_screen(sf_info: tuple[str, str] | None = None,
     if has_resume:
         sec_cy = (_SPLASH_SEC_Y0 + _SPLASH_SEC_Y1) // 2
         draw.rectangle([(ui.OK_X0, _SPLASH_SEC_Y0), (ui.OK_X1, _SPLASH_SEC_Y1)], outline=0)
-        ui.draw_centered(draw, ok_cx, sec_cy, 'Resume', f['btn'], 0)
+        ui.draw_centered(draw, ok_cx, sec_cy, 'Cont.', f['btn'], 0)
 
     # Logo
     logo_w = 0
@@ -99,6 +99,7 @@ def build_splash_screen(sf_info: tuple[str, str] | None = None,
 
     lines = [
         ('ZeroFish', f['title']),
+        (f'v{config.VERSION}', f['ver']),
         ('powered by', f['ver']),
         (sf_name,               f['ver']),
     ]

@@ -3,7 +3,7 @@ import ui
 
 # Button order: 0=Resign  1=Board  (row 0)
 #               2=Score Sheet  3=Time  (row 1)
-IGMENU_BTN_LABELS = ['Resign', 'Board', 'Score Sheet', 'Time']
+IGMENU_BTN_LABELS = ['Resign', 'Board', 'Scr Sheet', 'Time']
 IGMENU_COLS    = 2
 IGMENU_BTN_GAP = 4
 IGMENU_X0      = 5

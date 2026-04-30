@@ -112,9 +112,6 @@ def draw_chrome(draw, f, screen_title='', ok_active=False, sec_label=None, ok_la
     draw.rectangle([(0, 0), (W - 1, TITLE_H - 1)], fill=0)
     label = f'ZeroFish: {screen_title}' if screen_title else 'ZeroFish'
     draw.text((4, 3), label, font=f['title'], fill=255)
-    ver = f'v{config.VERSION}'
-    vw = draw.textbbox((0, 0), ver, font=f['ver'])[2]
-    draw.text((W - vw - 4, 5), ver, font=f['ver'], fill=255)
 
     draw.line([(VSEP_X, TITLE_H), (VSEP_X, H - 1)], fill=0)
 

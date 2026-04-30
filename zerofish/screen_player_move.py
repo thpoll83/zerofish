@@ -58,21 +58,21 @@ def build_player_move_screen(sel_piece, sel_file, sel_rank,
     base = f'{move_label} Inv:{inv_count}' if inv_count else move_label
     ui.draw_chrome(draw, f, base, ok_active=ok_ready, sec_label='More')
 
-    def _row(items, rects_fn, selected_idx, font=None):
+    def _row(items, rects_fn, selected_idx, font=None, off_x=0, off_y=0):
         _f = font or f['btn']
         for i, label in enumerate(items):
             x0, y0, x1, y1 = rects_fn(i)
             cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
             if i == selected_idx:
                 draw.rectangle([(x0, y0), (x1, y1)], fill=0)
-                ui.draw_centered(draw, cx, cy, label, _f, 255)
+                ui.draw_centered(draw, cx+off_x, cy+off_y, label, _f, 255)
             else:
                 draw.rectangle([(x0, y0), (x1, y1)], outline=0)
-                ui.draw_centered(draw, cx, cy, label, _f, 0)
+                ui.draw_centered(draw, cx+off_x, cy+off_y, label, _f, 0)
 
-    _row(PIECE_SYMBOLS, pm_piece_rect, sel_piece, f['piece'])
-    _row(FILES,         pm_file_rect,  sel_file,  f['btn'])
-    _row(RANKS,         pm_rank_rect,  sel_rank,  f['btn'])
+    _row(PIECE_SYMBOLS, pm_piece_rect, sel_piece, f['piece'], 0, 1)
+    _row(FILES,         pm_file_rect,  sel_file,  f['btn'], 0, 0)
+    _row(RANKS,         pm_rank_rect,  sel_rank,  f['btn'], 0, 0)
     return img
 
 
