@@ -10,6 +10,7 @@ import time
 import random
 import logging
 import threading
+import subprocess
 
 from TP_lib import epd2in13_V4, gt1151
 import chess
@@ -40,6 +41,10 @@ log = logging.getLogger('zerofish')
 
 _THINK_SECONDS = {1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0, 5: 1.0,
                   6: 3.0, 7: 5.0, 8: 10.0, 9: 20.0, 10: 60.0}
+
+# Hash table (MB) scaled to think time — no point giving 1s-think a large cache
+_HASH_MB = {1: 16, 2: 16, 3: 16, 4: 16, 5: 16,
+            6: 32, 7: 32, 8: 64, 9: 64, 10: 128}
 
 
 def _skill_level(difficulty):
@@ -95,6 +100,11 @@ def _sleep_until_touch(epd, dev, partial_count):
     partial_count[0] = 0
 
 
+def _set_cpu_governor(gov):
+    subprocess.run(['sudo', '/usr/local/bin/zerofish-set-governor', gov],
+                   check=False, capture_output=True)
+
+
 def _push_and_continue(board, move, move_history, engine, think_limit,
                         epd, partial_count, player_is_white, inv_count,
                         cur_move_label, sf_time_acc=None):
@@ -115,7 +125,9 @@ def _push_and_continue(board, move, move_history, engine, think_limit,
     sf_label = _move_label(board)
     _transition(epd, build_thinking_screen(), partial_count)
     t0     = time.time()
+    _set_cpu_governor('performance')
     result = engine.play(board, think_limit)
+    _set_cpu_governor('powersave')
     if sf_time_acc is not None:
         sf_time_acc[0] += time.time() - t0
     sf_san = board.san(result.move)
@@ -225,7 +237,8 @@ def main():
                     game_start      = time.time()
                     sf_time_acc     = [0.0]
                     engine          = chess.engine.SimpleEngine.popen_uci(config.STOCKFISH_PATH)
-                    engine.configure({'Skill Level': _skill_level(diff_sel)})
+                    engine.configure({'Skill Level': _skill_level(diff_sel),
+                                      'Hash': _HASH_MB[diff_sel]})
                     think_limit     = _think_limit(diff_sel)
                     cur_move_label  = _move_label(board)
                     sel_piece = sel_file = sel_rank = None
@@ -273,7 +286,8 @@ def main():
                         sf_time_acc  = [0.0]
                         game_start   = time.time()
                         engine       = chess.engine.SimpleEngine.popen_uci(config.STOCKFISH_PATH)
-                        engine.configure({'Skill Level': _skill_level(diff_sel)})
+                        engine.configure({'Skill Level': _skill_level(diff_sel),
+                                      'Hash': _HASH_MB[diff_sel]})
                         think_limit  = _think_limit(diff_sel)
                         log.info('Think limit: %.1fs', _THINK_SECONDS.get(diff_sel, 1.0))
 
@@ -290,7 +304,9 @@ def main():
                             sf_label = _move_label(board)
                             _transition(epd, build_thinking_screen(), partial_count)
                             t0 = time.time()
+                            _set_cpu_governor('performance')
                             result = engine.play(board, think_limit)
+                            _set_cpu_governor('powersave')
                             sf_time_acc[0] += time.time() - t0
                             sf_san = board.san(result.move)
                             board.push(result.move)

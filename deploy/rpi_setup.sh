@@ -32,14 +32,40 @@ pip3 install chess --break-system-packages
 
 echo ""
 echo "=== 3. Allowing passwordless sudo for deploy script ==="
-echo 'zero ALL=(ALL) NOPASSWD: /bin/cp, /usr/bin/systemctl' \
+echo 'zero ALL=(ALL) NOPASSWD: /bin/cp, /usr/bin/systemctl, /usr/local/bin/zerofish-set-governor' \
     | sudo tee /etc/sudoers.d/zerofish > /dev/null
 sudo chmod 0440 /etc/sudoers.d/zerofish
 echo "Sudoers entry written."
 
 echo ""
-echo "=== 4. Power tuning ==="
+echo "=== 4. CPU governor helper ==="
+sudo tee /usr/local/bin/zerofish-set-governor > /dev/null << 'EOF'
+#!/bin/bash
+case "$1" in
+    performance|powersave|ondemand|conservative)
+        for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+            echo "$1" > "$f"
+        done
+        ;;
+    *)
+        echo "Unknown governor: $1" >&2
+        exit 1
+        ;;
+esac
+EOF
+sudo chmod +x /usr/local/bin/zerofish-set-governor
+echo "Governor helper installed."
+
+echo ""
+echo "=== 5. Power tuning ==="
 CONFIG=/boot/firmware/config.txt
+# Reduce GPU memory to minimum (e-paper needs no framebuffer; frees 48 MB)
+if ! grep -q 'gpu_mem=16' "$CONFIG"; then
+    echo 'gpu_mem=16' | sudo tee -a "$CONFIG" > /dev/null
+    echo "GPU memory reduced to 16 MB."
+else
+    echo "GPU memory already at 16 MB."
+fi
 # Disable Bluetooth (unused; saves ~10–15 mA)
 if ! grep -q 'dtparam=bt=off' "$CONFIG"; then
     echo 'dtparam=bt=off' | sudo tee -a "$CONFIG" > /dev/null
@@ -65,7 +91,7 @@ sudo systemctl enable cpu-powersave.service
 echo "CPU powersave governor service installed."
 
 echo ""
-echo "=== 5. Verifying I2C bus (GT1151 touch controller should appear at 0x14) ==="
+echo "=== 6. Verifying I2C bus (GT1151 touch controller should appear at 0x14) ==="
 sudo i2cdetect -y 1
 
 echo ""

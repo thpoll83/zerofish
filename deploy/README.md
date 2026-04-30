@@ -17,7 +17,7 @@ ssh-copy-id zero@<rpi-ip>
 ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh
 ```
 
-`rpi_setup.sh` enables SPI/I2C, installs all Python dependencies, and writes a sudoers entry so future deploys can restart the service without a password.
+`rpi_setup.sh` enables SPI/I2C, installs all Python dependencies, writes a sudoers entry so future deploys can restart the service without a password, and applies power tuning (Bluetooth off, `gpu_mem=16`, CPU powersave governor, governor helper script).
 
 Reboot after setup:
 

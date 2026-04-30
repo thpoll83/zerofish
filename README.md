@@ -31,8 +31,9 @@ ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh
 
 `rpi_setup.sh` handles:
 - Enabling SPI and I2C via `raspi-config`
-- Installing all Python dependencies (`gpiozero`, `spidev`, `smbus`, `pillow`, `numpy`, `chess`, `fonts-dejavu-core`, `stockfish`)
+- Installing all Python dependencies (`gpiozero`, `spidev`, `smbus`, `pillow`, `numpy`, `chess`, fonts, `stockfish`)
 - Writing a sudoers entry so that future deploys can restart the service non-interactively
+- Power tuning: Bluetooth off, GPU memory at 16 MB, CPU powersave governor on boot, CPU governor helper script
 
 5. Reboot the RPi. ZeroFish starts automatically on every boot via systemd.
 
@@ -136,20 +137,20 @@ Result and termination reason. Tap **OK** to start a new game from the splash sc
 
 ```
 zerofish/
-  main.py                       # full application — all screens and game loop
+  main.py              # full application — all screens and game loop
+  game_state.py        # save/load/clear game state (Resume after power loss)
+  boot_splash.py       # early-boot script: shows "Booting…" before main service starts
+  ui.py                # shared layout, font cache, drawing helpers
+  config.py            # all tunable constants: sizes, fonts, paths, idle timeout
+  screen_*.py          # one module per screen
+  TP_lib/              # WaveShare drivers (epd2in13_V4, gt1151, epdconfig)
 deploy/
-  deploy.sh                     # rsync + service install (run from dev machine)
-  rpi_setup.sh                  # first-time RPi setup
-  zerofish.service               # systemd unit file
-Touch_e-Paper_Code/
-  python/lib/TP_lib/
-    epd2in13_V4.py              # display driver
-    gt1151.py                   # touch controller driver
-    epdconfig.py                # GPIO/SPI/I2C wiring
-  python/pic/                   # Roboto fonts used by the UI
+  deploy.sh            # rsync + service install/restart (run from dev machine)
+  rpi_setup.sh         # first-time RPi setup: interfaces, packages, power tuning
+  zerofish.service     # systemd unit — autorun on boot, restarts on failure
+  zerofish-boot.service # early-boot splash service (runs before zerofish.service)
 ```
 
 ## Possible next steps
 
-- Persist game history to file
 - Bluetooth board integration (auto-detect moves)
