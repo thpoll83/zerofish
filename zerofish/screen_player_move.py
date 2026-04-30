@@ -53,9 +53,9 @@ def build_player_move_screen(sel_piece, sel_file, sel_rank,
                               inv_count=0, move_label='') -> Image.Image:
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts()
+    f    = ui.load_fonts('player_move')
     ok_ready = (sel_piece is not None and sel_file is not None and sel_rank is not None)
-    base = f'Inv:{inv_count} {move_label}' if inv_count else move_label
+    base = f'{move_label} Inv:{inv_count}' if inv_count else move_label
     ui.draw_chrome(draw, f, base, ok_active=ok_ready, sec_label='More')
 
     def _row(items, rects_fn, selected_idx, font=None):

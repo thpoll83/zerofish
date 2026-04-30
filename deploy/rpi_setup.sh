@@ -26,7 +26,8 @@ sudo apt install -y \
     i2c-tools \
     stockfish \
     fonts-dejavu-core \
-    fonts-dejavu-extra
+    fonts-dejavu-extra \
+    fonts-noto-core
 pip3 install chess --break-system-packages
 
 echo ""
@@ -37,7 +38,34 @@ sudo chmod 0440 /etc/sudoers.d/zerofish
 echo "Sudoers entry written."
 
 echo ""
-echo "=== 4. Verifying I2C bus (GT1151 touch controller should appear at 0x14) ==="
+echo "=== 4. Power tuning ==="
+CONFIG=/boot/firmware/config.txt
+# Disable Bluetooth (unused; saves ~10–15 mA)
+if ! grep -q 'dtparam=bt=off' "$CONFIG"; then
+    echo 'dtparam=bt=off' | sudo tee -a "$CONFIG" > /dev/null
+    echo "Bluetooth disabled."
+else
+    echo "Bluetooth already disabled."
+fi
+# CPU governor: powersave (caps frequency when idle; saves ~15–25 mA)
+sudo tee /etc/systemd/system/cpu-powersave.service > /dev/null << 'EOF'
+[Unit]
+Description=Set CPU scaling governor to powersave
+After=sysinit.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'for gov in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo powersave > "$gov"; done'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+sudo systemctl enable cpu-powersave.service
+echo "CPU powersave governor service installed."
+
+echo ""
+echo "=== 5. Verifying I2C bus (GT1151 touch controller should appear at 0x14) ==="
 sudo i2cdetect -y 1
 
 echo ""

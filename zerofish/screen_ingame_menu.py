@@ -25,7 +25,7 @@ def igmenu_rect(idx) -> tuple[int, int, int, int]:
 def build_ingame_menu_screen(move_label='') -> Image.Image:
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts()
+    f    = ui.load_fonts('ingame_menu')
     ui.draw_chrome(draw, f, move_label or 'Menu', ok_active=True, ok_label='Back')
     for i, label in enumerate(IGMENU_BTN_LABELS):
         x0, y0, x1, y1 = igmenu_rect(i)

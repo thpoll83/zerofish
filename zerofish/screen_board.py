@@ -21,7 +21,7 @@ def build_board_screen(board, player_is_white=True) -> Image.Image:
     """Full-width chessboard in landscape; no title bar; Back button on right."""
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts()
+    f    = ui.load_fonts('board')
 
     # Right panel: separator + Back button
     draw.line([(ui.VSEP_X, 0), (ui.VSEP_X, ui.H - 1)], fill=0)

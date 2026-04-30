@@ -6,7 +6,7 @@ import ui
 def build_time_screen(game_start: float, sf_time: float) -> Image.Image:
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts()
+    f    = ui.load_fonts('time')
     ui.draw_chrome(draw, f, 'Game Time', ok_active=True, ok_label='Back')
 
     total    = time.time() - game_start if game_start else 0.0

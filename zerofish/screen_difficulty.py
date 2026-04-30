@@ -19,7 +19,7 @@ def diff_rect(level) -> tuple[int, int, int, int]:
 def build_difficulty_screen(selected=None) -> Image.Image:
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts()
+    f    = ui.load_fonts('difficulty')
     ui.draw_chrome(draw, f, 'Select Difficulty', ok_active=(selected is not None))
     for lvl in range(1, 11):
         x0, y0, x1, y1 = diff_rect(lvl)

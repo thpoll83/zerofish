@@ -24,7 +24,7 @@ def game_over_message(board, player_is_white) -> tuple[str, str]:
 def build_game_over_screen(line1, line2) -> Image.Image:
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts()
+    f    = ui.load_fonts('game_over')
     ui.draw_chrome(draw, f, 'Game Over', ok_active=True)
     cx = ui.VSEP_X // 2
     cy = (ui.TITLE_H + ui.H) // 2

@@ -31,33 +31,45 @@ SCREEN_BOARD       = 10
 SCREEN_SPLASH      = 11
 SCREEN_TIME        = 12
 
-# ── Font cache ────────────────────────────────────────────────────────────────
-_fonts = None
+# ── Font cache (keyed by family name) ─────────────────────────────────────────
+_fonts_cache: dict = {}
 
 
-def load_fonts() -> dict:
-    global _fonts
-    if _fonts is not None:
-        return _fonts
+def load_fonts(screen: str = 'default') -> dict:
+    """Return the font dict for *screen*, resolved via config.SCREEN_FONT_FAMILY.
+
+    Results are cached per font family so switching between two screens that
+    share a family costs nothing.
+    """
+    family = config.SCREEN_FONT_FAMILY.get(
+        screen,
+        config.SCREEN_FONT_FAMILY.get('default', 'dejavu_cond'),
+    )
+
+    if family in _fonts_cache:
+        return _fonts_cache[family]
+
+    fam_paths = config.FONT_FAMILIES.get(family, config.FONT_FAMILIES['dejavu_cond'])
+    bold_paths = fam_paths['bold']
+    reg_paths  = fam_paths['reg']
+    bold = next((p for p in bold_paths if os.path.exists(p)), bold_paths[-1])
+    reg  = next((p for p in reg_paths  if os.path.exists(p)), reg_paths[-1])
+
     try:
-        bold = next((p for p in config.FONT_BOLD_PATHS if os.path.exists(p)),
-                    config.FONT_BOLD_PATHS[-1])
-        reg  = next((p for p in config.FONT_REG_PATHS  if os.path.exists(p)),
-                    config.FONT_REG_PATHS[-1])
-        plain_reg = next((p for p in config.FONT_PLAIN_PATHS if os.path.exists(p)),
-                         config.FONT_PLAIN_PATHS[-1])
         fonts = {
-            'title':    ImageFont.truetype(bold,      config.SIZE_HEADLINE),
-            'ver':      ImageFont.truetype(reg,        config.SIZE_VERSION),
-            'btn':      ImageFont.truetype(bold,      config.SIZE_BTN),
-            'ok':       ImageFont.truetype(bold,      config.SIZE_BTN_OK),
-            'move':     ImageFont.truetype(bold,      config.SIZE_MOVE),
-            'result':   ImageFont.truetype(bold,      config.SIZE_RESULT),
-            'small':    ImageFont.truetype(reg,        config.SIZE_LABEL),
-            'plain':    ImageFont.truetype(plain_reg,  config.SIZE_TEXT),
-            'plain_lg': ImageFont.truetype(plain_reg,  config.SIZE_TEXT_LG),
+            'title':    ImageFont.truetype(bold, config.SIZE_HEADLINE),
+            'ver':      ImageFont.truetype(reg,  config.SIZE_VERSION),
+            'btn':      ImageFont.truetype(bold, config.SIZE_BTN),
+            'ok':       ImageFont.truetype(bold, config.SIZE_BTN_OK),
+            'move':     ImageFont.truetype(bold, config.SIZE_MOVE),
+            'result':   ImageFont.truetype(bold, config.SIZE_RESULT),
+            'small':    ImageFont.truetype(reg,  config.SIZE_LABEL),
+            'plain':    ImageFont.truetype(reg,  config.SIZE_TEXT),
+            'plain_lg': ImageFont.truetype(reg,  config.SIZE_TEXT_LG),
         }
-        piece_path = next((p for p in config.FONT_PIECE_PATHS if os.path.exists(p)), None)
+        piece_path = next(
+            (p for p in config.FONT_PIECE_PATHS if os.path.exists(p)), None
+        )
         if piece_path:
             fonts['piece']      = ImageFont.truetype(piece_path, config.SIZE_PIECE)
             fonts['move_piece'] = ImageFont.truetype(piece_path, config.SIZE_MOVE)
@@ -68,19 +80,19 @@ def load_fonts() -> dict:
             fonts['move_piece'] = fonts['move']
             fonts['promo']      = fonts['move']
             fonts['board']      = fonts['btn']
-        _fonts = fonts
     except Exception:
         f = ImageFont.load_default()
-        _fonts = {k: f for k in (
+        fonts = {k: f for k in (
             'title', 'ver', 'btn', 'ok', 'move', 'result', 'small',
             'plain', 'plain_lg', 'piece', 'move_piece', 'promo', 'board',
         )}
-    return _fonts
+
+    _fonts_cache[family] = fonts
+    return fonts
 
 
-def invalidate_fonts():
-    global _fonts
-    _fonts = None
+def invalidate_fonts() -> None:
+    _fonts_cache.clear()
 
 
 # ── Drawing helpers ───────────────────────────────────────────────────────────

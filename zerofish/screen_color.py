@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw
 import ui
 
-COLORS        = ['White', 'Black', 'Random']
+COLORS        = ['White', 'Black', '?']
 COLOR_BTN_GAP = 3
 COLOR_BTN_W   = (ui.VSEP_X - 2 - 2 * COLOR_BTN_GAP) // 3
 COLOR_BTN_H   = 55
@@ -13,7 +13,7 @@ COLOR_BTN_X   = [2 + i * (COLOR_BTN_W + COLOR_BTN_GAP) for i in range(3)]
 def build_color_screen(selected=None) -> Image.Image:
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts()
+    f    = ui.load_fonts('color')
     ui.draw_chrome(draw, f, 'Select Side', ok_active=(selected is not None),
                    sec_label='Back')
     for i, label in enumerate(COLORS):

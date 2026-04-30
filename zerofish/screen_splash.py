@@ -4,9 +4,13 @@ from PIL import Image, ImageDraw
 import ui
 import config
 
-_LOGO_PATH      = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stockfish_logo.png')
-_SPLASH_OK_Y0   = 6
-_SPLASH_OK_Y1   = ui.H - 6
+_LOGO_PATH       = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stockfish_logo.png')
+_SPLASH_OK_Y0    = 6
+_SPLASH_OK_Y1_FULL = ui.H - 6            # full-height OK when no resume
+_SPLASH_MID_Y    = (_SPLASH_OK_Y0 + (ui.H - 6)) // 2   # = 61
+_SPLASH_OK_Y1    = _SPLASH_MID_Y - 2    # = 59  (when resume button present)
+_SPLASH_SEC_Y0   = _SPLASH_MID_Y + 2    # = 63
+_SPLASH_SEC_Y1   = ui.H - 6             # = 116
 _SPLASH_LOGO_MAX = 65
 
 
@@ -40,26 +44,37 @@ def get_sf_info() -> tuple[str, str]:
     return name, bits
 
 
-def build_splash_screen(sf_info: tuple[str, str] | None = None) -> Image.Image:
-    """Landscape splash: Stockfish logo on left, text centre, OK button right."""
+def build_splash_screen(sf_info: tuple[str, str] | None = None,
+                        has_resume: bool = False) -> Image.Image:
+    """Landscape splash: Stockfish logo on left, text centre, OK button right.
+
+    When *has_resume* is True a 'Resume' button appears below OK for
+    continuing an interrupted game.
+    """
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts()
+    f    = ui.load_fonts('splash')
 
     if sf_info is None:
         sf_info = get_sf_info()
     sf_name, sf_bits = sf_info
 
-    # Right panel — full-height OK button (no title bar)
+    # Right panel — OK button (+ optional Resume below)
+    ok_y1 = _SPLASH_OK_Y1 if has_resume else _SPLASH_OK_Y1_FULL
     draw.line([(ui.VSEP_X, 0), (ui.VSEP_X, ui.H - 1)], fill=0)
-    draw.rectangle([(ui.OK_X0, _SPLASH_OK_Y0), (ui.OK_X1, _SPLASH_OK_Y1)], fill=0)
+    draw.rectangle([(ui.OK_X0, _SPLASH_OK_Y0), (ui.OK_X1, ok_y1)], fill=0)
     ok_cx = (ui.OK_X0 + ui.OK_X1) // 2
-    ok_cy = (_SPLASH_OK_Y0 + _SPLASH_OK_Y1) // 2
+    ok_cy = (_SPLASH_OK_Y0 + ok_y1) // 2
     bb = draw.textbbox((0, 0), 'OK', font=f['ok'])
     draw.text(
         (ok_cx - (bb[2] - bb[0]) // 2 - bb[0],
          ok_cy - (bb[3] - bb[1]) // 2 - bb[1]),
         'OK', font=f['ok'], fill=255)
+
+    if has_resume:
+        sec_cy = (_SPLASH_SEC_Y0 + _SPLASH_SEC_Y1) // 2
+        draw.rectangle([(ui.OK_X0, _SPLASH_SEC_Y0), (ui.OK_X1, _SPLASH_SEC_Y1)], outline=0)
+        ui.draw_centered(draw, ok_cx, sec_cy, 'Resume', f['btn'], 0)
 
     # Logo
     logo_w = 0
@@ -84,7 +99,7 @@ def build_splash_screen(sf_info: tuple[str, str] | None = None) -> Image.Image:
 
     lines = [
         ('ZeroFish', f['title']),
-        ('powered by Stockfish', f['ver']),
+        ('powered by', f['ver']),
         (sf_name,               f['ver']),
     ]
     if sf_bits:
@@ -105,5 +120,10 @@ def build_splash_screen(sf_info: tuple[str, str] | None = None) -> Image.Image:
     return img
 
 
-def hit_splash_ok(lx: int, ly: int) -> bool:
-    return ui.OK_X0 <= lx <= ui.OK_X1 and _SPLASH_OK_Y0 <= ly <= _SPLASH_OK_Y1
+def hit_splash_ok(lx: int, ly: int, has_resume: bool = False) -> bool:
+    y1 = _SPLASH_OK_Y1 if has_resume else _SPLASH_OK_Y1_FULL
+    return ui.OK_X0 <= lx <= ui.OK_X1 and _SPLASH_OK_Y0 <= ly <= y1
+
+
+def hit_splash_resume(lx: int, ly: int) -> bool:
+    return ui.OK_X0 <= lx <= ui.OK_X1 and _SPLASH_SEC_Y0 <= ly <= _SPLASH_SEC_Y1

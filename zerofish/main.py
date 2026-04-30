@@ -6,23 +6,20 @@ Landscape orientation: hold the device with the short edge at top/bottom
 Score sheet uses portrait orientation (USB at bottom).
 """
 
-import os
-import sys
 import time
 import random
 import logging
 import threading
-
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(_REPO, 'Touch_e-Paper_Code', 'python', 'lib'))
 
 from TP_lib import epd2in13_V4, gt1151
 import chess
 import chess.engine
 
 import config
+import game_state
 import ui
-from screen_splash       import get_sf_info, build_splash_screen, hit_splash_ok
+from screen_splash       import (get_sf_info, build_splash_screen,
+                                  hit_splash_ok, hit_splash_resume)
 from screen_difficulty   import build_difficulty_screen, hit_diff
 from screen_color        import build_color_screen, hit_color, COLORS
 from screen_thinking     import build_thinking_screen
@@ -55,18 +52,26 @@ def _think_limit(difficulty):
 
 def _move_label(board: chess.Board) -> str:
     n = board.fullmove_number
-    return f'#{n}' if board.turn == chess.WHITE else f'…#{n}'
+    return f'#{n}' if board.turn == chess.WHITE else f'#…{n}'
+
+
+_last_display_buf = None
 
 
 def _transition(epd, img, partial_count):
+    global _last_display_buf
+    buf = epd.getbuffer(img)
+    _last_display_buf = buf
     epd.init(epd.FULL_UPDATE)
-    epd.displayPartBaseImage(epd.getbuffer(img))
+    epd.displayPartBaseImage(buf)
     epd.init(epd.PART_UPDATE)
     partial_count[0] = 0
 
 
 def _show(epd, img, partial_count):
+    global _last_display_buf
     buf = epd.getbuffer(img)
+    _last_display_buf = buf
     partial_count[0] += 1
     if partial_count[0] % 5 == 0:
         log.info('Full refresh to clear ghosting')
@@ -75,6 +80,19 @@ def _show(epd, img, partial_count):
         epd.init(epd.PART_UPDATE)
     else:
         epd.displayPartial_Wait(buf)
+
+
+def _sleep_until_touch(epd, dev, partial_count):
+    log.info('Idle timeout — display sleep')
+    epd.sleep()
+    while dev.Touch == 0:
+        time.sleep(0.5)
+    log.info('Touch detected — waking display')
+    epd.init(epd.FULL_UPDATE)
+    if _last_display_buf is not None:
+        epd.displayPartBaseImage(_last_display_buf)
+    epd.init(epd.PART_UPDATE)
+    partial_count[0] = 0
 
 
 def _push_and_continue(board, move, move_history, engine, think_limit,
@@ -117,19 +135,24 @@ def main():
     log.info('ZeroFish v%s starting', config.VERSION)
 
     log.info('Probing Stockfish…')
-    sf_info = get_sf_info()
+    sf_info   = get_sf_info()
     log.info('Engine: %s  %s', sf_info[0], sf_info[1])
+    save_data = game_state.load()
+    log.info('Resume available: %s', save_data is not None)
 
     epd.init(epd.FULL_UPDATE)
     gt.GT_Init()
     epd.Clear(0xFF)
-    epd.displayPartBaseImage(epd.getbuffer(build_splash_screen(sf_info)))
+    epd.displayPartBaseImage(epd.getbuffer(
+        build_splash_screen(sf_info, has_resume=(save_data is not None))
+    ))
     epd.init(epd.PART_UPDATE)
 
-    screen        = ui.SCREEN_SPLASH
-    diff_sel      = None
-    color_sel     = None
-    partial_count = [0]
+    screen          = ui.SCREEN_SPLASH
+    diff_sel        = None
+    color_sel       = None
+    partial_count   = [0]
+    last_touch_time = time.time()
 
     # Game state
     board               = None
@@ -179,16 +202,40 @@ def main():
                 continue
 
             dev.TouchpointFlag = 0
+            last_touch_time = time.time()
 
             lx, ly = ui.to_landscape(dev.X[0], dev.Y[0])   # landscape coords
             tx, ty = dev.X[0], dev.Y[0]                     # portrait / raw
 
             # ── Splash ───────────────────────────────────────────────────────
             if screen == ui.SCREEN_SPLASH:
-                if hit_splash_ok(lx, ly):
+                if hit_splash_ok(lx, ly, has_resume=(save_data is not None)):
+                    save_data = None
+                    game_state.clear()
                     screen = ui.SCREEN_DIFFICULTY
                     diff_sel = None
                     _transition(epd, build_difficulty_screen(), partial_count)
+
+                elif save_data is not None and hit_splash_resume(lx, ly):
+                    diff_sel        = save_data['diff_sel']
+                    player_is_white = save_data['player_is_white']
+                    move_history    = list(save_data['move_history'])
+                    board           = chess.Board(save_data['fen'])
+                    inv_count       = 0
+                    game_start      = time.time()
+                    sf_time_acc     = [0.0]
+                    engine          = chess.engine.SimpleEngine.popen_uci(config.STOCKFISH_PATH)
+                    engine.configure({'Skill Level': _skill_level(diff_sel)})
+                    think_limit     = _think_limit(diff_sel)
+                    cur_move_label  = _move_label(board)
+                    sel_piece = sel_file = sel_rank = None
+                    save_data       = None
+                    log.info('Resuming game: diff=%d player=%s fen=%s',
+                             diff_sel, 'W' if player_is_white else 'B', board.fen())
+                    screen = ui.SCREEN_PLAYER_MOVE
+                    _transition(epd,
+                                build_player_move_screen(None, None, None, 0, cur_move_label),
+                                partial_count)
 
             # ── Difficulty ────────────────────────────────────────────────────
             elif screen == ui.SCREEN_DIFFICULTY:
@@ -234,6 +281,7 @@ def main():
                             cur_move_label = _move_label(board)
                             sel_piece = sel_file = sel_rank = None
                             screen = ui.SCREEN_PLAYER_MOVE
+                            game_state.save(board, move_history, player_is_white, diff_sel)
                             _transition(epd,
                                         build_player_move_screen(None, None, None, 0,
                                                                   cur_move_label),
@@ -250,6 +298,7 @@ def main():
                             log.info('Stockfish: %s', sf_san)
                             cur_move_label = sf_label
                             screen = ui.SCREEN_SF_MOVE
+                            game_state.save(board, move_history, player_is_white, diff_sel)
                             _transition(epd,
                                         build_sf_move_screen(sf_san, sf_label),
                                         partial_count)
@@ -265,6 +314,7 @@ def main():
                         cur_move_label = _move_label(board)
                         sel_piece = sel_file = sel_rank = None
                         screen = ui.SCREEN_PLAYER_MOVE
+                        game_state.save(board, move_history, player_is_white, diff_sel)
                         _transition(epd,
                                     build_player_move_screen(None, None, None,
                                                               inv_count, cur_move_label),
@@ -321,6 +371,8 @@ def main():
                                     sf_time_acc)
                                 if screen == ui.SCREEN_PLAYER_MOVE:
                                     sel_piece = sel_file = sel_rank = None
+                                    game_state.save(board, move_history,
+                                                    player_is_white, diff_sel)
                             else:
                                 disambig_candidates = candidates
                                 disambig_labels = [
@@ -362,6 +414,8 @@ def main():
                             think_limit, epd, partial_count,
                             player_is_white, inv_count, cur_move_label,
                             sf_time_acc)
+                        if screen == ui.SCREEN_PLAYER_MOVE:
+                            game_state.save(board, move_history, player_is_white, diff_sel)
                     else:
                         disambig_candidates = candidates
                         disambig_labels = [
@@ -399,6 +453,8 @@ def main():
                         think_limit, epd, partial_count,
                         player_is_white, inv_count, cur_move_label,
                         sf_time_acc)
+                    if screen == ui.SCREEN_PLAYER_MOVE:
+                        game_state.save(board, move_history, player_is_white, diff_sel)
 
             # ── In-game menu (2×2) ────────────────────────────────────────────
             elif screen == ui.SCREEN_INGAME_MENU:
@@ -411,6 +467,7 @@ def main():
 
                 elif hit_igmenu(0, lx, ly):          # Resign → game over screen
                     log.info('Player resigned')
+                    game_state.clear()
                     screen = ui.SCREEN_GAME_OVER
                     _transition(epd, build_game_over_screen('Resigned', ''), partial_count)
 
@@ -452,6 +509,7 @@ def main():
             # ── Game over ─────────────────────────────────────────────────────
             elif screen == ui.SCREEN_GAME_OVER:
                 if ui.hit_ok(lx, ly):
+                    game_state.clear()
                     if engine:
                         engine.quit()
                         engine = None
@@ -463,10 +521,19 @@ def main():
                     diff_sel     = None
                     color_sel    = None
                     sel_piece    = sel_file = sel_rank = None
+                    save_data    = None
                     screen = ui.SCREEN_SPLASH
-                    _transition(epd, build_splash_screen(sf_info), partial_count)
+                    _transition(epd,
+                                build_splash_screen(sf_info, has_resume=False),
+                                partial_count)
 
-            time.sleep(0.1)
+            if (config.IDLE_SLEEP_SECS > 0
+                    and screen != ui.SCREEN_THINKING
+                    and time.time() - last_touch_time > config.IDLE_SLEEP_SECS):
+                _sleep_until_touch(epd, dev, partial_count)
+                last_touch_time = time.time()
+            else:
+                time.sleep(0.1)
 
     except KeyboardInterrupt:
         log.info('Shutting down')

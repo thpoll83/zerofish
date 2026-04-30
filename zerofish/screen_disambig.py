@@ -17,7 +17,7 @@ def disambig_rects(n) -> list[tuple[int, int, int, int]]:
 def build_disambig_screen(labels, rects, selected=None, move_label='') -> Image.Image:
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts()
+    f    = ui.load_fonts('disambig')
     ui.draw_chrome(draw, f, f'Which? {move_label}', ok_active=(selected is not None))
     for i, label in enumerate(labels):
         x0, y0, x1, y1 = rects[i]

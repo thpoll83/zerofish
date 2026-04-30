@@ -22,7 +22,7 @@ def promo_rect(idx) -> tuple[int, int, int, int]:
 def build_promotion_screen(selected=None, move_label='') -> Image.Image:
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts()
+    f    = ui.load_fonts('promotion')
     ui.draw_chrome(draw, f, f'Promote {move_label}', ok_active=(selected is not None))
     for i, glyph in enumerate(PROMO_GLYPHS):
         x0, y0, x1, y1 = promo_rect(i)

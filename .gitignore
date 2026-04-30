@@ -1,2 +1,11 @@
 *.pyc
 docs/*
+Touch_e-Paper_Code/*
+lg-master/*
+.claude/*
+stockfish/*
+CLAUDE.md
+*.zip
+*.tar
+.*
+get-pip.py

@@ -21,32 +21,29 @@ RSYNC="rsync -avz -e ssh"
 echo "=== Deploying to ${REMOTE} ==="
 
 echo ""
-echo "--- Syncing Touch_e-Paper_Code ---"
-${RSYNC} --delete \
-    "${PROJECT_ROOT}/Touch_e-Paper_Code/" \
-    "${REMOTE}:~/Touch_e-Paper_Code/"
-
-echo ""
-echo "--- Syncing zerofish app ---"
+echo "--- Syncing zerofish app (includes TP_lib drivers) ---"
 ${RSYNC} --delete \
     "${PROJECT_ROOT}/zerofish/" \
     "${REMOTE}:~/zerofish/"
 
 echo ""
-echo "--- Syncing deploy scripts ---"
+echo "--- Syncing service files ---"
+ssh "${REMOTE}" "mkdir -p ~/deploy"
 ${RSYNC} \
-    "${PROJECT_ROOT}/deploy/" \
+    "${PROJECT_ROOT}/deploy/zerofish.service" \
+    "${PROJECT_ROOT}/deploy/zerofish-boot.service" \
     "${REMOTE}:~/deploy/"
 
 echo ""
-echo "--- Installing systemd service ---"
+echo "--- Installing systemd services ---"
 ssh "${REMOTE}" "sudo cp ~/deploy/zerofish.service /etc/systemd/system/zerofish.service \
+    && sudo cp ~/deploy/zerofish-boot.service /etc/systemd/system/zerofish-boot.service \
     && sudo systemctl daemon-reload \
-    && sudo systemctl enable zerofish \
-    && sudo systemctl restart zerofish \
-    && echo 'Service enabled and started'"
+    && sudo systemctl enable zerofish zerofish-boot \
+    && sudo systemctl restart zerofish-boot zerofish \
+    && echo 'Services enabled and started'"
 
 echo ""
 echo "=== Deploy complete ==="
-echo "Service status:  ssh ${REMOTE} systemctl status zerofish"
+echo "Service status:  ssh ${REMOTE} systemctl status zerofish zerofish-boot"
 echo "Live logs:       ssh ${REMOTE} journalctl -fu zerofish"

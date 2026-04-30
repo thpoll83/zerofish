@@ -1,0 +1,17 @@
+[Unit]
+Description=ZeroFish early-boot splash
+# Run after device drivers are initialised (SPI/GPIO ready) but before
+# the main multi-user target so the screen shows "Booting…" quickly.
+DefaultDependencies=no
+After=basic.target
+Before=zerofish.service multi-user.target
+
+[Service]
+Type=oneshot
+User=zero
+ExecStart=/usr/bin/python3 /home/zero/zerofish/boot_splash.py
+# Tolerate failure silently (hardware may not be wired on a dev machine)
+SuccessExitStatus=0 1
+
+[Install]
+WantedBy=multi-user.target

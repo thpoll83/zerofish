@@ -13,7 +13,7 @@ def build_scoresheet_screen(move_history, move_label='') -> Image.Image:
     """Portrait image — raw SAN, no glyphs (unreadable at small size)."""
     img  = Image.new('1', (config.SCORE_W, config.SCORE_H), 255)
     draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts()
+    f    = ui.load_fonts('scoresheet')
 
     draw.rectangle([(0, 0), (config.SCORE_W - 1, SCORE_TITLE_H - 1)], fill=0)
     ui.draw_centered(draw, config.SCORE_W // 2, SCORE_TITLE_H // 2,
