@@ -58,7 +58,7 @@ def build_player_move_screen(sel_piece, sel_file, sel_rank,
     f    = ui.load_fonts('player_move')
     ok_ready = (sel_piece is not None and sel_file is not None and sel_rank is not None)
     inv_str  = f'Inv:{inv_count}' if inv_count else ''
-    ui.draw_chrome(draw, f, move_label, ok_active=ok_ready, sec_label='⚙',
+    ui.draw_chrome(draw, f, move_label, ok_active=ok_ready, sec_label='...',
                    no_title=True, nt_sub=inv_str)
 
     def _row(items, rects_fn, selected_idx, font=None, off_x=0, off_y=0):

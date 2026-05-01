@@ -147,6 +147,7 @@ def main():
 
     epd.init(epd.FULL_UPDATE)
     gt.GT_Init()
+    gt.GT_DumpConfig()
     epd.Clear(0xFF)
     epd.displayPartBaseImage(epd.getbuffer(
         build_splash_screen(sf_info, has_resume=(save_data is not None))
@@ -183,7 +184,9 @@ def main():
     running = True
     def irq_poll():
         while running:
-            dev.Touch = 1 if gt.digital_read(gt.INT) == 0 else 0
+            if gt.digital_read(gt.INT) == 0:
+                dev.Touch = 1
+            time.sleep(0.005)
     threading.Thread(target=irq_poll, daemon=True).start()
 
     log.info('Ready')

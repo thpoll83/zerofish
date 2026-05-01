@@ -151,6 +151,51 @@ deploy/
   zerofish-boot.service # early-boot splash service (runs before zerofish.service)
 ```
 
+## Dev Notes
+
+### GT1151 touch controller — don't write the config
+
+`Screen_Touch_Level` at register `0x8053` reads `0xFA` (250) from the factory — already at the hardware maximum. Writing any value via the config block write corrupts the chip and makes it unresponsive until the next reset. Leave it alone.
+
+Missed taps are a software race condition, not a hardware sensitivity issue. `irq_poll()` must be **set-only**: it raises `dev.Touch = 1` when INT is low but never clears it. `GT_Scan()` clears it after reading. If `irq_poll` clears `dev.Touch` back to 0 between the `had_irq` snapshot and the `GT_Scan` call, the event is silently dropped. The thread also needs a small sleep (5 ms) — without it, it runs as a busy loop pinning one CPU core at 100%.
+
+### E-paper refresh strategy
+
+Two refresh paths exist and must be used correctly:
+
+- `displayPartBaseImage` — writes to **both** frame buffers simultaneously. Use this on every screen transition so the previous screen doesn't ghost through on the next partial update.
+- `displayPartial_Wait` — fast in-screen update. Use for button tap feedback.
+- Force a full `FULL_UPDATE` cycle every 5 partial updates to prevent ghost accumulation.
+
+On every screen transition: `epd.init(FULL_UPDATE)` → `displayPartBaseImage` → `epd.init(PART_UPDATE)`.
+
+### Coordinate systems
+
+The PIL canvas is always 250 × 122 (landscape). `epd.getbuffer()` applies a 270° rotation internally before sending to the display. Hold the device with the USB port on the left.
+
+Touch coordinates from the GT1151 arrive in portrait space and must be swapped:
+```python
+lx = 249 - ty   # landscape X
+ly = tx          # landscape Y
+```
+
+The score sheet is an exception — it renders a 122 × 250 portrait image. `getbuffer()` rotates it 180° for display. Hold the device upright (USB at the bottom). No touch transform is needed in portrait mode; raw `(tx, ty)` map directly to PIL coordinates.
+
+### CPU governor
+
+`powersave` is active at all times except during Stockfish's think:
+```python
+_set_cpu_governor('performance')
+result = engine.play(board, think_limit)
+_set_cpu_governor('powersave')
+```
+
+This is done at both call sites. The helper script (`/usr/local/bin/zerofish-set-governor`) is whitelisted in sudoers so no password prompt is needed.
+
+### Chess glyph font
+
+Unicode chess symbols (♟♞♝♜♛♚) require a font with coverage at U+2654–U+265F. The code tries **Chess Merida Unicode** first (traditional figurines, manual install) then falls back to **DejaVu Sans** (confirmed working). The piece font path list (`config.FONT_PIECE_PATHS`) is separate from the regular font family system because glyph coverage matters more than style here.
+
 ## Possible next steps
 
 - Bluetooth board integration (auto-detect moves)

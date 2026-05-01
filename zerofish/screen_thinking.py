@@ -7,5 +7,5 @@ def build_thinking_screen(move_label='') -> Image.Image:
     draw = ImageDraw.Draw(img)
     f    = ui.load_fonts('thinking')
     ui.draw_chrome(draw, f, move_label, no_title=True)
-    ui.draw_centered(draw, ui.VSEP_X // 2, ui.H // 2 + 2, '…', f['move'], 0)
+    ui.draw_centered(draw, ui.VSEP_X // 2, ui.H // 2 + 2, 'mhh..', f['move'], 0)
     return img

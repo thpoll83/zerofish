@@ -1,6 +1,10 @@
 import logging
 from . import epdconfig as config
 
+_CFG_BASE        = 0x8047
+_CFG_LEN         = 184          # registers 0x8047–0x80FE
+_TOUCH_LEVEL_OFF = 0x8053 - _CFG_BASE  # = 12, Screen_Touch_Level
+
 class GT_Development:
     def __init__(self):
         self.Touch = 0
@@ -42,6 +46,48 @@ class GT1151:
     def GT_ReadVersion(self):
         buf = self.GT_Read(0x8140, 4)
         print(buf)
+
+    def GT_ReadConfig(self):
+        cfg, pos = [], 0
+        while pos < _CFG_LEN:
+            chunk = min(_CFG_LEN - pos, 28)
+            cfg.extend(self.GT_Read(_CFG_BASE + pos, chunk))
+            pos += chunk
+        return cfg
+
+    def GT_WriteConfig(self, cfg):
+        checksum = (-sum(cfg)) & 0xFF
+        pos = 0
+        while pos < len(cfg):
+            reg   = _CFG_BASE + pos
+            block = cfg[pos:pos + 31]
+            config.bus.write_i2c_block_data(
+                config.address, (reg >> 8) & 0xFF, [reg & 0xFF] + block)
+            pos += len(block)
+        self.GT_Write(0x80FF, checksum)
+        self.GT_Write(0x8100, 0x01)
+        config.delay_ms(20)
+
+    def GT_DumpConfig(self):
+        cfg = self.GT_ReadConfig()
+        logging.info('GT1151 config (%d bytes): %s', len(cfg),
+                     ' '.join(f'{b:02x}' for b in cfg))
+        if len(cfg) >= _TOUCH_LEVEL_OFF + 2:
+            logging.info('GT1151 Screen_Touch_Level=0x%02x(%d)  Screen_Leave_Level=0x%02x(%d)',
+                         cfg[_TOUCH_LEVEL_OFF],     cfg[_TOUCH_LEVEL_OFF],
+                         cfg[_TOUCH_LEVEL_OFF + 1], cfg[_TOUCH_LEVEL_OFF + 1])
+
+    def GT_SetTouchLevel(self, level):
+        cfg = self.GT_ReadConfig()
+        if len(cfg) != _CFG_LEN:
+            logging.warning('GT1151: config read failed (%d bytes)', len(cfg))
+            return
+        old = cfg[_TOUCH_LEVEL_OFF]
+        if old == level:
+            return
+        cfg[_TOUCH_LEVEL_OFF] = level
+        self.GT_WriteConfig(cfg)
+        logging.info('GT1151 touch level %d → %d', old, level)
 
     def GT_Init(self):
         self.GT_Reset()
