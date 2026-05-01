@@ -30,7 +30,7 @@ def build_ingame_menu_screen(move_label='') -> Image.Image:
     for i, label in enumerate(IGMENU_BTN_LABELS):
         x0, y0, x1, y1 = igmenu_rect(i)
         cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-        draw.rectangle([(x0, y0), (x1, y1)], outline=0)
+        ui.draw_btn(draw, [(x0, y0), (x1, y1)], outline=0)
         ui.draw_centered(draw, cx, cy, label, f['btn'], 0)
     return img
 

@@ -36,10 +36,10 @@ def build_difficulty_screen(selected=None) -> Image.Image:
         cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
         label  = config.DIFF_LABELS.get(lvl, str(lvl))
         if lvl == selected:
-            draw.rectangle([(x0, y0), (x1, y1)], fill=0)
+            ui.draw_btn(draw, [(x0, y0), (x1, y1)], fill=0)
             ui.draw_centered(draw, cx, cy, label, f['btn'], 255)
         else:
-            draw.rectangle([(x0, y0), (x1, y1)], outline=0)
+            ui.draw_btn(draw, [(x0, y0), (x1, y1)], outline=0)
             ui.draw_centered(draw, cx, cy, label, f['btn'], 0)
     return img
 

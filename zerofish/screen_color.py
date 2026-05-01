@@ -21,10 +21,10 @@ def build_color_screen(selected=None) -> Image.Image:
         x1 = x0 + COLOR_BTN_W - 1
         cx, cy = (x0 + x1) // 2, (COLOR_BTN_Y0 + COLOR_BTN_Y1) // 2
         if i == selected:
-            draw.rectangle([(x0, COLOR_BTN_Y0), (x1, COLOR_BTN_Y1)], fill=0)
+            ui.draw_btn(draw, [(x0, COLOR_BTN_Y0), (x1, COLOR_BTN_Y1)], fill=0)
             ui.draw_centered(draw, cx, cy, label, f['btn'], 255)
         else:
-            draw.rectangle([(x0, COLOR_BTN_Y0), (x1, COLOR_BTN_Y1)], outline=0)
+            ui.draw_btn(draw, [(x0, COLOR_BTN_Y0), (x1, COLOR_BTN_Y1)], outline=0)
             ui.draw_centered(draw, cx, cy, label, f['btn'], 0)
     return img
 

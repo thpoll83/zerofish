@@ -27,9 +27,10 @@ SCREEN_PROMOTION   = 6
 SCREEN_DISAMBIG    = 7
 SCREEN_INGAME_MENU = 8
 SCREEN_SCORESHEET  = 9
-SCREEN_BOARD       = 10
-SCREEN_SPLASH      = 11
-SCREEN_TIME        = 12
+SCREEN_BOARD          = 10
+SCREEN_SPLASH         = 11
+SCREEN_TIME           = 12
+SCREEN_RESIGN_CONFIRM = 13
 
 # ── Font cache (keyed by family name) ─────────────────────────────────────────
 _fonts_cache: dict = {}
@@ -97,6 +98,14 @@ def invalidate_fonts() -> None:
 
 # ── Drawing helpers ───────────────────────────────────────────────────────────
 
+_BTN_RADIUS = 2
+
+
+def draw_btn(draw, coords, *, fill=None, outline=None):
+    """Draw a button rectangle with rounded corners (radius 2 px)."""
+    draw.rounded_rectangle(coords, radius=_BTN_RADIUS, fill=fill, outline=outline)
+
+
 def draw_centered(draw, cx, cy, text, font, fill):
     bb = draw.textbbox((0, 0), text, font=font)
     tw = bb[2] - bb[0]
@@ -119,15 +128,15 @@ def draw_chrome(draw, f, screen_title='', ok_active=False, sec_label=None, ok_la
     ok_y1 = OK_Y1_SPLIT if sec_label else OK_Y1
     ok_cy = (OK_Y0 + ok_y1) // 2
     if ok_active:
-        draw.rectangle([(OK_X0, OK_Y0), (OK_X1, ok_y1)], fill=0)
+        draw_btn(draw, [(OK_X0, OK_Y0), (OK_X1, ok_y1)], fill=0)
         draw_centered(draw, cx, ok_cy, ok_label, f['ok'], 255)
     else:
-        draw.rectangle([(OK_X0, OK_Y0), (OK_X1, ok_y1)], outline=0)
+        draw_btn(draw, [(OK_X0, OK_Y0), (OK_X1, ok_y1)], outline=0)
         draw_centered(draw, cx, ok_cy, ok_label, f['ok'], 0)
 
     if sec_label:
         sec_cy = (SEC_Y0 + SEC_Y1) // 2
-        draw.rectangle([(OK_X0, SEC_Y0), (OK_X1, SEC_Y1)], outline=0)
+        draw_btn(draw, [(OK_X0, SEC_Y0), (OK_X1, SEC_Y1)], outline=0)
         draw_centered(draw, cx, sec_cy, sec_label, f['btn'], 0)
 
 

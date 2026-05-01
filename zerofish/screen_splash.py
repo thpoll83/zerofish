@@ -1,8 +1,29 @@
 import os
+import socket
 import subprocess
 from PIL import Image, ImageDraw
 import ui
 import config
+
+
+def _wifi_ip() -> str:
+    try:
+        out = subprocess.run(['ip', '-4', 'addr', 'show', 'wlan0'],
+                             capture_output=True, text=True, timeout=2).stdout
+        for line in out.splitlines():
+            line = line.strip()
+            if line.startswith('inet '):
+                return line.split()[1].split('/')[0]
+    except Exception:
+        pass
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return ''
 
 _LOGO_PATH       = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stockfish_logo.png')
 _SPLASH_OK_Y0    = 6
@@ -62,7 +83,7 @@ def build_splash_screen(sf_info: tuple[str, str] | None = None,
     # Right panel — OK button (+ optional Resume below)
     ok_y1 = _SPLASH_OK_Y1 if has_resume else _SPLASH_OK_Y1_FULL
     draw.line([(ui.VSEP_X, 0), (ui.VSEP_X, ui.H - 1)], fill=0)
-    draw.rectangle([(ui.OK_X0, _SPLASH_OK_Y0), (ui.OK_X1, ok_y1)], fill=0)
+    ui.draw_btn(draw, [(ui.OK_X0, _SPLASH_OK_Y0), (ui.OK_X1, ok_y1)], fill=0)
     ok_cx = (ui.OK_X0 + ui.OK_X1) // 2
     ok_cy = (_SPLASH_OK_Y0 + ok_y1) // 2
     bb = draw.textbbox((0, 0), 'OK', font=f['ok'])
@@ -73,7 +94,7 @@ def build_splash_screen(sf_info: tuple[str, str] | None = None,
 
     if has_resume:
         sec_cy = (_SPLASH_SEC_Y0 + _SPLASH_SEC_Y1) // 2
-        draw.rectangle([(ui.OK_X0, _SPLASH_SEC_Y0), (ui.OK_X1, _SPLASH_SEC_Y1)], outline=0)
+        ui.draw_btn(draw, [(ui.OK_X0, _SPLASH_SEC_Y0), (ui.OK_X1, _SPLASH_SEC_Y1)], outline=0)
         ui.draw_centered(draw, ok_cx, sec_cy, 'Cont.', f['btn'], 0)
 
     # Logo
@@ -105,6 +126,9 @@ def build_splash_screen(sf_info: tuple[str, str] | None = None,
     ]
     if sf_bits:
         lines.append((sf_bits, f['ver']))
+    ip = _wifi_ip()
+    if ip:
+        lines.append((ip, f['ver']))
 
     gap = 3
     heights = [draw.textbbox((0, 0), t, font=fnt)[3] - draw.textbbox((0, 0), t, font=fnt)[1]

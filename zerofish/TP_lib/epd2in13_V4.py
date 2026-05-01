@@ -327,14 +327,16 @@ class EPD:
         self.send_command(0x24)
         for j in range(0, self.height):
             for i in range(0, linewidth):
-                self.send_data(image[i + j * linewidth])   
-                
+                self.send_data(image[i + j * linewidth])
+
         self.send_command(0x26)
         for j in range(0, self.height):
             for i in range(0, linewidth):
-                self.send_data(image[i + j * linewidth])  
+                self.send_data(image[i + j * linewidth])
         self.TurnOnDisplay()
-    
+
+
+
     '''
     function : Clear screen
     parameter:

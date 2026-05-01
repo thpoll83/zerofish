@@ -31,8 +31,9 @@ from screen_player_move  import (build_player_move_screen, hit_pm_piece, hit_pm_
                                   PIECES, PIECE_SYMBOLS, FILES, RANKS)
 from screen_promotion    import build_promotion_screen, hit_promo, PROMO_PIECE_TYPES
 from screen_disambig     import build_disambig_screen, hit_disambig, disambig_rects
-from screen_ingame_menu  import build_ingame_menu_screen, hit_igmenu
-from screen_time         import build_time_screen
+from screen_ingame_menu    import build_ingame_menu_screen, hit_igmenu
+from screen_resign_confirm import build_resign_confirm_screen, hit_resign_yes
+from screen_time           import build_time_screen
 from screen_board        import build_board_screen, hit_board_back
 from screen_scoresheet   import build_scoresheet_screen, hit_scoresheet_back
 
@@ -473,11 +474,9 @@ def main():
                                                           inv_count, cur_move_label),
                                 partial_count)
 
-                elif hit_igmenu(0, lx, ly):          # Resign → game over screen
-                    log.info('Player resigned')
-                    game_state.clear()
-                    screen = ui.SCREEN_GAME_OVER
-                    _transition(epd, build_game_over_screen('Resigned', ''), partial_count)
+                elif hit_igmenu(0, lx, ly):          # Resign → confirm first
+                    screen = ui.SCREEN_RESIGN_CONFIRM
+                    _transition(epd, build_resign_confirm_screen(), partial_count)
 
                 elif hit_igmenu(1, lx, ly):          # Board
                     screen = ui.SCREEN_BOARD
@@ -495,6 +494,17 @@ def main():
                     _transition(epd,
                                 build_time_screen(game_start, sf_time_acc[0]),
                                 partial_count)
+
+            # ── Resign confirmation ───────────────────────────────────────────
+            elif screen == ui.SCREEN_RESIGN_CONFIRM:
+                if hit_resign_yes(lx, ly):           # Yes → resign
+                    log.info('Player resigned')
+                    game_state.clear()
+                    screen = ui.SCREEN_GAME_OVER
+                    _transition(epd, build_game_over_screen('Resigned', ''), partial_count)
+                elif ui.hit_ok(lx, ly):              # No → back to in-game menu
+                    screen = ui.SCREEN_INGAME_MENU
+                    _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
 
             # ── Board display ─────────────────────────────────────────────────
             elif screen == ui.SCREEN_BOARD:

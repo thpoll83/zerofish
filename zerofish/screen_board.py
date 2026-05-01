@@ -25,7 +25,7 @@ def build_board_screen(board, player_is_white=True) -> Image.Image:
 
     # Right panel: separator + Back button
     draw.line([(ui.VSEP_X, 0), (ui.VSEP_X, ui.H - 1)], fill=0)
-    draw.rectangle([(ui.OK_X0, 6), (ui.OK_X1, ui.H - 6)], outline=0)
+    ui.draw_btn(draw, [(ui.OK_X0, 6), (ui.OK_X1, ui.H - 6)], outline=0)
     ui.draw_centered(draw, (ui.OK_X0 + ui.OK_X1) // 2, ui.H // 2, 'Back', f['btn'], 0)
 
     # Chessboard — show from player's perspective

@@ -28,10 +28,10 @@ def build_promotion_screen(selected=None, move_label='') -> Image.Image:
         x0, y0, x1, y1 = promo_rect(i)
         cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
         if i == selected:
-            draw.rectangle([(x0, y0), (x1, y1)], fill=0)
+            ui.draw_btn(draw, [(x0, y0), (x1, y1)], fill=0)
             ui.draw_centered(draw, cx, cy, glyph, f['promo'], 255)
         else:
-            draw.rectangle([(x0, y0), (x1, y1)], outline=0)
+            ui.draw_btn(draw, [(x0, y0), (x1, y1)], outline=0)
             ui.draw_centered(draw, cx, cy, glyph, f['promo'], 0)
     return img
 
