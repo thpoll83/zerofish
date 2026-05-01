@@ -32,7 +32,7 @@ _SPLASH_MID_Y    = (_SPLASH_OK_Y0 + (ui.H - 6)) // 2   # = 61
 _SPLASH_OK_Y1    = _SPLASH_MID_Y - 2    # = 59  (when resume button present)
 _SPLASH_SEC_Y0   = _SPLASH_MID_Y + 2    # = 63
 _SPLASH_SEC_Y1   = ui.H - 6             # = 116
-_SPLASH_LOGO_MAX = 65
+_SPLASH_LOGO_MAX = 80
 
 
 def get_sf_info() -> tuple[str, str]:
@@ -95,7 +95,7 @@ def build_splash_screen(sf_info: tuple[str, str] | None = None,
     if has_resume:
         sec_cy = (_SPLASH_SEC_Y0 + _SPLASH_SEC_Y1) // 2
         ui.draw_btn(draw, [(ui.OK_X0, _SPLASH_SEC_Y0), (ui.OK_X1, _SPLASH_SEC_Y1)], outline=0)
-        ui.draw_centered(draw, ok_cx, sec_cy, 'Cont.', f['btn'], 0)
+        ui.draw_centered(draw, ok_cx, sec_cy, 'Cont', f['btn'], 0)
 
     # Logo
     logo_w = 0

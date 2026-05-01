@@ -3,7 +3,7 @@ import ui
 
 # Button order: 0=Resign  1=Board  (row 0)
 #               2=Score Sheet  3=Time  (row 1)
-IGMENU_BTN_LABELS = ['Resign', 'Board', 'Scr Sheet', 'Time']
+IGMENU_BTN_LABELS = ['Resign', 'Board', 'Score\nSheet', 'Time']
 IGMENU_COLS    = 2
 IGMENU_BTN_GAP = 4
 IGMENU_X0      = 5
@@ -11,7 +11,7 @@ IGMENU_X1      = ui.VSEP_X - 5
 IGMENU_BTN_W   = (IGMENU_X1 - IGMENU_X0 - IGMENU_BTN_GAP) // 2
 IGMENU_BTN_H   = 46
 _IGMENU_TOT_H  = 2 * IGMENU_BTN_H + IGMENU_BTN_GAP
-IGMENU_Y0      = ui.TITLE_H + (ui.H - ui.TITLE_H - _IGMENU_TOT_H) // 2
+IGMENU_Y0      = ui.TITLE_H + (ui.H - ui.TITLE_H - _IGMENU_TOT_H) // 2 + 2
 
 
 def igmenu_rect(idx) -> tuple[int, int, int, int]:

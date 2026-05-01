@@ -16,6 +16,17 @@ OK_Y1_SPLIT = _OK_MID - 2
 SEC_Y0      = _OK_MID + 2
 SEC_Y1      = OK_Y1
 
+# No-title chrome: two-line black header above OK button; no title bar drawn
+NT_LABEL_H     = 36
+_NT_LABEL_CY1  = NT_LABEL_H // 4          # = 9  (centre of line 1)
+_NT_LABEL_CY2  = NT_LABEL_H * 3 // 4      # = 27 (centre of line 2)
+NT_OK_Y0       = NT_LABEL_H + 4           # = 40
+NT_OK_Y1       = config.DISPLAY_H - 2     # = 120
+_NT_MID_Y      = (NT_OK_Y0 + NT_OK_Y1) // 2  # = 80
+NT_OK_Y1_SPLIT = _NT_MID_Y - 2           # = 78
+NT_SEC_Y0      = _NT_MID_Y + 2           # = 82
+NT_SEC_Y1      = NT_OK_Y1               # = 120
+
 # ── Screen IDs ────────────────────────────────────────────────────────────────
 SCREEN_DIFFICULTY  = 0
 SCREEN_COLOR       = 1
@@ -98,7 +109,7 @@ def invalidate_fonts() -> None:
 
 # ── Drawing helpers ───────────────────────────────────────────────────────────
 
-_BTN_RADIUS = 2
+_BTN_RADIUS = 3
 
 
 def draw_btn(draw, coords, *, fill=None, outline=None):
@@ -107,36 +118,54 @@ def draw_btn(draw, coords, *, fill=None, outline=None):
 
 
 def draw_centered(draw, cx, cy, text, font, fill):
-    bb = draw.textbbox((0, 0), text, font=font)
-    tw = bb[2] - bb[0]
+    lines = text.split('\n')
     ascent, descent = font.getmetrics()
-    draw.text(
-        (cx - tw // 2 - bb[0],
-         cy - (ascent + descent) // 2),
-        text, font=font, fill=fill,
-    )
+    line_h = ascent + descent
+    y_top = cy - line_h * len(lines) // 2
+    for i, line in enumerate(lines):
+        bb = draw.textbbox((0, 0), line, font=font)
+        tw = bb[2] - bb[0]
+        draw.text(
+            (cx - tw // 2 - bb[0], y_top + i * line_h),
+            line, font=font, fill=fill,
+        )
 
 
-def draw_chrome(draw, f, screen_title='', ok_active=False, sec_label=None, ok_label='OK'):
-    draw.rectangle([(0, 0), (W - 1, TITLE_H - 1)], fill=0)
-    label = f'ZeroFish: {screen_title}' if screen_title else 'ZeroFish'
-    draw.text((4, 3), label, font=f['title'], fill=255)
+def draw_chrome(draw, f, screen_title='', ok_active=False, sec_label=None,
+                ok_label='OK', no_title=False, nt_sub=''):
+    cx = (OK_X0 + OK_X1) // 2
+    if no_title:
+        # Black header across the right panel; white text, same font as title bar
+        draw.rectangle([(VSEP_X, 0), (W - 1, NT_LABEL_H - 1)], fill=0)
+        draw.line([(VSEP_X, NT_LABEL_H), (VSEP_X, H - 1)], fill=0)
+        if screen_title:
+            draw_centered(draw, cx, _NT_LABEL_CY1, screen_title, f['title'], 255)
+        if nt_sub:
+            draw_centered(draw, cx, _NT_LABEL_CY2, nt_sub, f['title'], 255)
+        ok_y0 = NT_OK_Y0
+        ok_y1 = NT_OK_Y1_SPLIT if sec_label else NT_OK_Y1
+        ok_cy = (ok_y0 + ok_y1) // 2
+    else:
+        draw.rectangle([(0, 0), (W - 1, TITLE_H - 1)], fill=0)
+        label = f'ZeroFish: {screen_title}' if screen_title else 'ZeroFish'
+        draw.text((4, 3), label, font=f['title'], fill=255)
+        draw.line([(VSEP_X, TITLE_H), (VSEP_X, H - 1)], fill=0)
+        ok_y0 = OK_Y0
+        ok_y1 = OK_Y1_SPLIT if sec_label else OK_Y1
+        ok_cy = (ok_y0 + ok_y1) // 2
 
-    draw.line([(VSEP_X, TITLE_H), (VSEP_X, H - 1)], fill=0)
-
-    cx    = (OK_X0 + OK_X1) // 2
-    ok_y1 = OK_Y1_SPLIT if sec_label else OK_Y1
-    ok_cy = (OK_Y0 + ok_y1) // 2
     if ok_active:
-        draw_btn(draw, [(OK_X0, OK_Y0), (OK_X1, ok_y1)], fill=0)
+        draw_btn(draw, [(OK_X0, ok_y0), (OK_X1, ok_y1)], fill=0)
         draw_centered(draw, cx, ok_cy, ok_label, f['ok'], 255)
     else:
-        draw_btn(draw, [(OK_X0, OK_Y0), (OK_X1, ok_y1)], outline=0)
+        draw_btn(draw, [(OK_X0, ok_y0), (OK_X1, ok_y1)], outline=0)
         draw_centered(draw, cx, ok_cy, ok_label, f['ok'], 0)
 
     if sec_label:
-        sec_cy = (SEC_Y0 + SEC_Y1) // 2
-        draw_btn(draw, [(OK_X0, SEC_Y0), (OK_X1, SEC_Y1)], outline=0)
+        sec_y0 = NT_SEC_Y0 if no_title else SEC_Y0
+        sec_y1 = NT_SEC_Y1 if no_title else SEC_Y1
+        sec_cy = (sec_y0 + sec_y1) // 2
+        draw_btn(draw, [(OK_X0, sec_y0), (OK_X1, sec_y1)], outline=0)
         draw_centered(draw, cx, sec_cy, sec_label, f['btn'], 0)
 
 
@@ -146,13 +175,17 @@ def to_landscape(tx: int, ty: int) -> tuple[int, int]:
     return (249 - ty, tx)
 
 
-def hit_ok(lx: int, ly: int, split: bool = False) -> bool:
-    y1 = OK_Y1_SPLIT if split else OK_Y1
-    return OK_X0 <= lx <= OK_X1 and OK_Y0 <= ly <= y1
+def hit_ok(lx: int, ly: int, split: bool = False, no_title: bool = False) -> bool:
+    y0 = NT_OK_Y0       if no_title else OK_Y0
+    y1 = (NT_OK_Y1_SPLIT if no_title else OK_Y1_SPLIT) if split \
+         else (NT_OK_Y1  if no_title else OK_Y1)
+    return OK_X0 <= lx <= OK_X1 and y0 <= ly <= y1
 
 
-def hit_sec(lx: int, ly: int) -> bool:
-    return OK_X0 <= lx <= OK_X1 and SEC_Y0 <= ly <= SEC_Y1
+def hit_sec(lx: int, ly: int, no_title: bool = False) -> bool:
+    y0 = NT_SEC_Y0 if no_title else SEC_Y0
+    y1 = NT_SEC_Y1 if no_title else SEC_Y1
+    return OK_X0 <= lx <= OK_X1 and y0 <= ly <= y1
 
 
 # ── SAN glyph substitution ────────────────────────────────────────────────────

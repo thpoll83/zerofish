@@ -8,12 +8,14 @@ PIECE_SYMBOLS = ['♟', '♞', '♝', '♜', '♛', '♚']
 FILES         = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 RANKS         = ['1', '2', '3', '4', '5', '6', '7', '8']
 
-PM_MARGIN  = 2
-PM_GAP     = 1
-PM_ROW_H   = 31
-PM_ROW1_Y  = ui.TITLE_H + 2
-PM_ROW2_Y  = PM_ROW1_Y + PM_ROW_H + 2
-PM_ROW3_Y  = PM_ROW2_Y + PM_ROW_H + 2
+PM_MARGIN    = 2
+PM_GAP       = 1
+_PM_GAP_ROW  = 2                                   # gap between rows
+_PM_YOFFSET  = 2                                   # top padding keeps black headline clear
+PM_ROW_H     = (ui.H - _PM_YOFFSET - 2 * _PM_GAP_ROW) // 3  # = 38 px
+PM_ROW1_Y    = _PM_YOFFSET
+PM_ROW2_Y    = PM_ROW1_Y + PM_ROW_H + _PM_GAP_ROW # = 42
+PM_ROW3_Y    = PM_ROW2_Y + PM_ROW_H + _PM_GAP_ROW # = 82
 PM_MAX_X   = ui.VSEP_X - 3
 PM_PIECE_W = (PM_MAX_X - PM_MARGIN - 5 * PM_GAP) // 6
 PM_FILE_W  = (PM_MAX_X - PM_MARGIN - 7 * PM_GAP) // 8
@@ -55,8 +57,9 @@ def build_player_move_screen(sel_piece, sel_file, sel_rank,
     draw = ImageDraw.Draw(img)
     f    = ui.load_fonts('player_move')
     ok_ready = (sel_piece is not None and sel_file is not None and sel_rank is not None)
-    base = f'{move_label} Inv:{inv_count}' if inv_count else move_label
-    ui.draw_chrome(draw, f, base, ok_active=ok_ready, sec_label='More')
+    inv_str  = f'Inv:{inv_count}' if inv_count else ''
+    ui.draw_chrome(draw, f, move_label, ok_active=ok_ready, sec_label='⚙',
+                   no_title=True, nt_sub=inv_str)
 
     def _row(items, rects_fn, selected_idx, font=None, off_x=0, off_y=0):
         _f = font or f['btn']

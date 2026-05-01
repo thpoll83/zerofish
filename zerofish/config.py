@@ -22,6 +22,9 @@ SCORE_BACK_H = 22
 # ── Game state persistence ────────────────────────────────────────────────────
 SAVE_PATH = os.path.expanduser('~/.zerofish_save.json')
 
+# ── Touch sensitivity ────────────────────────────────────────────────────────
+TOUCH_LEVEL = 70  # GT1151 Screen_Touch_Level; chip default ~50; higher = more sensitive
+
 # ── Idle sleep ────────────────────────────────────────────────────────────────
 IDLE_SLEEP_SECS = 120  # seconds of no touch before display sleeps; 0 = disabled
 
@@ -29,13 +32,13 @@ IDLE_SLEEP_SECS = 120  # seconds of no touch before display sleeps; 0 = disabled
 SIZE_HEADLINE    = 14   # title bar label (bold)
 SIZE_VERSION     = 12   # version tag in title bar (regular)
 SIZE_BTN_OK      = 18   # OK / Back / confirm button (bold)
-SIZE_BTN         = 16   # grid buttons: numbers, files, ranks, menu items (bold)
+SIZE_BTN         = 18   # grid buttons: numbers, files, ranks, menu items (bold)
 SIZE_MOVE        = 48   # large SAN move display (bold)
 SIZE_RESULT      = 28   # game-over result headline (bold)
 SIZE_LABEL       = 12   # secondary labels, small annotations (regular)
 SIZE_TEXT        = 12   # score sheet, plain body text (regular)
-SIZE_TEXT_LG     = 14   # time screen, larger prose (regular)
-SIZE_PIECE       = 33   # piece glyphs in move-input buttons (piece font)
+SIZE_TEXT_LG     = 18   # time screen, larger prose (regular)
+SIZE_PIECE       = 36   # piece glyphs in move-input buttons (piece font)
 SIZE_PROMO       = 36   # piece glyphs in promotion chooser (piece font)
 SIZE_BOARD_PIECE = 14   # piece glyphs on the board view (piece font)
 
@@ -69,7 +72,7 @@ BOARD_PIECE_OFFSET_Y = 1
 DIFF_LABELS = {
     1: '1k',  2: '1k2', 3: '1k4', 4: '1k5', 5: '1k6',
     6: '1k7', 7: '1k8', 8: '1k9', 9: '2k',  10: '2k1',
-    11: '2k2', 12: '2k4', 13: '2k6', 14: '2k8', 15: 'Max',
+    11: '2k2', 12: '2k4', 13: '2k6', 14: '2k8', 15: '∞',
 }
 DIFF_SKILL_LEVELS = {
     1: 0,  2: 2,  3: 4,  4: 5,  5: 6,

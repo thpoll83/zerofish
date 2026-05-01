@@ -116,7 +116,7 @@ def _push_and_continue(board, move, move_history, engine, think_limit,
         return ui.SCREEN_GAME_OVER, cur_move_label
 
     sf_label = _move_label(board)
-    _transition(epd, build_thinking_screen(), partial_count)
+    _transition(epd, build_thinking_screen(sf_label), partial_count)
     t0     = time.time()
     _set_cpu_governor('performance')
     result = engine.play(board, think_limit)
@@ -295,7 +295,7 @@ def main():
                                         partial_count)
                         else:
                             sf_label = _move_label(board)
-                            _transition(epd, build_thinking_screen(), partial_count)
+                            _transition(epd, build_thinking_screen(sf_label), partial_count)
                             t0 = time.time()
                             _set_cpu_governor('performance')
                             result = engine.play(board, think_limit)
@@ -314,7 +314,7 @@ def main():
 
             # ── Stockfish move ────────────────────────────────────────────────
             elif screen == ui.SCREEN_SF_MOVE:
-                if ui.hit_ok(lx, ly):
+                if ui.hit_ok(lx, ly, no_title=True):
                     if board.is_game_over():
                         line1, line2 = game_over_message(board, player_is_white)
                         screen = ui.SCREEN_GAME_OVER
@@ -331,7 +331,7 @@ def main():
 
             # ── Player move input ─────────────────────────────────────────────
             elif screen == ui.SCREEN_PLAYER_MOVE:
-                if ui.hit_sec(lx, ly):
+                if ui.hit_sec(lx, ly, no_title=True):
                     screen = ui.SCREEN_INGAME_MENU
                     _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
                 else:
@@ -353,7 +353,7 @@ def main():
                               build_player_move_screen(sel_piece, sel_file, sel_rank,
                                                         inv_count, cur_move_label),
                               partial_count)
-                    elif (ui.hit_ok(lx, ly, split=True)
+                    elif (ui.hit_ok(lx, ly, split=True, no_title=True)
                             and sel_piece is not None
                             and sel_file  is not None
                             and sel_rank  is not None):
