@@ -83,18 +83,18 @@ def build_splash_screen(sf_info: tuple[str, str] | None = None,
     # Right panel — OK button (+ optional Resume below)
     ok_y1 = _SPLASH_OK_Y1 if has_resume else _SPLASH_OK_Y1_FULL
     draw.line([(ui.VSEP_X, 0), (ui.VSEP_X, ui.H - 1)], fill=0)
-    ui.draw_btn(draw, [(ui.OK_X0, _SPLASH_OK_Y0), (ui.OK_X1, ok_y1)], fill=0)
+    ui.draw_btn_bar(draw, [(ui.OK_X0, _SPLASH_OK_Y0), (ui.OK_X1, ok_y1)])
     ok_cx = (ui.OK_X0 + ui.OK_X1) // 2
     ok_cy = (_SPLASH_OK_Y0 + ok_y1) // 2
     bb = draw.textbbox((0, 0), 'OK', font=f['ok'])
     draw.text(
         (ok_cx - (bb[2] - bb[0]) // 2 - bb[0],
          ok_cy - (bb[3] - bb[1]) // 2 - bb[1]),
-        'OK', font=f['ok'], fill=255)
+        'OK', font=f['ok'], fill=0)
 
     if has_resume:
         sec_cy = (_SPLASH_SEC_Y0 + _SPLASH_SEC_Y1) // 2
-        ui.draw_btn(draw, [(ui.OK_X0, _SPLASH_SEC_Y0), (ui.OK_X1, _SPLASH_SEC_Y1)], outline=0)
+        ui.draw_btn_bar(draw, [(ui.OK_X0, _SPLASH_SEC_Y0), (ui.OK_X1, _SPLASH_SEC_Y1)])
         ui.draw_centered(draw, ok_cx, sec_cy, 'Cont', f['btn'], 0)
 
     # Logo

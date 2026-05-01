@@ -22,8 +22,6 @@ SCORE_BACK_H = 22
 # ── Game state persistence ────────────────────────────────────────────────────
 SAVE_PATH = os.path.expanduser('~/.zerofish_save.json')
 
-# ── Touch sensitivity ────────────────────────────────────────────────────────
-TOUCH_LEVEL = 70  # GT1151 Screen_Touch_Level; chip default ~50; higher = more sensitive
 
 # ── Idle sleep ────────────────────────────────────────────────────────────────
 IDLE_SLEEP_SECS = 120  # seconds of no touch before display sleeps; 0 = disabled
@@ -35,6 +33,7 @@ SIZE_BTN_OK      = 18   # OK / Back / confirm button (bold)
 SIZE_BTN         = 18   # grid buttons: numbers, files, ranks, menu items (bold)
 SIZE_BTN_DIFF    = 16   # difficulty level grid buttons (bold) — 2pt smaller than BTN
 SIZE_MOVE        = 48   # large SAN move display (bold)
+SIZE_MOVE_PIECE  = 54   # piece glyph in SF move screen (Merida) — larger than SIZE_MOVE
 SIZE_RESULT      = 28   # game-over result headline (bold)
 SIZE_LABEL       = 12   # secondary labels, small annotations (regular)
 SIZE_TEXT        = 12   # score sheet, plain body text (regular)

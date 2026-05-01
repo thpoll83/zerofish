@@ -78,6 +78,9 @@ class GT1151:
                          cfg[_TOUCH_LEVEL_OFF + 1], cfg[_TOUCH_LEVEL_OFF + 1])
 
     def GT_SetTouchLevel(self, level):
+        # WARNING: Do NOT call this. The chip ships at 0xFA (250) — already the
+        # hardware maximum. Writing ANY value via GT_WriteConfig corrupts the chip
+        # and makes the touch controller unresponsive until the next hard reset.
         cfg = self.GT_ReadConfig()
         if len(cfg) != _CFG_LEN:
             logging.warning('GT1151: config read failed (%d bytes)', len(cfg))

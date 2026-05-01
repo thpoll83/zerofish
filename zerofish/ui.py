@@ -85,11 +85,13 @@ def load_fonts(screen: str = 'default') -> dict:
         )
         if piece_path:
             fonts['piece']      = ImageFont.truetype(piece_path, config.SIZE_PIECE)
+            fonts['sf_piece']   = ImageFont.truetype(piece_path, config.SIZE_MOVE_PIECE)
             fonts['move_piece'] = fonts['move']
             fonts['promo']      = fonts['move']
             fonts['board']      = ImageFont.truetype(piece_path, config.SIZE_BOARD_PIECE)
         else:
             fonts['piece']      = fonts['btn']
+            fonts['sf_piece']   = fonts['move']
             fonts['move_piece'] = fonts['move']
             fonts['promo']      = fonts['move']
             fonts['board']      = fonts['btn']
@@ -97,7 +99,7 @@ def load_fonts(screen: str = 'default') -> dict:
         f = ImageFont.load_default()
         fonts = {k: f for k in (
             'title', 'ver', 'btn', 'btn_diff', 'ok', 'move', 'result', 'small',
-            'plain', 'plain_lg', 'piece', 'move_piece', 'promo', 'board',
+            'plain', 'plain_lg', 'piece', 'sf_piece', 'move_piece', 'promo', 'board',
         )}
 
     _fonts_cache[family] = fonts

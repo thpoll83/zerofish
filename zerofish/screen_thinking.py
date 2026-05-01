@@ -3,16 +3,16 @@ from PIL import Image, ImageDraw
 import ui
 
 _THINK_SOUNDS = [
-    'Hmm..', 'Hmmm..', 'Hmm?', 'Ooh..', 'Ah...',
+    'Hh..', 'Hm..', 'Hmm?', 'Ooh..', 'Ah...',
     'Aha!', 'Umm..', 'Uh...', 'Oh!', 'Ohh...',
     'Mmm..', 'Whoa..', 'Heh...', 'Oof...', 'Phew.',
     'Now...', 'Yes...', 'Aha..', 'Hmm..', 'Uhh..',
     'Wait...', 'Zzz..', 'Um...', 'Ah ha!', 'Hmh..',
     'Right..', 'Hmph..', 'Huh..', 'Yeah..', 'Nah...',
-    'Yep..', 'Bah..', 'Right..', 'So...', 'Oh my..',
-    'Ugh..', 'Heh..', 'Go go..', 'Hmm ok..', "Let's..",
-    'I see..', 'And...', 'Then...', 'Next...', 'Jup...',
-    'Hmm!!', 'Erm...', 'Err...', 'Well...', 'Ok...',
+    'Yep..', 'Bah..', 'Right..', 'So...', 'Me..',
+    'Ugh..', 'Heh..', 'Go go..', 'Hmm ok', "Let's..",
+    'I see.', 'And...', 'Then...', 'Next..', 'Jup...',
+    'Hmm!!', 'Erm...', 'Err...', 'Well..', 'Ok...',
 ]
 
 
