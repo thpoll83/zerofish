@@ -9,7 +9,7 @@
 
 set -e
 
-RPI_HOST="${1:-192.168.68.55}"
+RPI_HOST="${1:-192.168.68.59}"
 RPI_USER="zero"
 REMOTE="${RPI_USER}@${RPI_HOST}"
 
@@ -19,6 +19,21 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 RSYNC="rsync -avz -e ssh"
 
 echo "=== Deploying to ${REMOTE} ==="
+
+echo ""
+echo "--- Ensuring Chess Merida Unicode font is present ---"
+FONTS_DIR="${PROJECT_ROOT}/zerofish/fonts"
+MERIDA_TTF="${FONTS_DIR}/Chess_Merida_Unicode.ttf"
+MERIDA_URL="https://raw.githubusercontent.com/xeyownt/chess_merida_unicode/master/chess_merida_unicode.ttf"
+mkdir -p "${FONTS_DIR}"
+if [ ! -f "${MERIDA_TTF}" ]; then
+    echo "Downloading from ${MERIDA_URL} ..."
+    curl -fSL "${MERIDA_URL}" -o "${MERIDA_TTF}" \
+        && echo "Font saved to ${MERIDA_TTF}" \
+        || { echo "WARNING: font download failed — chess glyphs will use DejaVu Sans fallback"; rm -f "${MERIDA_TTF}"; }
+else
+    echo "Already present: ${MERIDA_TTF}"
+fi
 
 echo ""
 echo "--- Syncing zerofish app (includes TP_lib drivers) ---"

@@ -85,8 +85,8 @@ def load_fonts(screen: str = 'default') -> dict:
         )
         if piece_path:
             fonts['piece']      = ImageFont.truetype(piece_path, config.SIZE_PIECE)
-            fonts['move_piece'] = ImageFont.truetype(piece_path, config.SIZE_MOVE)
-            fonts['promo']      = ImageFont.truetype(piece_path, config.SIZE_PROMO)
+            fonts['move_piece'] = fonts['move']
+            fonts['promo']      = fonts['move']
             fonts['board']      = ImageFont.truetype(piece_path, config.SIZE_BOARD_PIECE)
         else:
             fonts['piece']      = fonts['btn']

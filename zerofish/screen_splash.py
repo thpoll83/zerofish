@@ -32,7 +32,7 @@ _SPLASH_MID_Y    = (_SPLASH_OK_Y0 + (ui.H - 6)) // 2   # = 61
 _SPLASH_OK_Y1    = _SPLASH_MID_Y - 2    # = 59  (when resume button present)
 _SPLASH_SEC_Y0   = _SPLASH_MID_Y + 2    # = 63
 _SPLASH_SEC_Y1   = ui.H - 6             # = 116
-_SPLASH_LOGO_MAX = 80
+_SPLASH_LOGO_MAX = 90
 
 
 def get_sf_info() -> tuple[str, str]:

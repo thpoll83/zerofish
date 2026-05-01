@@ -39,7 +39,7 @@ SIZE_RESULT      = 28   # game-over result headline (bold)
 SIZE_LABEL       = 12   # secondary labels, small annotations (regular)
 SIZE_TEXT        = 12   # score sheet, plain body text (regular)
 SIZE_TEXT_LG     = 18   # time screen, larger prose (regular)
-SIZE_PIECE       = 36   # piece glyphs in move-input buttons (piece font)
+SIZE_PIECE       = 30   # piece glyphs in move-input buttons (piece font)
 SIZE_PROMO       = 36   # piece glyphs in promotion chooser (piece font)
 SIZE_BOARD_PIECE = 14   # piece glyphs on the board view (piece font)
 

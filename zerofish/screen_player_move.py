@@ -73,7 +73,7 @@ def build_player_move_screen(sel_piece, sel_file, sel_rank,
                 ui.draw_btn(draw, [(x0, y0), (x1, y1)], outline=0)
                 ui.draw_centered(draw, cx+off_x, cy+off_y, label, _f, 0)
 
-    _row(PIECE_SYMBOLS, pm_piece_rect, sel_piece, f['piece'], 0, 1)
+    _row(PIECE_SYMBOLS, pm_piece_rect, sel_piece, f['piece'], 1, 1)
     _row(FILES,         pm_file_rect,  sel_file,  f['btn'], 0, 0)
     _row(RANKS,         pm_rank_rect,  sel_rank,  f['btn'], 0, 0)
     return img
