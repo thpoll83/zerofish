@@ -33,6 +33,7 @@ SIZE_HEADLINE    = 14   # title bar label (bold)
 SIZE_VERSION     = 12   # version tag in title bar (regular)
 SIZE_BTN_OK      = 18   # OK / Back / confirm button (bold)
 SIZE_BTN         = 18   # grid buttons: numbers, files, ranks, menu items (bold)
+SIZE_BTN_DIFF    = 16   # difficulty level grid buttons (bold) — 2pt smaller than BTN
 SIZE_MOVE        = 48   # large SAN move display (bold)
 SIZE_RESULT      = 28   # game-over result headline (bold)
 SIZE_LABEL       = 12   # secondary labels, small annotations (regular)

@@ -30,17 +30,17 @@ def build_difficulty_screen(selected=None) -> Image.Image:
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
     f    = ui.load_fonts('difficulty')
-    ui.draw_chrome(draw, f, 'Difficulty', ok_active=(selected is not None))
+    ui.draw_chrome(draw, f, 'Difficulty', ok_active=(selected is not None), sec_label='Back')
     for lvl in range(1, 16):
         x0, y0, x1, y1 = diff_rect(lvl)
         cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
         label  = config.DIFF_LABELS.get(lvl, str(lvl))
         if lvl == selected:
             ui.draw_btn(draw, [(x0, y0), (x1, y1)], fill=0)
-            ui.draw_centered(draw, cx, cy, label, f['btn'], 255)
+            ui.draw_centered(draw, cx, cy, label, f['btn_diff'], 255)
         else:
             ui.draw_btn(draw, [(x0, y0), (x1, y1)], outline=0)
-            ui.draw_centered(draw, cx, cy, label, f['btn'], 0)
+            ui.draw_centered(draw, cx, cy, label, f['btn_diff'], 0)
     return img
 
 

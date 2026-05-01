@@ -248,15 +248,20 @@ def main():
 
             # ── Difficulty ────────────────────────────────────────────────────
             elif screen == ui.SCREEN_DIFFICULTY:
-                for lvl in range(1, 16):
-                    if hit_diff(lvl, lx, ly) and lvl != diff_sel:
-                        diff_sel = lvl
-                        _show(epd, build_difficulty_screen(diff_sel), partial_count)
-                        break
-                if ui.hit_ok(lx, ly) and diff_sel is not None:
-                    screen = ui.SCREEN_COLOR
-                    color_sel = None
-                    _transition(epd, build_color_screen(), partial_count)
+                if ui.hit_sec(lx, ly):
+                    screen = ui.SCREEN_SPLASH
+                    _transition(epd, build_splash_screen(sf_info, has_resume=False),
+                                partial_count)
+                else:
+                    for lvl in range(1, 16):
+                        if hit_diff(lvl, lx, ly) and lvl != diff_sel:
+                            diff_sel = lvl
+                            _show(epd, build_difficulty_screen(diff_sel), partial_count)
+                            break
+                    if ui.hit_ok(lx, ly, split=True) and diff_sel is not None:
+                        screen = ui.SCREEN_COLOR
+                        color_sel = None
+                        _transition(epd, build_color_screen(), partial_count)
 
             # ── Side selection ────────────────────────────────────────────────
             elif screen == ui.SCREEN_COLOR:

@@ -72,6 +72,7 @@ def load_fonts(screen: str = 'default') -> dict:
             'title':    ImageFont.truetype(bold, config.SIZE_HEADLINE),
             'ver':      ImageFont.truetype(reg,  config.SIZE_VERSION),
             'btn':      ImageFont.truetype(bold, config.SIZE_BTN),
+            'btn_diff': ImageFont.truetype(bold, config.SIZE_BTN_DIFF),
             'ok':       ImageFont.truetype(bold, config.SIZE_BTN_OK),
             'move':     ImageFont.truetype(bold, config.SIZE_MOVE),
             'result':   ImageFont.truetype(bold, config.SIZE_RESULT),
@@ -95,7 +96,7 @@ def load_fonts(screen: str = 'default') -> dict:
     except Exception:
         f = ImageFont.load_default()
         fonts = {k: f for k in (
-            'title', 'ver', 'btn', 'ok', 'move', 'result', 'small',
+            'title', 'ver', 'btn', 'btn_diff', 'ok', 'move', 'result', 'small',
             'plain', 'plain_lg', 'piece', 'move_piece', 'promo', 'board',
         )}
 
@@ -109,12 +110,21 @@ def invalidate_fonts() -> None:
 
 # ── Drawing helpers ───────────────────────────────────────────────────────────
 
-_BTN_RADIUS = 3
+_BTN_RADIUS  = 3
+_BTN_BAR_H   = 5   # height of bottom-bar active indicator in pixels
 
 
-def draw_btn(draw, coords, *, fill=None, outline=None):
-    """Draw a button rectangle with rounded corners (radius 2 px)."""
-    draw.rounded_rectangle(coords, radius=_BTN_RADIUS, fill=fill, outline=outline)
+def draw_btn(draw, coords, *, fill=None, outline=None, width=1):
+    """Draw a button rectangle with rounded corners (radius 3 px)."""
+    draw.rounded_rectangle(coords, radius=_BTN_RADIUS, fill=fill, outline=outline, width=width)
+
+
+def draw_btn_bar(draw, coords):
+    """Draw a button with a solid black bar across the bottom 5 rows (active indicator)."""
+    x0, y0 = coords[0]
+    x1, y1 = coords[1]
+    draw.rounded_rectangle(coords, radius=_BTN_RADIUS, outline=0)
+    draw.rectangle([(x0 + 1, y1 - _BTN_BAR_H), (x1 - 1, y1 - 1)], fill=0)
 
 
 def draw_centered(draw, cx, cy, text, font, fill):
@@ -155,8 +165,8 @@ def draw_chrome(draw, f, screen_title='', ok_active=False, sec_label=None,
         ok_cy = (ok_y0 + ok_y1) // 2
 
     if ok_active:
-        draw_btn(draw, [(OK_X0, ok_y0), (OK_X1, ok_y1)], fill=0)
-        draw_centered(draw, cx, ok_cy, ok_label, f['ok'], 255)
+        draw_btn_bar(draw, [(OK_X0, ok_y0), (OK_X1, ok_y1)])
+        draw_centered(draw, cx, ok_cy, ok_label, f['ok'], 0)
     else:
         draw_btn(draw, [(OK_X0, ok_y0), (OK_X1, ok_y1)], outline=0)
         draw_centered(draw, cx, ok_cy, ok_label, f['ok'], 0)
@@ -165,7 +175,7 @@ def draw_chrome(draw, f, screen_title='', ok_active=False, sec_label=None,
         sec_y0 = NT_SEC_Y0 if no_title else SEC_Y0
         sec_y1 = NT_SEC_Y1 if no_title else SEC_Y1
         sec_cy = (sec_y0 + sec_y1) // 2
-        draw_btn(draw, [(OK_X0, sec_y0), (OK_X1, sec_y1)], outline=0)
+        draw_btn_bar(draw, [(OK_X0, sec_y0), (OK_X1, sec_y1)])
         draw_centered(draw, cx, sec_cy, sec_label, f['btn'], 0)
 
 
