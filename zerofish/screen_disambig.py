@@ -1,6 +1,8 @@
 from PIL import Image, ImageDraw
 import ui
 
+_PIECE_GLYPHS = set('♔♕♖♗♘♙♚♛♜♝♞♟')
+
 
 def disambig_rects(n) -> list[tuple[int, int, int, int]]:
     gap   = 8
@@ -14,6 +16,25 @@ def disambig_rects(n) -> list[tuple[int, int, int, int]]:
             for i in range(n)]
 
 
+def _draw_label(draw, label, f, cx, cy, fill):
+    """Render label: leading piece glyph in Merida (piece), rest in Noto (btn)."""
+    if label and label[0] in _PIECE_GLYPHS:
+        glyph, rest = label[0], label[1:]
+        g_bb = draw.textbbox((0, 0), glyph, font=f['piece'])
+        r_bb = draw.textbbox((0, 0), rest,  font=f['btn'])
+        glyph_w = g_bb[2] - g_bb[0]
+        rest_w  = r_bb[2] - r_bb[0]
+        x0 = cx - (glyph_w + rest_w) // 2
+        ascent_g = f['piece'].getmetrics()[0]
+        ascent_r = f['btn'].getmetrics()[0]
+        lh_g     = sum(f['piece'].getmetrics())
+        baseline = cy - lh_g // 2 + ascent_g
+        draw.text((x0 - g_bb[0],          baseline - ascent_g), glyph, font=f['piece'], fill=fill)
+        draw.text((x0 + glyph_w - r_bb[0], baseline - ascent_r), rest,  font=f['btn'],   fill=fill)
+    else:
+        ui.draw_centered(draw, cx, cy, label, f['btn'], fill)
+
+
 def build_disambig_screen(labels, rects, selected=None, move_label='') -> Image.Image:
     img  = Image.new('1', (ui.W, ui.H), 255)
     draw = ImageDraw.Draw(img)
@@ -24,10 +45,10 @@ def build_disambig_screen(labels, rects, selected=None, move_label='') -> Image.
         cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
         if i == selected:
             ui.draw_btn(draw, [(x0, y0), (x1, y1)], fill=0)
-            ui.draw_centered(draw, cx, cy, label, f['piece'], 255)
+            _draw_label(draw, label, f, cx, cy, 255)
         else:
             ui.draw_btn(draw, [(x0, y0), (x1, y1)], outline=0)
-            ui.draw_centered(draw, cx, cy, label, f['piece'], 0)
+            _draw_label(draw, label, f, cx, cy, 0)
     return img
 
 

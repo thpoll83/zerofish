@@ -21,6 +21,9 @@ import game_state
 import ui
 from screen_splash       import (get_sf_info, build_splash_screen,
                                   hit_splash_ok, hit_splash_resume)
+from screen_resume       import (build_resume_screen, hit_game_btn as hit_resume_game,
+                                  hit_next as hit_resume_next, hit_ok as hit_resume_ok,
+                                  hit_back as hit_resume_back)
 from screen_difficulty   import build_difficulty_screen, hit_diff
 from screen_color        import build_color_screen, hit_color, COLORS
 from screen_thinking     import build_thinking_screen
@@ -140,17 +143,17 @@ def main():
     log.info('ZeroFish v%s starting', config.VERSION)
 
     log.info('Probing Stockfish…')
-    sf_info   = get_sf_info()
+    sf_info    = get_sf_info()
     log.info('Engine: %s  %s', sf_info[0], sf_info[1])
-    save_data = game_state.load()
-    log.info('Resume available: %s', save_data is not None)
+    saves_list = game_state.list_saves()
+    log.info('Unfinished saves: %d', len(saves_list))
 
     epd.init(epd.FULL_UPDATE)
     gt.GT_Init()
     gt.GT_DumpConfig()
     epd.Clear(0xFF)
     epd.displayPartBaseImage(epd.getbuffer(
-        build_splash_screen(sf_info, has_resume=(save_data is not None))
+        build_splash_screen(sf_info, has_resume=(len(saves_list) > 0))
     ))
     epd.init(epd.PART_UPDATE)
 
@@ -177,6 +180,10 @@ def main():
     disambig_labels     = []
     disambig_rects_cur  = []
     sel_disambig        = None
+    save_path           = None  # path of current game's save file
+    # Resume screen state
+    resume_page         = 0
+    sel_resume          = None
     # Time tracking
     game_start  = 0.0
     sf_time_acc = [0.0]
@@ -217,40 +224,27 @@ def main():
 
             # ── Splash ───────────────────────────────────────────────────────
             if screen == ui.SCREEN_SPLASH:
-                if hit_splash_ok(lx, ly, has_resume=(save_data is not None)):
-                    save_data = None
-                    game_state.clear()
+                if hit_splash_ok(lx, ly, has_resume=(len(saves_list) > 0)):
                     screen = ui.SCREEN_DIFFICULTY
                     diff_sel = None
+                    save_path = None
                     _transition(epd, build_difficulty_screen(), partial_count)
 
-                elif save_data is not None and hit_splash_resume(lx, ly):
-                    diff_sel        = save_data['diff_sel']
-                    player_is_white = save_data['player_is_white']
-                    move_history    = list(save_data['move_history'])
-                    board           = chess.Board(save_data['fen'])
-                    inv_count       = 0
-                    game_start      = time.time()
-                    sf_time_acc     = [0.0]
-                    engine          = chess.engine.SimpleEngine.popen_uci(config.STOCKFISH_PATH)
-                    engine.configure({'Skill Level': _skill_level(diff_sel),
-                                      'Hash': config.DIFF_HASH_MB.get(diff_sel, 16)})
-                    think_limit     = _think_limit(diff_sel)
-                    cur_move_label  = _move_label(board)
-                    sel_piece = sel_file = sel_rank = None
-                    save_data       = None
-                    log.info('Resuming game: diff=%d player=%s fen=%s',
-                             diff_sel, 'W' if player_is_white else 'B', board.fen())
-                    screen = ui.SCREEN_PLAYER_MOVE
+                elif len(saves_list) > 0 and hit_splash_resume(lx, ly):
+                    saves_list  = game_state.list_saves()
+                    resume_page = 0
+                    sel_resume  = None
+                    screen      = ui.SCREEN_RESUME
                     _transition(epd,
-                                build_player_move_screen(None, None, None, 0, cur_move_label),
+                                build_resume_screen(saves_list, 0, None),
                                 partial_count)
 
             # ── Difficulty ────────────────────────────────────────────────────
             elif screen == ui.SCREEN_DIFFICULTY:
                 if ui.hit_sec(lx, ly):
                     screen = ui.SCREEN_SPLASH
-                    _transition(epd, build_splash_screen(sf_info, has_resume=False),
+                    _transition(epd,
+                                build_splash_screen(sf_info, has_resume=(len(saves_list) > 0)),
                                 partial_count)
                 else:
                     for lvl in range(1, 16):
@@ -292,11 +286,13 @@ def main():
                         think_limit  = _think_limit(diff_sel)
                         log.info('Think limit: %.1fs', config.DIFF_THINK_SECS.get(diff_sel, 1.0))
 
+                        save_path = None  # new game gets a fresh save file
                         if player_is_white:
                             cur_move_label = _move_label(board)
                             sel_piece = sel_file = sel_rank = None
                             screen = ui.SCREEN_PLAYER_MOVE
-                            game_state.save(board, move_history, player_is_white, diff_sel)
+                            save_path = game_state.save(board, move_history,
+                                                        player_is_white, diff_sel)
                             _transition(epd,
                                         build_player_move_screen(None, None, None, 0,
                                                                   cur_move_label),
@@ -315,7 +311,8 @@ def main():
                             log.info('Stockfish: %s', sf_san)
                             cur_move_label = sf_label
                             screen = ui.SCREEN_SF_MOVE
-                            game_state.save(board, move_history, player_is_white, diff_sel)
+                            save_path = game_state.save(board, move_history,
+                                                        player_is_white, diff_sel)
                             _transition(epd,
                                         build_sf_move_screen(sf_san, sf_label),
                                         partial_count)
@@ -331,7 +328,9 @@ def main():
                         cur_move_label = _move_label(board)
                         sel_piece = sel_file = sel_rank = None
                         screen = ui.SCREEN_PLAYER_MOVE
-                        game_state.save(board, move_history, player_is_white, diff_sel)
+                        save_path = game_state.save(board, move_history,
+                                                    player_is_white, diff_sel,
+                                                    save_path)
                         _transition(epd,
                                     build_player_move_screen(None, None, None,
                                                               inv_count, cur_move_label),
@@ -388,8 +387,9 @@ def main():
                                     sf_time_acc)
                                 if screen == ui.SCREEN_PLAYER_MOVE:
                                     sel_piece = sel_file = sel_rank = None
-                                    game_state.save(board, move_history,
-                                                    player_is_white, diff_sel)
+                                    save_path = game_state.save(board, move_history,
+                                                                player_is_white, diff_sel,
+                                                                save_path)
                             else:
                                 disambig_candidates = candidates
                                 disambig_labels = [
@@ -432,7 +432,9 @@ def main():
                             player_is_white, inv_count, cur_move_label,
                             sf_time_acc)
                         if screen == ui.SCREEN_PLAYER_MOVE:
-                            game_state.save(board, move_history, player_is_white, diff_sel)
+                            save_path = game_state.save(board, move_history,
+                                                        player_is_white, diff_sel,
+                                                        save_path)
                     else:
                         disambig_candidates = candidates
                         disambig_labels = [
@@ -471,7 +473,9 @@ def main():
                         player_is_white, inv_count, cur_move_label,
                         sf_time_acc)
                     if screen == ui.SCREEN_PLAYER_MOVE:
-                        game_state.save(board, move_history, player_is_white, diff_sel)
+                        save_path = game_state.save(board, move_history,
+                                                    player_is_white, diff_sel,
+                                                    save_path)
 
             # ── In-game menu (2×2) ────────────────────────────────────────────
             elif screen == ui.SCREEN_INGAME_MENU:
@@ -507,7 +511,8 @@ def main():
             elif screen == ui.SCREEN_RESIGN_CONFIRM:
                 if hit_resign_yes(lx, ly):           # Yes → resign
                     log.info('Player resigned')
-                    game_state.clear()
+                    game_state.clear(save_path)
+                    save_path = None
                     screen = ui.SCREEN_GAME_OVER
                     _transition(epd, build_game_over_screen('Resigned', ''), partial_count)
                 elif ui.hit_ok(lx, ly):              # No → back to in-game menu
@@ -532,10 +537,72 @@ def main():
                     screen = ui.SCREEN_INGAME_MENU
                     _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
 
+            # ── Resume / game selection ───────────────────────────────────────
+            elif screen == ui.SCREEN_RESUME:
+                show_next = len(saves_list) > 6
+                if hit_resume_back(lx, ly, show_next):
+                    screen = ui.SCREEN_SPLASH
+                    _transition(epd,
+                                build_splash_screen(sf_info,
+                                                    has_resume=(len(saves_list) > 0)),
+                                partial_count)
+
+                elif hit_resume_next(lx, ly, show_next):
+                    num_pages   = max(1, (len(saves_list) + 5) // 6)
+                    resume_page = (resume_page + 1) % num_pages
+                    sel_resume  = None
+                    _show(epd,
+                          build_resume_screen(saves_list, resume_page, None),
+                          partial_count)
+
+                elif hit_resume_ok(lx, ly, show_next) and sel_resume is not None:
+                    actual_idx = resume_page * 6 + sel_resume
+                    if actual_idx < len(saves_list):
+                        sv              = saves_list[actual_idx]
+                        save_path       = sv['path']
+                        diff_sel        = sv['diff_sel']
+                        player_is_white = sv['player_is_white']
+                        move_history    = list(sv['move_history'])
+                        board           = chess.Board(sv['fen'])
+                        inv_count       = 0
+                        game_start      = time.time()
+                        sf_time_acc     = [0.0]
+                        engine          = chess.engine.SimpleEngine.popen_uci(
+                                            config.STOCKFISH_PATH)
+                        engine.configure({
+                            'Skill Level': _skill_level(diff_sel),
+                            'Hash':        config.DIFF_HASH_MB.get(diff_sel, 16),
+                        })
+                        think_limit    = _think_limit(diff_sel)
+                        cur_move_label = _move_label(board)
+                        sel_piece = sel_file = sel_rank = None
+                        sel_resume = None
+                        log.info('Resuming %s diff=%d player=%s fen=%s',
+                                 save_path, diff_sel,
+                                 'W' if player_is_white else 'B', board.fen())
+                        screen = ui.SCREEN_PLAYER_MOVE
+                        _transition(epd,
+                                    build_player_move_screen(None, None, None,
+                                                              0, cur_move_label),
+                                    partial_count)
+
+                else:
+                    page_start = resume_page * 6
+                    page_saves = saves_list[page_start:page_start + 6]
+                    for slot in range(len(page_saves)):
+                        if hit_resume_game(slot, lx, ly) and slot != sel_resume:
+                            sel_resume = slot
+                            _show(epd,
+                                  build_resume_screen(saves_list, resume_page,
+                                                      sel_resume),
+                                  partial_count)
+                            break
+
             # ── Game over ─────────────────────────────────────────────────────
             elif screen == ui.SCREEN_GAME_OVER:
                 if ui.hit_ok(lx, ly):
-                    game_state.clear()
+                    game_state.clear(save_path)
+                    save_path    = None
                     if engine:
                         engine.quit()
                         engine = None
@@ -547,10 +614,11 @@ def main():
                     diff_sel     = None
                     color_sel    = None
                     sel_piece    = sel_file = sel_rank = None
-                    save_data    = None
+                    saves_list   = game_state.list_saves()
                     screen = ui.SCREEN_SPLASH
                     _transition(epd,
-                                build_splash_screen(sf_info, has_resume=False),
+                                build_splash_screen(sf_info,
+                                                    has_resume=(len(saves_list) > 0)),
                                 partial_count)
 
             if (config.IDLE_SLEEP_SECS > 0

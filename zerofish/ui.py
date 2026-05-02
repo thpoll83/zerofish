@@ -42,6 +42,7 @@ SCREEN_BOARD          = 10
 SCREEN_SPLASH         = 11
 SCREEN_TIME           = 12
 SCREEN_RESIGN_CONFIRM = 13
+SCREEN_RESUME         = 14
 
 # ── Font cache (keyed by family name) ─────────────────────────────────────────
 _fonts_cache: dict = {}
@@ -87,7 +88,7 @@ def load_fonts(screen: str = 'default') -> dict:
             fonts['piece']      = ImageFont.truetype(piece_path, config.SIZE_PIECE)
             fonts['sf_piece']   = ImageFont.truetype(piece_path, config.SIZE_MOVE_PIECE)
             fonts['move_piece'] = fonts['move']
-            fonts['promo']      = fonts['move']
+            fonts['promo']      = ImageFont.truetype(piece_path, config.SIZE_PROMO)
             fonts['board']      = ImageFont.truetype(piece_path, config.SIZE_BOARD_PIECE)
         else:
             fonts['piece']      = fonts['btn']
@@ -129,10 +130,18 @@ def draw_btn_bar(draw, coords):
     draw.rectangle([(x0 + 1, y1 - _BTN_BAR_H), (x1 - 1, y1 - 1)], fill=0)
 
 
-def draw_centered(draw, cx, cy, text, font, fill):
+def draw_btn_bar_inv(draw, coords):
+    """Black-filled button with a white bar at the bottom (selected state for dark buttons)."""
+    x0, y0 = coords[0]
+    x1, y1 = coords[1]
+    draw.rounded_rectangle(coords, radius=_BTN_RADIUS, fill=0)
+    draw.rectangle([(x0 + 1, y1 - _BTN_BAR_H), (x1 - 1, y1 - 1)], fill=255)
+
+
+def draw_centered(draw, cx, cy, text, font, fill, line_spacing=None):
     lines = text.split('\n')
     ascent, descent = font.getmetrics()
-    line_h = ascent + descent
+    line_h = line_spacing if line_spacing is not None else (ascent + descent)
     y_top = cy - line_h * len(lines) // 2
     for i, line in enumerate(lines):
         bb = draw.textbbox((0, 0), line, font=font)

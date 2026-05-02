@@ -92,14 +92,15 @@ def build_board_screen(board, player_is_white=True) -> Image.Image:
                     # Hollow glyph at 4 offsets in black = thin outline border.
                     # Filled glyph at center in white = solid white interior.
                     # Pawns use a smaller font so the filled glyph doesn't over-inflate.
-                    is_pawn = piece.piece_type == chess.PAWN
+                    is_pawn   = piece.piece_type == chess.PAWN
+                    draw_cy   = cy if is_pawn else cy - 1  # non-pawn glyphs sit 1px low
                     out_font  = pawn_font if is_pawn else f['board']
                     fill_font = pawn_font if is_pawn else f['board']
                     outline_g = _WHITE_GLYPHS[piece.piece_type]
                     fill_g    = _BLACK_GLYPHS[piece.piece_type]
                     for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                        ui.draw_centered(draw, cx + dx, cy + dy, outline_g, out_font, 0)
-                    ui.draw_centered(draw, cx, cy, fill_g, fill_font, 255)
+                        ui.draw_centered(draw, cx + dx, draw_cy + dy, outline_g, out_font, 0)
+                    ui.draw_centered(draw, cx, draw_cy, fill_g, fill_font, 255)
                 else:
                     # Black piece: solid black filled glyph
                     ui.draw_centered(draw, cx, cy, _BLACK_GLYPHS[piece.piece_type],

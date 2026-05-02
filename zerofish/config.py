@@ -1,6 +1,6 @@
 import os
 
-VERSION        = '0.2'
+VERSION        = '0.3'
 STOCKFISH_PATH = '/usr/games/stockfish'
 
 # ── Display ───────────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ SCORE_H      = 250
 SCORE_BACK_H = 22
 
 # ── Game state persistence ────────────────────────────────────────────────────
-SAVE_PATH = os.path.expanduser('~/.zerofish_save.json')
+SAVE_DIR = os.path.expanduser('~/.zerofish_saves')
 
 
 # ── Idle sleep ────────────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ BOARD_PIECE_OFFSET_Y = 1
 DIFF_LABELS = {
     1: '1k',  2: '1k2', 3: '1k4', 4: '1k5', 5: '1k6',
     6: '1k7', 7: '1k8', 8: '1k9', 9: '2k',  10: '2k1',
-    11: '2k2', 12: '2k4', 13: '2k6', 14: '2k8', 15: '∞',
+    11: '2k2', 12: '2k4', 13: '2k6', 14: '2k8', 15: 'mx',
 }
 DIFF_SKILL_LEVELS = {
     1: 0,  2: 2,  3: 4,  4: 5,  5: 6,
@@ -166,6 +166,7 @@ SCREEN_FONT_FAMILY = {
     'scoresheet':   'noto',   # condensed fits more moves per line
     'time':         'noto',
     'board':        'noto',
+    'resume_games': 'noto',
 }
 
 # ── Piece / chess-glyph font ──────────────────────────────────────────────────

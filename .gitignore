@@ -1,6 +1,5 @@
 *.pyc
 zerofish/fonts/*.ttf
-docs/*
 Touch_e-Paper_Code/*
 lg-master/*
 .claude/*

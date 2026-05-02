@@ -50,6 +50,7 @@ from screen_time          import build_time_screen
 from screen_board         import build_board_screen
 from screen_scoresheet    import build_scoresheet_screen
 from screen_game_over     import build_game_over_screen
+from screen_resume        import build_resume_screen
 
 SCALE  = 3
 OUTDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', 'screenshots')
@@ -131,6 +132,22 @@ def main() -> None:
 
         ('17_game_over_draw.png',
          build_game_over_screen('Draw', 'Stalemate')),
+
+        ('18_resume_few.png',
+         build_resume_screen(
+             [{'start_date': '2026-05-01', 'move_history': ['e4', 'e5'],
+               'diff_sel': 15, 'player_is_white': True},
+              {'start_date': '2026-04-30', 'move_history': ['d4', 'Nf6', 'c4'],
+               'diff_sel': 5, 'player_is_white': False},
+              {'start_date': '2026-04-28', 'move_history': ['Nf3'],
+               'diff_sel': 10, 'player_is_white': True}],
+             page=0, sel=1)),
+
+        ('19_resume_many.png',
+         build_resume_screen(
+             [{'start_date': f'2026-0{m}-{d:02d}', 'move_history': ['e4', 'e5']}
+              for m, d in [(5,1),(4,30),(4,29),(4,28),(4,27),(4,26),(4,25)]],
+             page=0, sel=None)),
     ]
 
     for name, img in screens:
