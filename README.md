@@ -138,6 +138,45 @@ Portrait-orientation move list showing up to the last 15 full moves. **Back** re
 
 Result and termination reason. Tap **OK** to start a new game from the splash screen.
 
+## Testing
+
+### Unit tests (dev machine, no hardware)
+
+Run the full unit suite locally. The `conftest.py` in `tests/` stubs out all RPi hardware, so no Pi is needed.
+
+```bash
+.venv/bin/python3 -m pytest tests/ --ignore=tests/rpi -v
+```
+
+The RPi integration tests auto-skip on a non-Pi machine — running without `--ignore` is safe but produces skips rather than runs.
+
+### RPi integration tests (real hardware required)
+
+The tests in `tests/rpi/` exercise the complete game loop on real e-ink hardware with a mock Stockfish engine (instant, deterministic first-legal-move replies) and injected touch events. They skip automatically on any machine that isn't a Raspberry Pi.
+
+**Deploy the code first**, then SSH into the Pi and run pytest:
+
+```bash
+bash deploy/deploy.sh          # sync latest code to the Pi
+
+ssh zero@192.168.68.59
+cd ~/zerofish
+pytest tests/rpi/ -v
+```
+
+The two tests covered:
+
+| Test | What it exercises |
+|------|-------------------|
+| `test_new_game_white_resign` | New game as White → play 1.e4 → acknowledge Stockfish reply → open menu → resign → game over → splash |
+| `test_resume_unfinished_game` | Pre-existing save file detected on startup → resume screen → select game → resign → game over → splash |
+
+Each test starts `main.main()` in a background thread, injects touch events via a semaphore-synchronised queue, and blocks until the real e-ink display finishes each full refresh. pytest must be installed on the Pi:
+
+```bash
+pip3 install pytest --break-system-packages
+```
+
 ## Project structure
 
 ```

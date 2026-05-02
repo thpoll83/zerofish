@@ -1,74 +1,64 @@
 """Tests for game_state save/load/clear persistence."""
 import json
+import os
 import chess
 import game_state
 
 
 def test_save_and_load(tmp_path, monkeypatch):
-    monkeypatch.setattr(game_state, 'SAVE_PATH', str(tmp_path / 'save.json'))
+    monkeypatch.setattr(game_state, 'SAVE_DIR', str(tmp_path))
 
     board = chess.Board()
     board.push_uci('e2e4')
-    game_state.save(board, ['e4'], True, 5)
+    path = game_state.save(board, ['e4'], True, 5)
 
-    data = game_state.load()
+    data = game_state.load(path)
     assert data is not None
     assert data['diff_sel'] == 5
     assert data['player_is_white'] is True
     assert data['move_history'] == ['e4']
-    # The saved FEN should reconstruct the same position
     assert chess.Board(data['fen']) == board
 
 
-def test_load_missing_file(tmp_path, monkeypatch):
-    monkeypatch.setattr(game_state, 'SAVE_PATH', str(tmp_path / 'nothing.json'))
-    assert game_state.load() is None
+def test_load_missing_file(tmp_path):
+    assert game_state.load(str(tmp_path / 'nothing.json')) is None
 
 
-def test_clear_marks_ended_cleanly(tmp_path, monkeypatch):
-    path = str(tmp_path / 'save.json')
-    monkeypatch.setattr(game_state, 'SAVE_PATH', path)
-
-    game_state.save(chess.Board(), [], True, 1)
-    game_state.clear()
-
-    with open(path) as f:
-        data = json.load(f)
-    assert data['ended_cleanly'] is True
+def test_clear_deletes_file(tmp_path, monkeypatch):
+    monkeypatch.setattr(game_state, 'SAVE_DIR', str(tmp_path))
+    path = game_state.save(chess.Board(), [], True, 1)
+    assert os.path.exists(path)
+    game_state.clear(path)
+    assert not os.path.exists(path)
 
 
 def test_load_after_clear_returns_none(tmp_path, monkeypatch):
-    monkeypatch.setattr(game_state, 'SAVE_PATH', str(tmp_path / 'save.json'))
+    monkeypatch.setattr(game_state, 'SAVE_DIR', str(tmp_path))
+    path = game_state.save(chess.Board(), [], True, 1)
+    game_state.clear(path)
+    assert game_state.load(path) is None
 
-    game_state.save(chess.Board(), [], True, 1)
-    game_state.clear()
-    assert game_state.load() is None
+
+def test_load_corrupt_json(tmp_path):
+    path = tmp_path / 'save.json'
+    path.write_text('not valid json')
+    assert game_state.load(str(path)) is None
 
 
-def test_load_corrupt_json(tmp_path, monkeypatch):
+def test_load_invalid_fen(tmp_path):
     path = str(tmp_path / 'save.json')
-    monkeypatch.setattr(game_state, 'SAVE_PATH', path)
-    path_obj = tmp_path / 'save.json'
-    path_obj.write_text('not valid json')
-    assert game_state.load() is None
-
-
-def test_load_invalid_fen(tmp_path, monkeypatch):
-    path = str(tmp_path / 'save.json')
-    monkeypatch.setattr(game_state, 'SAVE_PATH', path)
     with open(path, 'w') as f:
         json.dump({'fen': 'garbage', 'ended_cleanly': False,
                    'move_history': [], 'player_is_white': True, 'diff_sel': 1}, f)
-    assert game_state.load() is None
+    assert game_state.load(path) is None
 
 
-def test_clear_nonexistent_file(tmp_path, monkeypatch):
-    monkeypatch.setattr(game_state, 'SAVE_PATH', str(tmp_path / 'nothing.json'))
-    game_state.clear()   # should not raise
+def test_clear_nonexistent_file(tmp_path):
+    game_state.clear(str(tmp_path / 'nothing.json'))  # should not raise
 
 
 def test_roundtrip_mid_game(tmp_path, monkeypatch):
-    monkeypatch.setattr(game_state, 'SAVE_PATH', str(tmp_path / 'save.json'))
+    monkeypatch.setattr(game_state, 'SAVE_DIR', str(tmp_path))
 
     board = chess.Board()
     moves = []
@@ -77,8 +67,8 @@ def test_roundtrip_mid_game(tmp_path, monkeypatch):
         board.push_uci(uci)
         moves.append(san)
 
-    game_state.save(board, moves, True, 10)
-    data = game_state.load()
+    path = game_state.save(board, moves, True, 10)
+    data = game_state.load(path)
 
     assert data is not None
     assert data['move_history'] == moves

@@ -12,6 +12,7 @@ The tests exercise the complete game loop with:
   - Mock Stockfish (instant, deterministic first-legal-move replies)
   - Temp directory for game saves (nothing written to ~/.zerofish_saves)
 """
+import gc
 import os
 import sys
 import queue
@@ -74,10 +75,27 @@ def _clear_hardware_stubs():
     Remove the empty TP_lib / gpiozero / spidev / smbus stubs that
     tests/conftest.py installs, together with any cached application modules,
     so subsequent imports resolve against the real RPi drivers.
+
+    Must explicitly close any gpiozero devices from a prior epdconfig import
+    before evicting the module; otherwise their pin reservations remain in the
+    lgpio factory and the next import attempt raises GPIOPinInUse.
     """
+    ec = sys.modules.get('TP_lib.epdconfig')
+    if ec is not None:
+        for attr in ('GPIO_RST_PIN', 'GPIO_DC_PIN', 'GPIO_TRST',
+                     'GPIO_BUSY_PIN', 'GPIO_INT'):
+            dev = getattr(ec, attr, None)
+            if dev is not None:
+                try:
+                    dev.close()
+                except Exception:
+                    pass
+
     for mod in list(sys.modules.keys()):
         if mod in ('gpiozero', 'spidev', 'smbus') or mod.startswith('TP_lib'):
             del sys.modules[mod]
+
+    gc.collect()
 
     _app_mods = (
         'main', 'game_state', 'ui', 'config', 'boot_splash',
