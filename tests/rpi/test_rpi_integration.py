@@ -67,30 +67,18 @@ def _center(rect) -> tuple[int, int]:
     return ((x0 + x1) // 2, (y0 + y1) // 2)
 
 
-# ── Per-test bootstrap ────────────────────────────────────────────────────────
+# ── Bootstrap helpers ─────────────────────────────────────────────────────────
 
-def _setup(monkeypatch, tmp_path):
+def _clear_hardware_stubs():
     """
-    Remove hardware stubs installed by tests/conftest.py so real RPi drivers
-    load, then wire up mocks and return ready-to-use test helpers.
-
-    Returns a dict with keys:
-        main, game_state, ui               – the imported modules
-        touch_q                            – queue.Queue for touch injection
-        wait_startup(timeout)              – block until first splash shown
-        wait_refresh(count, timeout)       – block until N full refreshes done
-        inject(lx, ly)                     – inject a landscape-coordinate touch
-        inject_rect(rect)                  – inject the centre of a rect
-        stop()                             – signal main loop to exit cleanly
+    Remove the empty TP_lib / gpiozero / spidev / smbus stubs that
+    tests/conftest.py installs, together with any cached application modules,
+    so subsequent imports resolve against the real RPi drivers.
     """
-    # Remove hardware stubs so the real TP_lib / gpiozero / spidev / smbus
-    # are imported below instead of the empty test doubles.
     for mod in list(sys.modules.keys()):
         if mod in ('gpiozero', 'spidev', 'smbus') or mod.startswith('TP_lib'):
             del sys.modules[mod]
 
-    # Remove any previously-cached application modules so they reimport
-    # against the real hardware layers.
     _app_mods = (
         'main', 'game_state', 'ui', 'config', 'boot_splash',
         'screen_splash', 'screen_difficulty', 'screen_color',
@@ -102,22 +90,16 @@ def _setup(monkeypatch, tmp_path):
     for mod in _app_mods:
         sys.modules.pop(mod, None)
 
-    # Now import the real application – hardware drivers will use real GPIO/SPI/I2C.
-    import main as main_mod
-    import game_state
-    import ui
-    from TP_lib import gt1151
 
-    # ── Mock Stockfish ────────────────────────────────────────────────────────
-    monkeypatch.setattr(
-        chess.engine.SimpleEngine, 'popen_uci',
-        lambda *a, **kw: _MockEngine(),
-    )
+def _wire_touch_injection(monkeypatch, gt1151):
+    """
+    Replace GT1151.GT_Scan with a queue-driven stub.
 
-    # ── Redirect saves to a temp directory ───────────────────────────────────
-    monkeypatch.setattr(game_state, 'SAVE_DIR', str(tmp_path / 'saves'))
-
-    # ── Touch injection via patched GT_Scan ───────────────────────────────────
+    Returns ``(touch_q, inject, inject_rect)``:
+      touch_q       – ``queue.Queue`` of ``(tx, ty)`` portrait coordinates
+      inject(lx,ly) – convert landscape coords and enqueue a touch event
+      inject_rect(r)– enqueue the centre of rectangle ``r``
+    """
     touch_q: queue.Queue = queue.Queue()
 
     def _mock_scan(self, GT_Dev, GT_Old):
@@ -140,13 +122,31 @@ def _setup(monkeypatch, tmp_path):
 
     monkeypatch.setattr(gt1151.GT1151, 'GT_Scan', _mock_scan)
 
-    # ── Semaphore-based display synchronisation ───────────────────────────────
+    def inject(lx: int, ly: int) -> None:
+        touch_q.put(_to_portrait(lx, ly))
+
+    def inject_rect(rect) -> None:
+        inject(*_center(rect))
+
+    return touch_q, inject, inject_rect
+
+
+def _wire_display_sync(main_mod):
+    """
+    Attach semaphore-based callbacks to ``main_mod._test_hooks`` so tests can
+    block until the e-ink display has finished a full refresh.
+
+    Returns ``(wait_startup, wait_refresh, stop)``:
+      wait_startup(timeout)       – block until initial splash is rendered
+      wait_refresh(count,timeout) – block until *count* full refreshes complete
+      stop()                      – signal the main loop to exit cleanly
+    """
     refresh_sem = threading.Semaphore(0)
     startup_sem = threading.Semaphore(0)
 
-    main_mod._transition_hook = lambda: refresh_sem.release()
-    main_mod._startup_hook    = lambda: startup_sem.release()
-    main_mod._stop_requested  = False
+    main_mod._test_hooks.on_transition = lambda: refresh_sem.release()
+    main_mod._test_hooks.on_startup    = lambda: startup_sem.release()
+    main_mod._test_hooks.stop          = False
 
     def wait_startup(timeout: float = 30.0) -> None:
         if not startup_sem.acquire(timeout=timeout):
@@ -159,17 +159,41 @@ def _setup(monkeypatch, tmp_path):
                     f'e-ink full refresh #{n + 1}/{count} timed out after {timeout}s'
                 )
 
-    def inject(lx: int, ly: int) -> None:
-        tx, ty = _to_portrait(lx, ly)
-        touch_q.put((tx, ty))
-
-    def inject_rect(rect) -> None:
-        inject(*_center(rect))
-
     def stop() -> None:
-        main_mod._stop_requested = True
-        main_mod._transition_hook = None
-        main_mod._startup_hook    = None
+        main_mod._test_hooks.stop          = True
+        main_mod._test_hooks.on_transition = None
+        main_mod._test_hooks.on_startup    = None
+
+    return wait_startup, wait_refresh, stop
+
+
+def _setup(monkeypatch, tmp_path):
+    """
+    Full per-test bootstrap: clear stubs, import real drivers, wire all mocks.
+
+    Returns a dict with keys:
+        main, game_state, ui               – the freshly imported modules
+        touch_q                            – raw queue.Queue (for inspection)
+        wait_startup, wait_refresh         – display-sync helpers
+        inject, inject_rect                – touch-injection helpers
+        stop                               – clean loop-exit helper
+    """
+    _clear_hardware_stubs()
+
+    # Import real application modules now that hardware stubs are gone.
+    import main as main_mod
+    import game_state
+    import ui
+    from TP_lib import gt1151
+
+    monkeypatch.setattr(
+        chess.engine.SimpleEngine, 'popen_uci',
+        lambda *a, **kw: _MockEngine(),
+    )
+    monkeypatch.setattr(game_state, 'SAVE_DIR', str(tmp_path / 'saves'))
+
+    touch_q, inject, inject_rect = _wire_touch_injection(monkeypatch, gt1151)
+    wait_startup, wait_refresh, stop = _wire_display_sync(main_mod)
 
     return dict(
         main=main_mod, game_state=game_state, ui=ui,
@@ -209,7 +233,6 @@ def test_new_game_white_resign(tmp_path, monkeypatch):
     inject_rect  = h['inject_rect']
     stop         = h['stop']
 
-    # Convenience: centre of the standard right-panel OK button.
     ok_cx = (ui.OK_X0 + ui.OK_X1) // 2
 
     error: list = [None]
@@ -239,9 +262,8 @@ def test_new_game_white_resign(tmp_path, monkeypatch):
 
         # ── Side selection ────────────────────────────────────────────────────
         wait_refresh()
-        # Tap "White" (index 0)
         inject(COLOR_BTN_X[0] + COLOR_BTN_W // 2,
-               (COLOR_BTN_Y0 + COLOR_BTN_Y1) // 2)
+               (COLOR_BTN_Y0 + COLOR_BTN_Y1) // 2)       # tap "White" (index 0)
         time.sleep(0.5)
         inject(ok_cx, (ui.OK_Y0 + ui.OK_Y1_SPLIT) // 2) # OK (split)
 
@@ -249,7 +271,6 @@ def test_new_game_white_resign(tmp_path, monkeypatch):
         # SCREEN_COLOR → SCREEN_PLAYER_MOVE is one _transition call.
         wait_refresh()
 
-        # A save file should now exist.
         save_dir = str(tmp_path / 'saves')
         saves_before = (
             [f for f in os.listdir(save_dir) if f.endswith('.json')]

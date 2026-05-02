@@ -57,9 +57,18 @@ def _move_label(board: chess.Board) -> str:
 
 
 _last_display_buf = None
-_transition_hook = None  # callable() – fired after every full-refresh transition
-_startup_hook    = None  # callable() – fired once after initial splash is ready
-_stop_requested  = False # set True to exit the main loop cleanly (used by tests)
+
+
+class _TestHooks:
+    """Test-seam wired up by integration tests; ignored in production runs."""
+
+    def __init__(self):
+        self.on_transition = None  # callable() – after every full-refresh transition
+        self.on_startup    = None  # callable() – once after initial splash is ready
+        self.stop          = False # True → exit the main loop on the next iteration
+
+
+_test_hooks = _TestHooks()
 
 
 def _transition(epd, img, partial_count):
@@ -70,8 +79,8 @@ def _transition(epd, img, partial_count):
     epd.displayPartBaseImage(buf)
     epd.init(epd.PART_UPDATE)
     partial_count[0] = 0
-    if _transition_hook is not None:
-        _transition_hook()
+    if _test_hooks.on_transition is not None:
+        _test_hooks.on_transition()
 
 
 def _show(epd, img, partial_count):
@@ -202,12 +211,12 @@ def main():
     threading.Thread(target=irq_poll, daemon=True).start()
 
     log.info('Ready')
-    if _startup_hook is not None:
-        _startup_hook()
+    if _test_hooks.on_startup is not None:
+        _test_hooks.on_startup()
 
     try:
         while True:
-            if _stop_requested:
+            if _test_hooks.stop:
                 break
             had_irq = (dev.Touch == 1)
             gt.GT_Scan(dev, old)

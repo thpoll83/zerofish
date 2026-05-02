@@ -37,18 +37,22 @@ fi
 
 echo ""
 echo "--- Syncing zerofish app (includes TP_lib drivers) ---"
-${RSYNC} --delete \
+# --exclude=tests/ prevents the --delete sweep from removing ~/zerofish/tests/
+# which is populated by the separate rsync step below.
+${RSYNC} --delete --exclude=tests/ \
     "${PROJECT_ROOT}/zerofish/" \
     "${REMOTE}:~/zerofish/"
 
 echo ""
-echo "--- Syncing tests (includes RPi integration tests) ---"
-${RSYNC} --delete \
+echo "--- Syncing tests into ~/zerofish/tests/ ---"
+# No --delete: on-device logs or ad-hoc scripts are preserved between syncs.
+# Run the suite with: ssh ${REMOTE} 'cd ~/zerofish && pytest tests/rpi/ -v'
+${RSYNC} \
     "${PROJECT_ROOT}/tests/" \
-    "${REMOTE}:~/tests/"
+    "${REMOTE}:~/zerofish/tests/"
 ${RSYNC} \
     "${PROJECT_ROOT}/pytest.ini" \
-    "${REMOTE}:~/pytest.ini"
+    "${REMOTE}:~/zerofish/pytest.ini"
 
 echo ""
 echo "--- Syncing service files ---"
@@ -71,3 +75,4 @@ echo ""
 echo "=== Deploy complete ==="
 echo "Service status:  ssh ${REMOTE} systemctl status zerofish zerofish-boot"
 echo "Live logs:       ssh ${REMOTE} journalctl -fu zerofish"
+echo "RPi tests:       ssh ${REMOTE} 'cd ~/zerofish && pytest tests/rpi/ -v'"
