@@ -42,6 +42,15 @@ ${RSYNC} --delete \
     "${REMOTE}:~/zerofish/"
 
 echo ""
+echo "--- Syncing tests (includes RPi integration tests) ---"
+${RSYNC} --delete \
+    "${PROJECT_ROOT}/tests/" \
+    "${REMOTE}:~/tests/"
+${RSYNC} \
+    "${PROJECT_ROOT}/pytest.ini" \
+    "${REMOTE}:~/pytest.ini"
+
+echo ""
 echo "--- Syncing service files ---"
 ssh "${REMOTE}" "mkdir -p ~/deploy"
 ${RSYNC} \

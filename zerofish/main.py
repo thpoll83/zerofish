@@ -57,6 +57,9 @@ def _move_label(board: chess.Board) -> str:
 
 
 _last_display_buf = None
+_transition_hook = None  # callable() – fired after every full-refresh transition
+_startup_hook    = None  # callable() – fired once after initial splash is ready
+_stop_requested  = False # set True to exit the main loop cleanly (used by tests)
 
 
 def _transition(epd, img, partial_count):
@@ -67,6 +70,8 @@ def _transition(epd, img, partial_count):
     epd.displayPartBaseImage(buf)
     epd.init(epd.PART_UPDATE)
     partial_count[0] = 0
+    if _transition_hook is not None:
+        _transition_hook()
 
 
 def _show(epd, img, partial_count):
@@ -197,9 +202,13 @@ def main():
     threading.Thread(target=irq_poll, daemon=True).start()
 
     log.info('Ready')
+    if _startup_hook is not None:
+        _startup_hook()
 
     try:
         while True:
+            if _stop_requested:
+                break
             had_irq = (dev.Touch == 1)
             gt.GT_Scan(dev, old)
 
