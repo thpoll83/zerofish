@@ -4,69 +4,68 @@
 Run from the repo root:
     python3 generate_screenshots.py
 
-Output goes to docs/screenshots/.  Each image is scaled 3× so the tiny
-250×122 px canvas is readable on a normal monitor.
+Options (flags take precedence over env vars):
+    --scale N          Pixel scale factor          [env: SCREENSHOT_SCALE,  default: 3]
+    --outdir PATH      Output directory            [env: SCREENSHOT_OUTDIR, default: docs/screenshots]
 """
+import argparse
 import os
 import sys
 import time
-import types
 
-# ── Hardware stubs (same technique as tests/conftest.py) ─────────────────────
-_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'zerofish')
-sys.path.insert(0, _SRC)
+import hardware_stubs
+hardware_stubs.install()
 
-for _pkg in ('gpiozero', 'spidev', 'smbus'):
-    sys.modules.setdefault(_pkg, types.ModuleType(_pkg))
-
-_ec = types.ModuleType('TP_lib.epdconfig')
-_ec.EPD_RST_PIN = 17; _ec.EPD_DC_PIN = 25; _ec.EPD_CS_PIN = 8
-_ec.EPD_BUSY_PIN = 24; _ec.TRST = 22; _ec.INT = 27; _ec.address = 0x14
-_ec.bus = types.SimpleNamespace(write_i2c_block_data=lambda *a, **kw: None,
-                                 read_byte=lambda *a: 0)
-_ec.digital_write = lambda *a: None; _ec.digital_read = lambda p: 0
-_ec.delay_ms = lambda ms: None; _ec.spi_writebyte = lambda d: None
-_ec.spi_writebyte2 = lambda d: None; _ec.i2c_writebyte = lambda *a: None
-_ec.i2c_write = lambda r: None; _ec.i2c_readbyte = lambda r, n: [0] * n
-_ec.module_init = lambda: 0; _ec.module_exit = lambda: None
-_tp = types.ModuleType('TP_lib'); _tp.__path__ = [os.path.join(_SRC, 'TP_lib')]
-sys.modules['TP_lib'] = _tp; sys.modules['TP_lib.epdconfig'] = _ec
-
-# ── Imports (hardware-free from here on) ─────────────────────────────────────
 import chess
 from PIL import Image
 
-from screen_splash        import build_splash_screen
-from screen_difficulty    import build_difficulty_screen
-from screen_color         import build_color_screen
-from screen_thinking      import build_thinking_screen
-from screen_sf_move       import build_sf_move_screen
-from screen_player_move   import build_player_move_screen
-from screen_promotion     import build_promotion_screen
-from screen_disambig      import build_disambig_screen, disambig_rects
-from screen_ingame_menu   import build_ingame_menu_screen
+from screen_splash         import build_splash_screen
+from screen_difficulty     import build_difficulty_screen
+from screen_color          import build_color_screen
+from screen_thinking       import build_thinking_screen
+from screen_sf_move        import build_sf_move_screen
+from screen_player_move    import build_player_move_screen
+from screen_promotion      import build_promotion_screen
+from screen_disambig       import build_disambig_screen, disambig_rects
+from screen_ingame_menu    import build_ingame_menu_screen
 from screen_resign_confirm import build_resign_confirm_screen
-from screen_time          import build_time_screen
-from screen_board         import build_board_screen
-from screen_scoresheet    import build_scoresheet_screen
-from screen_game_over     import build_game_over_screen
+from screen_time           import build_time_screen
+from screen_board          import build_board_screen
+from screen_scoresheet     import build_scoresheet_screen
+from screen_game_over      import build_game_over_screen
 
-SCALE  = 3
-OUTDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', 'screenshots')
+_DEFAULT_OUTDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               'docs', 'screenshots')
 
 
-def _save(name: str, img: Image.Image) -> None:
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description='Generate ZeroFish screen screenshots.')
+    parser.add_argument(
+        '--scale', type=int,
+        default=int(os.environ.get('SCREENSHOT_SCALE', 3)),
+        help='Pixel scale factor (default: 3, env: SCREENSHOT_SCALE)',
+    )
+    parser.add_argument(
+        '--outdir',
+        default=os.environ.get('SCREENSHOT_OUTDIR', _DEFAULT_OUTDIR),
+        help='Output directory (default: docs/screenshots, env: SCREENSHOT_OUTDIR)',
+    )
+    return parser.parse_args()
+
+
+def _save(name: str, img: Image.Image, outdir: str, scale: int) -> None:
     rgb = img.convert('RGB')
     w, h = rgb.size
-    scaled = rgb.resize((w * SCALE, h * SCALE), Image.NEAREST)
-    path = os.path.join(OUTDIR, name)
+    scaled = rgb.resize((w * scale, h * scale), Image.NEAREST)
+    path = os.path.join(outdir, name)
     scaled.save(path)
-    print(f'  {name}  ({w}×{h} → {w*SCALE}×{h*SCALE})')
+    print(f'  {name}  ({w}×{h} → {w*scale}×{h*scale})')
 
 
 def main() -> None:
-    os.makedirs(OUTDIR, exist_ok=True)
-    print(f'Writing screenshots to {OUTDIR}/')
+    args = _parse_args()
+    os.makedirs(args.outdir, exist_ok=True)
+    print(f'Writing screenshots to {args.outdir}/  (scale={args.scale}×)')
 
     # Build a mid-game board for more interesting board/scoresheet shots
     board = chess.Board()
@@ -134,7 +133,7 @@ def main() -> None:
     ]
 
     for name, img in screens:
-        _save(name, img)
+        _save(name, img, args.outdir, args.scale)
 
     print(f'\n{len(screens)} screenshots saved.')
 
