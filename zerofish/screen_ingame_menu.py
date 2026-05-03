@@ -1,8 +1,6 @@
 from PIL import Image, ImageDraw
 import ui
 
-# Button order: 0=Resign  1=Board  (row 0)
-#               2=Score Sheet  3=Time  (row 1)
 IGMENU_BTN_LABELS = ['Resign', 'Board', 'Score\nSheet', 'Time']
 IGMENU_COLS    = 2
 IGMENU_BTN_GAP = 4
@@ -22,19 +20,40 @@ def igmenu_rect(idx) -> tuple[int, int, int, int]:
     return (x0, y0, x0 + IGMENU_BTN_W - 1, y0 + IGMENU_BTN_H - 1)
 
 
+class InGameMenuScreen(ui.Screen):
+    name = 'ingame_menu'
+
+    def __init__(self) -> None:
+        self._buttons = [
+            ui.Button(igmenu_rect(i), label)
+            for i, label in enumerate(IGMENU_BTN_LABELS)
+        ]
+
+    def build(self, move_label='') -> Image.Image:
+        img, draw = self.new_image()
+        f = self.fonts
+        ui.draw_chrome(draw, f, move_label or 'Menu', ok_active=True, ok_label='Back')
+        for btn in self._buttons:
+            btn.style = ui.Button.OUTLINE
+            btn.draw(draw, f['btn'])
+        return img
+
+    def hit(self, lx: int, ly: int, **kw) -> str | None:
+        if ui.hit_ok(lx, ly):
+            return 'back'
+        actions = ['resign', 'board', 'scoresheet', 'time']
+        for i, btn in enumerate(self._buttons):
+            if btn.hit(lx, ly):
+                return actions[i]
+        return None
+
+
+_screen = InGameMenuScreen()
+
+
 def build_ingame_menu_screen(move_label='') -> Image.Image:
-    img  = Image.new('1', (ui.W, ui.H), 255)
-    draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts('ingame_menu')
-    ui.draw_chrome(draw, f, move_label or 'Menu', ok_active=True, ok_label='Back')
-    for i, label in enumerate(IGMENU_BTN_LABELS):
-        x0, y0, x1, y1 = igmenu_rect(i)
-        cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-        ui.draw_btn(draw, [(x0, y0), (x1, y1)], outline=0)
-        ui.draw_centered(draw, cx, cy, label, f['btn'], 0)
-    return img
+    return _screen.build(move_label=move_label)
 
 
-def hit_igmenu(idx, lx, ly) -> bool:
-    x0, y0, x1, y1 = igmenu_rect(idx)
-    return x0 <= lx <= x1 and y0 <= ly <= y1
+def hit_igmenu(idx: int, lx: int, ly: int) -> bool:
+    return _screen._buttons[idx].hit(lx, ly)

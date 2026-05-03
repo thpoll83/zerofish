@@ -19,6 +19,7 @@ import chess.engine
 import config
 import game_state
 import ui
+from screen_machine import ScreenMachine
 from screen_splash       import (get_sf_info, build_splash_screen,
                                   hit_splash_ok, hit_splash_resume)
 from screen_resume       import (build_resume_screen, hit_game_btn as hit_resume_game,
@@ -171,7 +172,7 @@ def main():
     ))
     epd.init(epd.PART_UPDATE)
 
-    screen          = ui.SCREEN_SPLASH
+    machine         = ScreenMachine()
     diff_sel        = None
     color_sel       = None
     partial_count   = [0]
@@ -241,9 +242,9 @@ def main():
             tx, ty = dev.X[0], dev.Y[0]                     # portrait / raw
 
             # ── Splash ───────────────────────────────────────────────────────
-            if screen == ui.SCREEN_SPLASH:
+            if machine.is_at(ui.SCREEN_SPLASH):
                 if hit_splash_ok(lx, ly, has_resume=(len(saves_list) > 0)):
-                    screen = ui.SCREEN_DIFFICULTY
+                    machine.transition('new_game')
                     diff_sel = None
                     save_path = None
                     _transition(epd, build_difficulty_screen(), partial_count)
@@ -252,15 +253,15 @@ def main():
                     saves_list  = game_state.list_saves()
                     resume_page = 0
                     sel_resume  = None
-                    screen      = ui.SCREEN_RESUME
+                    machine.transition('resume')
                     _transition(epd,
                                 build_resume_screen(saves_list, 0, None),
                                 partial_count)
 
             # ── Difficulty ────────────────────────────────────────────────────
-            elif screen == ui.SCREEN_DIFFICULTY:
+            elif machine.is_at(ui.SCREEN_DIFFICULTY):
                 if ui.hit_sec(lx, ly):
-                    screen = ui.SCREEN_SPLASH
+                    machine.transition('back')
                     _transition(epd,
                                 build_splash_screen(sf_info, has_resume=(len(saves_list) > 0)),
                                 partial_count)
@@ -271,14 +272,14 @@ def main():
                             _show(epd, build_difficulty_screen(diff_sel), partial_count)
                             break
                     if ui.hit_ok(lx, ly, split=True) and diff_sel is not None:
-                        screen = ui.SCREEN_COLOR
+                        machine.transition('ok')
                         color_sel = None
                         _transition(epd, build_color_screen(), partial_count)
 
             # ── Side selection ────────────────────────────────────────────────
-            elif screen == ui.SCREEN_COLOR:
+            elif machine.is_at(ui.SCREEN_COLOR):
                 if ui.hit_sec(lx, ly):
-                    screen = ui.SCREEN_DIFFICULTY
+                    machine.transition('back')
                     _transition(epd, build_difficulty_screen(diff_sel), partial_count)
                 else:
                     for i in range(len(COLORS)):
@@ -304,11 +305,11 @@ def main():
                         think_limit  = _think_limit(diff_sel)
                         log.info('Think limit: %.1fs', config.DIFF_THINK_SECS.get(diff_sel, 1.0))
 
-                        save_path = None  # new game gets a fresh save file
+                        save_path = None
                         if player_is_white:
                             cur_move_label = _move_label(board)
                             sel_piece = sel_file = sel_rank = None
-                            screen = ui.SCREEN_PLAYER_MOVE
+                            machine.transition('ok')
                             save_path = game_state.save(board, move_history,
                                                         player_is_white, diff_sel)
                             _transition(epd,
@@ -317,6 +318,7 @@ def main():
                                         partial_count)
                         else:
                             sf_label = _move_label(board)
+                            machine.transition('ok_black')
                             _transition(epd, build_thinking_screen(sf_label), partial_count)
                             t0 = time.time()
                             _set_cpu_governor('performance')
@@ -328,7 +330,7 @@ def main():
                             move_history.append(sf_san)
                             log.info('Stockfish: %s', sf_san)
                             cur_move_label = sf_label
-                            screen = ui.SCREEN_SF_MOVE
+                            machine.transition('done')
                             save_path = game_state.save(board, move_history,
                                                         player_is_white, diff_sel)
                             _transition(epd,
@@ -336,16 +338,16 @@ def main():
                                         partial_count)
 
             # ── Stockfish move ────────────────────────────────────────────────
-            elif screen == ui.SCREEN_SF_MOVE:
+            elif machine.is_at(ui.SCREEN_SF_MOVE):
                 if ui.hit_ok(lx, ly, no_title=True):
                     if board.is_game_over():
                         line1, line2 = game_over_message(board, player_is_white)
-                        screen = ui.SCREEN_GAME_OVER
+                        machine.transition('game_over')
                         _transition(epd, build_game_over_screen(line1, line2), partial_count)
                     else:
                         cur_move_label = _move_label(board)
                         sel_piece = sel_file = sel_rank = None
-                        screen = ui.SCREEN_PLAYER_MOVE
+                        machine.transition('ok')
                         save_path = game_state.save(board, move_history,
                                                     player_is_white, diff_sel,
                                                     save_path)
@@ -355,9 +357,9 @@ def main():
                                     partial_count)
 
             # ── Player move input ─────────────────────────────────────────────
-            elif screen == ui.SCREEN_PLAYER_MOVE:
+            elif machine.is_at(ui.SCREEN_PLAYER_MOVE):
                 if ui.hit_sec(lx, ly, no_title=True):
-                    screen = ui.SCREEN_INGAME_MENU
+                    machine.transition('menu')
                     _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
                 else:
                     changed = False
@@ -385,7 +387,7 @@ def main():
                         if needs_promotion(board, sel_piece, sel_file, sel_rank):
                             prom_piece, prom_file, prom_rank = sel_piece, sel_file, sel_rank
                             sel_promo = None
-                            screen = ui.SCREEN_PROMOTION
+                            machine.transition('promote')
                             _transition(epd, build_promotion_screen(None, cur_move_label),
                                         partial_count)
                         else:
@@ -398,12 +400,13 @@ def main():
                                                                 inv_count, cur_move_label),
                                       partial_count)
                             elif len(candidates) == 1:
-                                screen, cur_move_label = _push_and_continue(
+                                new_screen, cur_move_label = _push_and_continue(
                                     board, candidates[0], move_history, engine,
                                     think_limit, epd, partial_count,
                                     player_is_white, inv_count, cur_move_label,
                                     sf_time_acc)
-                                if screen == ui.SCREEN_PLAYER_MOVE:
+                                machine.force(new_screen)
+                                if machine.is_at(ui.SCREEN_PLAYER_MOVE):
                                     sel_piece = sel_file = sel_rank = None
                                     save_path = game_state.save(board, move_history,
                                                                 player_is_white, diff_sel,
@@ -417,7 +420,7 @@ def main():
                                 ]
                                 disambig_rects_cur = disambig_rects(len(candidates))
                                 sel_disambig = None
-                                screen = ui.SCREEN_DISAMBIG
+                                machine.transition('disambig')
                                 _transition(epd,
                                             build_disambig_screen(disambig_labels,
                                                                    disambig_rects_cur,
@@ -425,7 +428,7 @@ def main():
                                             partial_count)
 
             # ── Pawn promotion ────────────────────────────────────────────────
-            elif screen == ui.SCREEN_PROMOTION:
+            elif machine.is_at(ui.SCREEN_PROMOTION):
                 changed = False
                 for i in range(4):
                     if hit_promo(i, lx, ly) and i != sel_promo:
@@ -444,12 +447,13 @@ def main():
                     elif len(candidates) == 1:
                         sel_piece = sel_file = sel_rank = None
                         prom_piece = prom_file = prom_rank = sel_promo = None
-                        screen, cur_move_label = _push_and_continue(
+                        new_screen, cur_move_label = _push_and_continue(
                             board, candidates[0], move_history, engine,
                             think_limit, epd, partial_count,
                             player_is_white, inv_count, cur_move_label,
                             sf_time_acc)
-                        if screen == ui.SCREEN_PLAYER_MOVE:
+                        machine.force(new_screen)
+                        if machine.is_at(ui.SCREEN_PLAYER_MOVE):
                             save_path = game_state.save(board, move_history,
                                                         player_is_white, diff_sel,
                                                         save_path)
@@ -463,7 +467,7 @@ def main():
                         disambig_rects_cur = disambig_rects(len(candidates))
                         sel_disambig = None
                         prom_piece = prom_file = prom_rank = sel_promo = None
-                        screen = ui.SCREEN_DISAMBIG
+                        machine.transition('disambig')
                         _transition(epd,
                                     build_disambig_screen(disambig_labels,
                                                            disambig_rects_cur,
@@ -471,7 +475,7 @@ def main():
                                     partial_count)
 
             # ── Disambiguation ────────────────────────────────────────────────
-            elif screen == ui.SCREEN_DISAMBIG:
+            elif machine.is_at(ui.SCREEN_DISAMBIG):
                 changed = False
                 for i in range(len(disambig_candidates)):
                     if hit_disambig(i, disambig_rects_cur, lx, ly) and i != sel_disambig:
@@ -485,81 +489,82 @@ def main():
                     move = disambig_candidates[sel_disambig]
                     sel_disambig = None
                     sel_piece = sel_file = sel_rank = None
-                    screen, cur_move_label = _push_and_continue(
+                    new_screen, cur_move_label = _push_and_continue(
                         board, move, move_history, engine,
                         think_limit, epd, partial_count,
                         player_is_white, inv_count, cur_move_label,
                         sf_time_acc)
-                    if screen == ui.SCREEN_PLAYER_MOVE:
+                    machine.force(new_screen)
+                    if machine.is_at(ui.SCREEN_PLAYER_MOVE):
                         save_path = game_state.save(board, move_history,
                                                     player_is_white, diff_sel,
                                                     save_path)
 
             # ── In-game menu (2×2) ────────────────────────────────────────────
-            elif screen == ui.SCREEN_INGAME_MENU:
+            elif machine.is_at(ui.SCREEN_INGAME_MENU):
                 if ui.hit_ok(lx, ly):               # Back → player move
-                    screen = ui.SCREEN_PLAYER_MOVE
+                    machine.transition('back')
                     _transition(epd,
                                 build_player_move_screen(sel_piece, sel_file, sel_rank,
                                                           inv_count, cur_move_label),
                                 partial_count)
 
                 elif hit_igmenu(0, lx, ly):          # Resign → confirm first
-                    screen = ui.SCREEN_RESIGN_CONFIRM
+                    machine.transition('resign')
                     _transition(epd, build_resign_confirm_screen(), partial_count)
 
                 elif hit_igmenu(1, lx, ly):          # Board
-                    screen = ui.SCREEN_BOARD
+                    machine.transition('board')
                     _transition(epd, build_board_screen(board, player_is_white),
                                 partial_count)
 
                 elif hit_igmenu(2, lx, ly):          # Score sheet
-                    screen = ui.SCREEN_SCORESHEET
+                    machine.transition('scoresheet')
                     _transition(epd,
                                 build_scoresheet_screen(move_history, cur_move_label),
                                 partial_count)
 
                 elif hit_igmenu(3, lx, ly):          # Time
-                    screen = ui.SCREEN_TIME
+                    machine.transition('time')
                     _transition(epd,
                                 build_time_screen(game_start, sf_time_acc[0]),
                                 partial_count)
 
             # ── Resign confirmation ───────────────────────────────────────────
-            elif screen == ui.SCREEN_RESIGN_CONFIRM:
+            elif machine.is_at(ui.SCREEN_RESIGN_CONFIRM):
                 if hit_resign_yes(lx, ly):           # Yes → resign
                     log.info('Player resigned')
                     game_state.clear(save_path)
                     save_path = None
-                    screen = ui.SCREEN_GAME_OVER
+                    machine.transition('yes')
                     _transition(epd, build_game_over_screen('Resigned', ''), partial_count)
                 elif ui.hit_ok(lx, ly):              # No → back to in-game menu
-                    screen = ui.SCREEN_INGAME_MENU
+                    machine.transition('no')
                     _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
 
             # ── Board display ─────────────────────────────────────────────────
-            elif screen == ui.SCREEN_BOARD:
+            elif machine.is_at(ui.SCREEN_BOARD):
                 if hit_board_back(lx, ly):
-                    screen = ui.SCREEN_INGAME_MENU
+                    machine.transition('back')
                     _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
 
             # ── Score sheet (portrait) ────────────────────────────────────────
-            elif screen == ui.SCREEN_SCORESHEET:
+            elif machine.is_at(ui.SCREEN_SCORESHEET):
                 if hit_scoresheet_back(tx, ty):
-                    screen = ui.SCREEN_INGAME_MENU
+                    machine.transition('back')
                     _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
 
             # ── Time screen ───────────────────────────────────────────────────
-            elif screen == ui.SCREEN_TIME:
+            elif machine.is_at(ui.SCREEN_TIME):
                 if ui.hit_ok(lx, ly):
-                    screen = ui.SCREEN_INGAME_MENU
+                    machine.transition('ok')
                     _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
 
             # ── Resume / game selection ───────────────────────────────────────
-            elif screen == ui.SCREEN_RESUME:
+            elif machine.is_at(ui.SCREEN_RESUME):
                 show_next = len(saves_list) > 6
                 if hit_resume_back(lx, ly, show_next):
-                    screen = ui.SCREEN_SPLASH
+                    machine.transition('back')
                     _transition(epd,
                                 build_splash_screen(sf_info,
                                                     has_resume=(len(saves_list) > 0)),
@@ -569,6 +574,7 @@ def main():
                     num_pages   = max(1, (len(saves_list) + 5) // 6)
                     resume_page = (resume_page + 1) % num_pages
                     sel_resume  = None
+                    machine.transition('next_page')
                     _show(epd,
                           build_resume_screen(saves_list, resume_page, None),
                           partial_count)
@@ -598,7 +604,7 @@ def main():
                         log.info('Resuming %s diff=%d player=%s fen=%s',
                                  save_path, diff_sel,
                                  'W' if player_is_white else 'B', board.fen())
-                        screen = ui.SCREEN_PLAYER_MOVE
+                        machine.transition('ok')
                         _transition(epd,
                                     build_player_move_screen(None, None, None,
                                                               0, cur_move_label),
@@ -617,7 +623,7 @@ def main():
                             break
 
             # ── Game over ─────────────────────────────────────────────────────
-            elif screen == ui.SCREEN_GAME_OVER:
+            elif machine.is_at(ui.SCREEN_GAME_OVER):
                 if ui.hit_ok(lx, ly):
                     game_state.clear(save_path)
                     save_path    = None
@@ -633,14 +639,14 @@ def main():
                     color_sel    = None
                     sel_piece    = sel_file = sel_rank = None
                     saves_list   = game_state.list_saves()
-                    screen = ui.SCREEN_SPLASH
+                    machine.transition('ok')
                     _transition(epd,
                                 build_splash_screen(sf_info,
                                                     has_resume=(len(saves_list) > 0)),
                                 partial_count)
 
             if (config.IDLE_SLEEP_SECS > 0
-                    and screen != ui.SCREEN_THINKING
+                    and not machine.is_at(ui.SCREEN_THINKING)
                     and time.time() - last_touch_time > config.IDLE_SLEEP_SECS):
                 _sleep_until_touch(epd, dev, partial_count)
                 last_touch_time = time.time()

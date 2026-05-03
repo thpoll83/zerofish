@@ -220,3 +220,79 @@ def san_with_glyph(san: str) -> str:
     if eq != -1 and eq + 1 < len(san) and san[eq + 1] in _SAN_TO_GLYPH:
         san = san[:eq + 1] + _SAN_TO_GLYPH[san[eq + 1]] + san[eq + 2:]
     return san
+
+
+# ── Button ────────────────────────────────────────────────────────────────────
+
+class Button:
+    """Renderable, hittable button with one of three visual styles.
+
+    Styles
+    ------
+    OUTLINE  – rounded outline only; black text (inactive option)
+    FILLED   – black fill; white text (selected option)
+    BAR      – outline + solid black bar at bottom; black text (action button)
+    """
+
+    OUTLINE = 'outline'
+    FILLED  = 'filled'
+    BAR     = 'bar'
+
+    def __init__(self, rect: tuple[int, int, int, int],
+                 label: str = '',
+                 style: str = OUTLINE,
+                 text_offset: tuple[int, int] = (0, 0)) -> None:
+        self.rect        = rect   # (x0, y0, x1, y1)
+        self.label       = label
+        self.style       = style
+        self.text_offset = text_offset  # (dx, dy) applied to the text centre
+
+    def draw(self, draw: ImageDraw.ImageDraw, font: ImageFont.FreeTypeFont) -> None:
+        x0, y0, x1, y1 = self.rect
+        coords = [(x0, y0), (x1, y1)]
+        dx, dy = self.text_offset
+        cx, cy = (x0 + x1) // 2 + dx, (y0 + y1) // 2 + dy
+        if self.style == Button.FILLED:
+            draw_btn(draw, coords, fill=0)
+            draw_centered(draw, cx, cy, self.label, font, 255)
+        elif self.style == Button.BAR:
+            draw_btn_bar(draw, coords)
+            draw_centered(draw, cx, cy, self.label, font, 0)
+        else:  # OUTLINE
+            draw_btn(draw, coords, outline=0)
+            draw_centered(draw, cx, cy, self.label, font, 0)
+
+    def hit(self, lx: int, ly: int) -> bool:
+        x0, y0, x1, y1 = self.rect
+        return x0 <= lx <= x1 and y0 <= ly <= y1
+
+
+# ── Screen base class ─────────────────────────────────────────────────────────
+
+class Screen:
+    """Base class for ZeroFish screen modules.
+
+    Subclasses set ``name`` and implement ``build()`` / ``hit()``.
+    The ``fonts`` property returns a cached font dict for ``self.name``.
+    ``new_image()`` creates a correctly-sized PIL image plus its draw handle.
+    """
+
+    name: str = 'default'
+
+    @property
+    def fonts(self) -> dict:
+        return load_fonts(self.name)
+
+    def new_image(self, portrait: bool = False) -> tuple[Image.Image, ImageDraw.ImageDraw]:
+        if portrait:
+            img = Image.new('1', (config.SCORE_W, config.SCORE_H), 255)
+        else:
+            img = Image.new('1', (W, H), 255)
+        return img, ImageDraw.Draw(img)
+
+    def build(self, **kw) -> Image.Image:
+        raise NotImplementedError(f'{type(self).__name__}.build()')
+
+    def hit(self, lx: int, ly: int, **kw) -> str | None:
+        """Return an action-name string if (lx, ly) hits a button, else None."""
+        raise NotImplementedError(f'{type(self).__name__}.hit()')

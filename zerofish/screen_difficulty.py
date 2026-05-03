@@ -26,24 +26,43 @@ def diff_rect(level) -> tuple[int, int, int, int]:
     return (x0, y0, x0 + _BTN_W - 1, y0 + _BTN_H - 1)
 
 
+class DifficultyScreen(ui.Screen):
+    name = 'difficulty'
+
+    def __init__(self) -> None:
+        self._buttons = [
+            ui.Button(diff_rect(lvl), config.DIFF_LABELS.get(lvl, str(lvl)))
+            for lvl in range(1, 16)
+        ]
+
+    def build(self, selected=None) -> Image.Image:
+        img, draw = self.new_image()
+        f = self.fonts
+        ui.draw_chrome(draw, f, 'Difficulty',
+                       ok_active=(selected is not None), sec_label='Back')
+        for i, btn in enumerate(self._buttons):
+            lvl = i + 1
+            btn.style = ui.Button.FILLED if lvl == selected else ui.Button.OUTLINE
+            btn.draw(draw, f['btn_diff'])
+        return img
+
+    def hit(self, lx: int, ly: int, selected=None) -> str | None:
+        if ui.hit_sec(lx, ly):
+            return 'back'
+        if ui.hit_ok(lx, ly, split=True) and selected is not None:
+            return 'ok'
+        for i, btn in enumerate(self._buttons):
+            if btn.hit(lx, ly):
+                return f'diff:{i + 1}'
+        return None
+
+
+_screen = DifficultyScreen()
+
+
 def build_difficulty_screen(selected=None) -> Image.Image:
-    img  = Image.new('1', (ui.W, ui.H), 255)
-    draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts('difficulty')
-    ui.draw_chrome(draw, f, 'Difficulty', ok_active=(selected is not None), sec_label='Back')
-    for lvl in range(1, 16):
-        x0, y0, x1, y1 = diff_rect(lvl)
-        cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-        label  = config.DIFF_LABELS.get(lvl, str(lvl))
-        if lvl == selected:
-            ui.draw_btn(draw, [(x0, y0), (x1, y1)], fill=0)
-            ui.draw_centered(draw, cx, cy, label, f['btn_diff'], 255)
-        else:
-            ui.draw_btn(draw, [(x0, y0), (x1, y1)], outline=0)
-            ui.draw_centered(draw, cx, cy, label, f['btn_diff'], 0)
-    return img
+    return _screen.build(selected=selected)
 
 
-def hit_diff(level, lx, ly) -> bool:
-    x0, y0, x1, y1 = diff_rect(level)
-    return x0 <= lx <= x1 and y0 <= ly <= y1
+def hit_diff(level: int, lx: int, ly: int) -> bool:
+    return _screen._buttons[level - 1].hit(lx, ly)
