@@ -9,7 +9,7 @@
 
 set -e
 
-RPI_HOST="${1:-192.168.68.59}"
+RPI_HOST="${1:-zerofish.local}"
 RPI_USER="zero"
 REMOTE="${RPI_USER}@${RPI_HOST}"
 

@@ -15,13 +15,14 @@ The display attaches to the GPIO header. No additional wiring is needed beyond t
 ## First-time setup
 
 1. Flash a 64-bit Raspberry Pi OS (Trixie / Debian 13) image.
-2. Enable SSH and set hostname/user to `zero` via RPi Imager advanced options, then copy your SSH key:
+2. Enable SSH and set **username to `zero`** via RPi Imager advanced options (hostname doesn't matter — `rpi_setup.sh` will rename it to `zerofish`).
+3. Find the Pi's IP address from your router, copy your SSH key, then clone this repo:
 
 ```bash
 ssh-copy-id zero@<rpi-ip>
+git clone <this-repo>
 ```
 
-3. Clone or copy this repo to your development machine.
 4. Deploy files and run the setup script **once** (password prompt requires an interactive terminal):
 
 ```bash
@@ -34,8 +35,14 @@ ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh
 - Installing all Python dependencies (`gpiozero`, `spidev`, `smbus`, `pillow`, `numpy`, `chess`, fonts, `stockfish`)
 - Writing a sudoers entry so that future deploys can restart the service non-interactively
 - Power tuning: Bluetooth off, GPU memory at 16 MB, CPU powersave governor on boot, CPU governor helper script
+- Installing `avahi-daemon` and setting the hostname to `zerofish` so the Pi is reachable as `zerofish.local` or the ip address
 
-5. Reboot the RPi. ZeroFish starts automatically on every boot via systemd.
+5. Reboot the RPi. ZeroFish starts automatically on every boot via systemd, and the Pi is reachable as `zerofish.local` — no more hunting for IP addresses.
+
+```bash
+ssh zero@zerofish.local
+bash deploy/deploy.sh   # all future deploys use zerofish.local automatically
+```
 
 ## Deploying changes
 
@@ -48,8 +55,56 @@ bash deploy/deploy.sh
 This syncs all code, installs/updates the systemd service, and restarts it. The new code is live immediately.
 
 ```bash
-ssh zero@<rpi-ip> systemctl status zerofish
-ssh zero@<rpi-ip> journalctl -fu zerofish   # live log
+ssh zero@zerofish.local systemctl status zerofish
+ssh zero@zerofish.local journalctl -fu zerofish   # live log
+```
+
+## Resolving zerofish.local
+
+The Pi advertises itself over mDNS (Bonjour/Avahi) so `zerofish.local` works without a fixed IP or DNS entry. What you need on the **dev machine** depends on the OS:
+
+### macOS
+Nothing to do — Bonjour is built in. `zerofish.local` resolves immediately.
+
+### Linux
+Most desktop distros already have the required packages. Check and fix in two steps:
+
+**1. Install the packages (if missing):**
+```bash
+sudo apt install avahi-daemon libnss-mdns   # Debian/Ubuntu
+```
+
+**2. Allow non-link-local resolution:**
+
+Open `/etc/nsswitch.conf` and find the `hosts:` line. Change `mdns4_minimal` to `mdns4`:
+
+```
+# before
+hosts: files mdns4_minimal [NOTFOUND=return] dns
+
+# after
+hosts: files mdns4 [NOTFOUND=return] dns
+```
+
+`mdns4_minimal` only resolves link-local addresses (169.254.x.x). `mdns4` resolves any IPv4 address advertised via mDNS, which is what the Pi uses (192.168.x.x).
+
+No restart needed — the change takes effect immediately.
+
+### Windows
+Windows 10 (build 1703+) and Windows 11 include a built-in mDNS client. `zerofish.local` should resolve in a PowerShell or Command Prompt without any extra software. If it doesn't, install [Apple Bonjour for Windows](https://support.apple.com/kb/DL999) (also bundled with iTunes and iCloud).
+
+### Verify
+```bash
+ssh zero@zerofish.local 'hostname -I'
+```
+
+If that times out, fall back to the IP address — check your router's DHCP table or run:
+```bash
+# Linux/macOS
+avahi-resolve-host-name zerofish.local   # requires avahi-utils on Linux
+
+# Any OS
+ping zerofish.local
 ```
 
 ## How to play
@@ -157,11 +212,8 @@ The tests in `tests/rpi/` exercise the complete game loop on real e-ink hardware
 **Deploy the code first**, then SSH into the Pi and run pytest:
 
 ```bash
-bash deploy/deploy.sh          # sync latest code to the Pi
-
-ssh zero@192.168.68.59
-cd ~/zerofish
-pytest tests/rpi/ -v
+bash deploy/deploy.sh                                         # sync latest code to the Pi
+ssh zero@zerofish.local 'cd ~/zerofish && pytest tests/rpi/ -v'
 ```
 
 The two tests covered:

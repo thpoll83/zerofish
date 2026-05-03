@@ -4,7 +4,8 @@ RPi integration tests – run on real Raspberry Pi hardware.
 Skipped automatically on dev machines where RPi hardware is absent.
 
 To run on the RPi after deployment:
-    cd ~/zerofish && pytest tests/rpi/ -v
+    bash deploy/deploy.sh
+    ssh zero@zerofish.local 'cd ~/zerofish && pytest tests/rpi/ -v'
 
 The tests exercise the complete game loop with:
   - Real e-ink display (actual refresh timing respected, not mocked)

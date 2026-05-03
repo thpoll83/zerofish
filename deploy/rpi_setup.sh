@@ -91,7 +91,19 @@ sudo systemctl enable cpu-powersave.service
 echo "CPU powersave governor service installed."
 
 echo ""
-echo "=== 6. Verifying I2C bus (GT1151 touch controller should appear at 0x14) ==="
+echo "=== 6. mDNS (zerofish.local) ==="
+sudo apt install -y avahi-daemon
+sudo hostnamectl set-hostname zerofish
+if ! grep -q '^127.0.1.1' /etc/hosts; then
+    echo '127.0.1.1 zerofish' | sudo tee -a /etc/hosts > /dev/null
+else
+    sudo sed -i 's/^127\.0\.1\.1.*/127.0.1.1 zerofish/' /etc/hosts
+fi
+sudo systemctl enable --now avahi-daemon
+echo "Hostname set to 'zerofish'; reachable as zerofish.local after reboot."
+
+echo ""
+echo "=== 7. Verifying I2C bus (GT1151 touch controller should appear at 0x14) ==="
 sudo i2cdetect -y 1
 
 echo ""
