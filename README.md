@@ -10,6 +10,8 @@ Jump to: [English](#english) · [Deutsch](#deutsch) · [Français](#français) �
 
 ---
 
+<a id="screenshots"></a>
+
 ## Screenshots
 
 All screens run at 250 × 122 px in landscape orientation (122 × 250 px for the score sheet).

@@ -1,7 +1,5 @@
 # ZeroFish — Developer Documentation
 
-A standalone chess computer built on a Raspberry Pi Zero 2 W with a WaveShare 2.13" touch e-paper display. Stockfish runs as the engine; the player makes physical moves on a real board, then enters each move by tapping piece type and target square on the display.
-
 **Player guide (with screenshots and translations): [README.md](README.md)**
 
 ## Hardware
