@@ -19,23 +19,40 @@ def promo_rect(idx) -> tuple[int, int, int, int]:
     return (x0, PROMO_BTN_Y0, x0 + PROMO_BTN_W - 1, PROMO_BTN_Y1)
 
 
+class PromotionScreen(ui.Screen):
+    name = 'promotion'
+
+    def __init__(self) -> None:
+        self._buttons = [
+            ui.Button(promo_rect(i), glyph)
+            for i, glyph in enumerate(PROMO_GLYPHS)
+        ]
+
+    def build(self, selected=None, move_label='') -> Image.Image:
+        img, draw = self.new_image()
+        f = self.fonts
+        ui.draw_chrome(draw, f, f'Promote {move_label}',
+                       ok_active=(selected is not None))
+        for i, btn in enumerate(self._buttons):
+            btn.style = ui.Button.FILLED if i == selected else ui.Button.OUTLINE
+            btn.draw(draw, f['promo'])
+        return img
+
+    def hit(self, lx: int, ly: int, selected=None) -> str | None:
+        if ui.hit_ok(lx, ly) and selected is not None:
+            return 'ok'
+        for i, btn in enumerate(self._buttons):
+            if btn.hit(lx, ly):
+                return f'promo:{i}'
+        return None
+
+
+_screen = PromotionScreen()
+
+
 def build_promotion_screen(selected=None, move_label='') -> Image.Image:
-    img  = Image.new('1', (ui.W, ui.H), 255)
-    draw = ImageDraw.Draw(img)
-    f    = ui.load_fonts('promotion')
-    ui.draw_chrome(draw, f, f'Promote {move_label}', ok_active=(selected is not None))
-    for i, glyph in enumerate(PROMO_GLYPHS):
-        x0, y0, x1, y1 = promo_rect(i)
-        cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-        if i == selected:
-            ui.draw_btn(draw, [(x0, y0), (x1, y1)], fill=0)
-            ui.draw_centered(draw, cx, cy, glyph, f['promo'], 255)
-        else:
-            ui.draw_btn(draw, [(x0, y0), (x1, y1)], outline=0)
-            ui.draw_centered(draw, cx, cy, glyph, f['promo'], 0)
-    return img
+    return _screen.build(selected=selected, move_label=move_label)
 
 
-def hit_promo(idx, lx, ly) -> bool:
-    x0, y0, x1, y1 = promo_rect(idx)
-    return x0 <= lx <= x1 and y0 <= ly <= y1
+def hit_promo(idx: int, lx: int, ly: int) -> bool:
+    return _screen._buttons[idx].hit(lx, ly)
