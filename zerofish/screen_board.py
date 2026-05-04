@@ -112,4 +112,4 @@ def build_board_screen(board, player_is_white=True) -> Image.Image:
 
 
 def hit_board_back(lx: int, ly: int) -> bool:
-    return lx > ui.VSEP_X
+    return _screen._back_btn.hit(lx, ly)

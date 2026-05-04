@@ -46,10 +46,9 @@ class DisambigScreen(ui.Screen):
         for i, (label, rect) in enumerate(zip(labels, rects)):
             x0, y0, x1, y1 = rect
             cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-            btn = ui.Button(rect)
-            btn.style = ui.Button.FILLED if i == selected else ui.Button.OUTLINE
+            filled = (i == selected)
             coords = [(x0, y0), (x1, y1)]
-            if btn.style == ui.Button.FILLED:
+            if filled:
                 ui.draw_btn(draw, coords, fill=0)
                 _draw_label(draw, label, f, cx, cy, 255)
             else:

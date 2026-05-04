@@ -63,4 +63,4 @@ def build_scoresheet_screen(move_history, move_label='') -> Image.Image:
 
 
 def hit_scoresheet_back(tx: int, ty: int) -> bool:
-    return 0 <= tx <= config.SCORE_W - 1 and SCORE_BACK_Y0 <= ty <= SCORE_BACK_Y1
+    return _screen._back_btn.hit(tx, ty)

@@ -14,9 +14,14 @@ _SPLASH_SEC_Y0     = _SPLASH_MID_Y + 2                    # = 63
 _SPLASH_SEC_Y1     = ui.H - 6                             # = 116
 _SPLASH_LOGO_MAX   = 90
 
-_OK_RECT_FULL = (ui.OK_X0, _SPLASH_OK_Y0, ui.OK_X1, _SPLASH_OK_Y1_FULL)
-_OK_RECT_SPIT = (ui.OK_X0, _SPLASH_OK_Y0, ui.OK_X1, _SPLASH_OK_Y1)
-_SEC_RECT     = (ui.OK_X0, _SPLASH_SEC_Y0, ui.OK_X1, _SPLASH_SEC_Y1)
+_OK_RECT_FULL  = (ui.OK_X0, _SPLASH_OK_Y0, ui.OK_X1, _SPLASH_OK_Y1_FULL)
+_OK_RECT_SPLIT = (ui.OK_X0, _SPLASH_OK_Y0, ui.OK_X1, _SPLASH_OK_Y1)
+_SEC_RECT      = (ui.OK_X0, _SPLASH_SEC_Y0, ui.OK_X1, _SPLASH_SEC_Y1)
+
+# Module-level Button constants used for both drawing and hit-detection.
+_OK_BTN_FULL  = ui.Button(_OK_RECT_FULL,  'OK',   ui.Button.BAR)
+_OK_BTN_SPLIT = ui.Button(_OK_RECT_SPLIT, 'OK',   ui.Button.BAR)
+_SEC_BTN      = ui.Button(_SEC_RECT,      'Cont', ui.Button.BAR)
 
 
 def _wifi_ip() -> str:
@@ -71,10 +76,6 @@ def get_sf_info() -> tuple[str, str]:
 class SplashScreen(ui.Screen):
     name = 'splash'
 
-    def __init__(self) -> None:
-        self._ok_btn  = ui.Button(_OK_RECT_FULL,  'OK',   ui.Button.BAR)
-        self._sec_btn = ui.Button(_SEC_RECT,       'Cont', ui.Button.BAR)
-
     def build(self, sf_info=None, has_resume: bool = False) -> Image.Image:
         img, draw = self.new_image()
         f = self.fonts
@@ -83,14 +84,12 @@ class SplashScreen(ui.Screen):
             sf_info = get_sf_info()
         sf_name, sf_bits = sf_info
 
-        # Right panel
-        ok_rect = _OK_RECT_SPIT if has_resume else _OK_RECT_FULL
-        self._ok_btn.rect = ok_rect
+        # Right panel — choose the appropriate OK button size
+        ok_btn = _OK_BTN_SPLIT if has_resume else _OK_BTN_FULL
         draw.line([(ui.VSEP_X, 0), (ui.VSEP_X, ui.H - 1)], fill=0)
-        self._ok_btn.draw(draw, f['ok'])
-
+        ok_btn.draw(draw, f['ok'])
         if has_resume:
-            self._sec_btn.draw(draw, f['btn'])
+            _SEC_BTN.draw(draw, f['btn'])
 
         # Logo
         logo_w = 0
@@ -140,11 +139,9 @@ class SplashScreen(ui.Screen):
         return img
 
     def hit(self, lx: int, ly: int, has_resume: bool = False) -> str | None:
-        ok_rect = _OK_RECT_SPIT if has_resume else _OK_RECT_FULL
-        x0, y0, x1, y1 = ok_rect
-        if x0 <= lx <= x1 and y0 <= ly <= y1:
+        if (_OK_BTN_SPLIT if has_resume else _OK_BTN_FULL).hit(lx, ly):
             return 'new_game'
-        if has_resume and self._sec_btn.hit(lx, ly):
+        if has_resume and _SEC_BTN.hit(lx, ly):
             return 'resume'
         return None
 
@@ -157,10 +154,8 @@ def build_splash_screen(sf_info=None, has_resume: bool = False) -> Image.Image:
 
 
 def hit_splash_ok(lx: int, ly: int, has_resume: bool = False) -> bool:
-    ok_rect = _OK_RECT_SPIT if has_resume else _OK_RECT_FULL
-    x0, y0, x1, y1 = ok_rect
-    return x0 <= lx <= x1 and y0 <= ly <= y1
+    return (_OK_BTN_SPLIT if has_resume else _OK_BTN_FULL).hit(lx, ly)
 
 
 def hit_splash_resume(lx: int, ly: int) -> bool:
-    return _screen._sec_btn.hit(lx, ly)
+    return _SEC_BTN.hit(lx, ly)

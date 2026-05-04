@@ -13,7 +13,7 @@ _YES_RECT = (_YES_X0, _YES_Y0, _YES_X1, _YES_Y1)
 
 
 class ResignConfirmScreen(ui.Screen):
-    name = 'ingame_menu'
+    name = 'resign_confirm'
 
     def __init__(self) -> None:
         self._yes_btn = ui.Button(_YES_RECT, 'Yes', ui.Button.FILLED)
