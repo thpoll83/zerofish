@@ -7,5 +7,5 @@ stockfish/*
 CLAUDE.md
 *.zip
 *.tar
-.*
+.venv
 get-pip.py
