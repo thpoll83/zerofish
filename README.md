@@ -79,7 +79,7 @@ Current position from the player's perspective. Dark squares are hatched; white 
 ### Score sheet
 ![Score sheet](docs/screenshots/15_scoresheet.png)
 
-Portrait-orientation move list showing up to the last 15 full moves. **Back** returns to the in-game menu.
+Portrait-orientation move list showing up to the last 15 full moves. **Back** returns to the in-game menu. When the game has more than 15 full moves a **More** button appears next to **Back**; each press scrolls back by 13 moves (overlapping the 2 oldest moves from the previous view for context). When move 1 is already visible, pressing **More** wraps back to the most recent moves.
 
 ### Game over
 ![Game over](docs/screenshots/16_game_over_win.png)

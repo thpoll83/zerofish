@@ -39,7 +39,8 @@ from screen_ingame_menu    import build_ingame_menu_screen, hit_igmenu
 from screen_resign_confirm import build_resign_confirm_screen, hit_resign_yes
 from screen_time           import build_time_screen
 from screen_board        import build_board_screen, hit_board_back
-from screen_scoresheet   import build_scoresheet_screen, hit_scoresheet_back
+from screen_scoresheet   import (build_scoresheet_screen, hit_scoresheet_back,
+                                  hit_scoresheet_more, next_score_end, SCORE_ROWS)
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s: %(message)s')
 log = logging.getLogger('zerofish')
@@ -210,6 +211,8 @@ def main():
     # Time tracking
     game_start  = 0.0
     sf_time_acc = [0.0]
+    # Score sheet scroll state (None = most recent moves)
+    score_end   = None
 
     running = True
     def irq_poll():
@@ -536,6 +539,7 @@ def main():
                                 partial_count)
 
                 elif hit_igmenu(2, lx, ly):          # Score sheet
+                    score_end = None
                     machine.transition('scoresheet')
                     _transition(epd,
                                 build_scoresheet_screen(move_history, cur_move_label),
@@ -567,9 +571,16 @@ def main():
 
             # ── Score sheet (portrait) ────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_SCORESHEET):
-                if hit_scoresheet_back(tx, ty):
+                _has_more = len(move_history) > SCORE_ROWS * 2
+                if hit_scoresheet_back(tx, ty, has_more=_has_more):
                     machine.transition('back')
                     _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
+                elif _has_more and hit_scoresheet_more(tx, ty):
+                    score_end = next_score_end(move_history, score_end)
+                    _transition(epd,
+                                build_scoresheet_screen(move_history, cur_move_label,
+                                                        score_end=score_end),
+                                partial_count)
 
             # ── Time screen ───────────────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_TIME):
