@@ -4,7 +4,7 @@
 # Usage:
 #   bash deploy/deploy.sh [rpi-host]
 #
-# Default host is 192.168.68.55 — override with the first argument, e.g.:
+# Default host is zerofish.local — override with an IP or hostname, e.g.:
 #   bash deploy/deploy.sh 192.168.1.42
 
 set -e

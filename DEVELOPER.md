@@ -15,7 +15,7 @@ The display attaches to the GPIO header. No additional wiring is needed beyond t
 ## First-time setup
 
 1. Flash a 64-bit Raspberry Pi OS (Trixie / Debian 13) image.
-2. Enable SSH and set **username to `zero`** via RPi Imager advanced options (hostname doesn't matter — `rpi_setup.sh` will rename it to `zerofish`).
+2. Enable SSH and set **username to `zero`** via RPi Imager advanced options (the hostname set here doesn't matter — `rpi_setup.sh` will override it).
 3. Find the Pi's IP address from your router, copy your SSH key, then clone this repo:
 
 ```bash
@@ -27,7 +27,8 @@ git clone <this-repo>
 
 ```bash
 bash deploy/deploy.sh <rpi-ip>
-ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh
+ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh            # mDNS name: zerofish.local (default)
+ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh mydevice   # custom: mydevice.local
 ```
 
 `rpi_setup.sh` handles:
@@ -35,7 +36,7 @@ ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh
 - Installing all Python dependencies (`gpiozero`, `spidev`, `smbus`, `pillow`, `numpy`, `chess`, fonts, `stockfish`)
 - Writing a sudoers entry so that future deploys can restart the service non-interactively
 - Power tuning: Bluetooth off, GPU memory at 16 MB, CPU powersave governor on boot, CPU governor helper script
-- Installing `avahi-daemon` and setting the hostname to `zerofish` so the Pi is reachable as `zerofish.local` or the ip address
+- Installing `avahi-daemon` and pinning the mDNS hostname in `/etc/avahi/avahi-daemon.conf` so the Pi is reachable as `<hostname>.local` regardless of the system hostname. Re-running with a different name updates the existing config safely. Default is `zerofish.local`.
 
 5. Reboot the RPi. ZeroFish starts automatically on every boot via systemd, and the Pi is reachable as `zerofish.local` — no more hunting for IP addresses.
 

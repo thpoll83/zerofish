@@ -14,10 +14,11 @@ After flashing Raspberry Pi OS (64-bit Trixie) and enabling SSH, run the setup s
 
 ```bash
 ssh-copy-id zero@<rpi-ip>
-ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh
+ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh            # hostname: zerofish (default)
+ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh mydevice   # custom hostname → mydevice.local
 ```
 
-`rpi_setup.sh` enables SPI/I2C, installs all Python dependencies, writes a sudoers entry so future deploys can restart the service without a password, and applies power tuning (Bluetooth off, `gpu_mem=16`, CPU powersave governor, governor helper script).
+`rpi_setup.sh` enables SPI/I2C, installs all Python dependencies, writes a sudoers entry so future deploys can restart the service without a password, applies power tuning (Bluetooth off, `gpu_mem=16`, CPU powersave governor, governor helper script), and configures avahi so the Pi is reachable as `<hostname>.local`. The hostname is pinned in `/etc/avahi/avahi-daemon.conf` so it survives system hostname resets. Re-running the script with a different name is safe.
 
 Reboot after setup:
 
@@ -28,8 +29,9 @@ ssh zero@<rpi-ip> sudo reboot
 ## Everyday deploy
 
 ```bash
-bash deploy/deploy.sh                   # default host: 192.168.68.55
-bash deploy/deploy.sh 192.168.1.42      # override IP
+bash deploy/deploy.sh                   # default host: zerofish.local
+bash deploy/deploy.sh 192.168.1.42      # override with IP (if mDNS unavailable)
+bash deploy/deploy.sh mydevice.local    # custom hostname
 ```
 
 Syncs all code, installs/updates the systemd unit, and restarts the service. New code is live immediately.

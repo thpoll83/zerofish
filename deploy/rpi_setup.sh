@@ -4,9 +4,13 @@
 # the GT1151 touch controller is visible on the I2C bus.
 #
 # Usage (run with an interactive terminal so sudo can prompt for a password):
-#   ssh -t zero@192.168.68.55 bash deploy/rpi_setup.sh
+#   ssh -t zero@<ip> bash deploy/rpi_setup.sh [hostname]
+#
+# hostname  mDNS name advertised by avahi (default: zerofish → zerofish.local)
 
 set -e
+
+RPI_NAME="${1:-zerofish}"
 
 echo "=== 1. Enabling SPI and I2C ==="
 sudo raspi-config nonint do_spi 0
@@ -91,16 +95,21 @@ sudo systemctl enable cpu-powersave.service
 echo "CPU powersave governor service installed."
 
 echo ""
-echo "=== 6. mDNS (zerofish.local) ==="
+echo "=== 6. mDNS (${RPI_NAME}.local) ==="
 sudo apt install -y avahi-daemon
-sudo hostnamectl set-hostname zerofish
+sudo hostnamectl set-hostname "${RPI_NAME}"
 if ! grep -q '^127.0.1.1' /etc/hosts; then
-    echo '127.0.1.1 zerofish' | sudo tee -a /etc/hosts > /dev/null
+    echo "127.0.1.1 ${RPI_NAME}" | sudo tee -a /etc/hosts > /dev/null
 else
-    sudo sed -i 's/^127\.0\.1\.1.*/127.0.1.1 zerofish/' /etc/hosts
+    sudo sed -i "s/^127\.0\.1\.1.*/127.0.1.1 ${RPI_NAME}/" /etc/hosts
 fi
+# Pin the mDNS hostname explicitly so avahi advertises <name>.local
+# regardless of the system hostname (survives hostname resets).
+# Handles both the commented default (#host-name=foo) and a previously
+# configured value (host-name=oldname).
+sudo sed -i "s/^#\{0,1\}host-name=.*/host-name=${RPI_NAME}/" /etc/avahi/avahi-daemon.conf
 sudo systemctl enable --now avahi-daemon
-echo "Hostname set to 'zerofish'; reachable as zerofish.local after reboot."
+echo "Hostname set to '${RPI_NAME}'; reachable as ${RPI_NAME}.local after reboot."
 
 echo ""
 echo "=== 7. Verifying I2C bus (GT1151 touch controller should appear at 0x14) ==="
