@@ -96,7 +96,7 @@ def test_splash_with_resume():
 
 
 def test_splash_no_sf_info():
-    # Passing None triggers get_sf_info() which gracefully falls back
+    # None = loading state: renders without buttons or SF info lines
     _ok(build_splash_screen(None))
 
 

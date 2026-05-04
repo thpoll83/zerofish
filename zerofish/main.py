@@ -157,9 +157,15 @@ def main():
 
     log.info('ZeroFish v%s starting', config.VERSION)
 
-    log.info('Probing Stockfish…')
-    sf_info    = get_sf_info()
-    log.info('Engine: %s  %s', sf_info[0], sf_info[1])
+    # Probe Stockfish in the background so the splash appears immediately.
+    sf_info        = None
+    _sf_result     = [None]
+    def _probe_sf():
+        _sf_result[0] = get_sf_info()
+        log.info('Engine: %s  %s', *_sf_result[0])
+    sf_thread = threading.Thread(target=_probe_sf, daemon=True)
+    sf_thread.start()
+
     saves_list = game_state.list_saves()
     log.info('Unfinished saves: %d', len(saves_list))
 
@@ -167,9 +173,11 @@ def main():
     gt.GT_Init()
     gt.GT_DumpConfig()
     epd.Clear(0xFF)
-    epd.displayPartBaseImage(epd.getbuffer(
-        build_splash_screen(sf_info, has_resume=(len(saves_list) > 0))
-    ))
+    global _last_display_buf
+    _last_display_buf = epd.getbuffer(
+        build_splash_screen(None, has_resume=(len(saves_list) > 0))
+    )
+    epd.displayPartBaseImage(_last_display_buf)
     epd.init(epd.PART_UPDATE)
 
     machine         = ScreenMachine()
@@ -211,14 +219,21 @@ def main():
             time.sleep(0.005)
     threading.Thread(target=irq_poll, daemon=True).start()
 
-    log.info('Ready')
-    if _test_hooks.on_startup is not None:
-        _test_hooks.on_startup()
+    log.info('Ready — waiting for SF probe')
 
     try:
         while True:
             if _test_hooks.stop:
                 break
+
+            # Once the SF probe finishes, update the splash with engine info and show buttons.
+            if machine.is_at(ui.SCREEN_SPLASH) and sf_info is None and not sf_thread.is_alive():
+                sf_info = _sf_result[0] or ('Stockfish', '')
+                _show(epd, build_splash_screen(sf_info, has_resume=(len(saves_list) > 0)),
+                      partial_count)
+                if _test_hooks.on_startup is not None:
+                    _test_hooks.on_startup()
+
             had_irq = (dev.Touch == 1)
             gt.GT_Scan(dev, old)
 
@@ -243,7 +258,9 @@ def main():
 
             # ── Splash ───────────────────────────────────────────────────────
             if machine.is_at(ui.SCREEN_SPLASH):
-                if hit_splash_ok(lx, ly, has_resume=(len(saves_list) > 0)):
+                if sf_info is None:
+                    pass  # buttons not yet visible — ignore all touches
+                elif hit_splash_ok(lx, ly, has_resume=(len(saves_list) > 0)):
                     machine.transition('new_game')
                     diff_sel = None
                     save_path = None

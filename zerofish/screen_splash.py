@@ -80,16 +80,16 @@ class SplashScreen(ui.Screen):
         img, draw = self.new_image()
         f = self.fonts
 
-        if sf_info is None:
-            sf_info = get_sf_info()
-        sf_name, sf_bits = sf_info
-
-        # Right panel — choose the appropriate OK button size
-        ok_btn = _OK_BTN_SPLIT if has_resume else _OK_BTN_FULL
-        draw.line([(ui.VSEP_X, 0), (ui.VSEP_X, ui.H - 1)], fill=0)
-        ok_btn.draw(draw, f['ok'])
-        if has_resume:
-            _SEC_BTN.draw(draw, f['btn'])
+        # Right panel — only drawn once SF info is available
+        if sf_info is not None:
+            sf_name, sf_bits = sf_info
+            ok_btn = _OK_BTN_SPLIT if has_resume else _OK_BTN_FULL
+            draw.line([(ui.VSEP_X, 0), (ui.VSEP_X, ui.H - 1)], fill=0)
+            ok_btn.draw(draw, f['ok'])
+            if has_resume:
+                _SEC_BTN.draw(draw, f['btn'])
+        else:
+            sf_name = sf_bits = None
 
         # Logo
         logo_w = 0
@@ -112,17 +112,18 @@ class SplashScreen(ui.Screen):
         area_w  = ui.VSEP_X - text_x - 2
         text_cx = text_x + area_w // 2
 
-        lines = [
-            ('ZeroFish', f['title']),
-            (f'v{config.VERSION}', f['ver']),
-            ('powered by', f['ver']),
-            (sf_name, f['ver']),
-        ]
-        if sf_bits:
-            lines.append((sf_bits, f['ver']))
-        ip = _wifi_ip()
-        if ip:
-            lines.append((ip, f['ver']))
+        lines = [('ZeroFish', f['title'])]
+        if sf_name is not None:
+            lines += [
+                (f'v{config.VERSION}', f['ver']),
+                ('powered by', f['ver']),
+                (sf_name, f['ver']),
+            ]
+            if sf_bits:
+                lines.append((sf_bits, f['ver']))
+            ip = _wifi_ip()
+            if ip:
+                lines.append((ip, f['ver']))
 
         gap = 3
         heights = [draw.textbbox((0, 0), t, font=fnt)[3] - draw.textbbox((0, 0), t, font=fnt)[1]
