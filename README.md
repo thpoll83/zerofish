@@ -2,126 +2,19 @@
 
 A standalone chess computer built on a Raspberry Pi Zero 2 W with a WaveShare 2.13" touch e-paper display. Stockfish runs as the engine; the player makes physical moves on a real board, then enters each move by tapping piece type and target square on the display.
 
-## Hardware
+**For setup, deployment, and technical internals see [DEVELOPER.md](DEVELOPER.md).**
 
-| Part | Detail |
-|------|--------|
-| Raspberry Pi Zero 2 W | Host board |
-| WaveShare 2.13" Touch e-Paper HAT V4 | 122 × 250 px B/W, SPI display + GT1151 I2C touch |
-| Standard chess board | Any physical board |
+---
 
-The display attaches to the GPIO header. No additional wiring is needed beyond the HAT.
+Jump to: [English](#english) · [Deutsch](#deutsch) · [Français](#français) · [Español](#español) · [한국어](#한국어)
 
-## First-time setup
+---
 
-1. Flash a 64-bit Raspberry Pi OS (Trixie / Debian 13) image.
-2. Enable SSH and set **username to `zero`** via RPi Imager advanced options (hostname doesn't matter — `rpi_setup.sh` will rename it to `zerofish`).
-3. Find the Pi's IP address from your router, copy your SSH key, then clone this repo:
-
-```bash
-ssh-copy-id zero@<rpi-ip>
-git clone <this-repo>
-```
-
-4. Deploy files and run the setup script **once** (password prompt requires an interactive terminal):
-
-```bash
-bash deploy/deploy.sh <rpi-ip>
-ssh -t zero@<rpi-ip> bash deploy/rpi_setup.sh
-```
-
-`rpi_setup.sh` handles:
-- Enabling SPI and I2C via `raspi-config`
-- Installing all Python dependencies (`gpiozero`, `spidev`, `smbus`, `pillow`, `numpy`, `chess`, fonts, `stockfish`)
-- Writing a sudoers entry so that future deploys can restart the service non-interactively
-- Power tuning: Bluetooth off, GPU memory at 16 MB, CPU powersave governor on boot, CPU governor helper script
-- Installing `avahi-daemon` and setting the hostname to `zerofish` so the Pi is reachable as `zerofish.local` or the ip address
-
-5. Reboot the RPi. ZeroFish starts automatically on every boot via systemd, and the Pi is reachable as `zerofish.local` — no more hunting for IP addresses.
-
-```bash
-ssh zero@zerofish.local
-bash deploy/deploy.sh   # all future deploys use zerofish.local automatically
-```
-
-## Deploying changes
-
-From your development machine:
-
-```bash
-bash deploy/deploy.sh
-```
-
-This syncs all code, installs/updates the systemd service, and restarts it. The new code is live immediately.
-
-```bash
-ssh zero@zerofish.local systemctl status zerofish
-ssh zero@zerofish.local journalctl -fu zerofish   # live log
-```
-
-## Resolving zerofish.local
-
-The Pi advertises itself over mDNS (Bonjour/Avahi) so `zerofish.local` works without a fixed IP or DNS entry. What you need on the **dev machine** depends on the OS:
-
-### macOS
-Nothing to do — Bonjour is built in. `zerofish.local` resolves immediately.
-
-### Linux
-Most desktop distros already have the required packages. Check and fix in two steps:
-
-**1. Install the packages (if missing):**
-```bash
-sudo apt install avahi-daemon libnss-mdns   # Debian/Ubuntu
-```
-
-**2. Allow non-link-local resolution:**
-
-Open `/etc/nsswitch.conf` and find the `hosts:` line. Change `mdns4_minimal` to `mdns4`:
-
-```
-# before
-hosts: files mdns4_minimal [NOTFOUND=return] dns
-
-# after
-hosts: files mdns4 [NOTFOUND=return] dns
-```
-
-`mdns4_minimal` only resolves link-local addresses (169.254.x.x). `mdns4` resolves any IPv4 address advertised via mDNS, which is what the Pi uses (192.168.x.x).
-
-No restart needed — the change takes effect immediately.
-
-### Windows
-Windows 10 (build 1703+) and Windows 11 include a built-in mDNS client. `zerofish.local` should resolve in a PowerShell or Command Prompt without any extra software. If it doesn't, install [Apple Bonjour for Windows](https://support.apple.com/kb/DL999) (also bundled with iTunes and iCloud).
-
-### Verify
-```bash
-ssh zero@zerofish.local 'hostname -I'
-```
-
-If that times out, fall back to the IP address — check your router's DHCP table or run:
-```bash
-# Linux/macOS
-avahi-resolve-host-name zerofish.local   # requires avahi-utils on Linux
-
-# Any OS
-ping zerofish.local
-```
-
-## How to play
-
-Hold the device landscape (short edge top/bottom, USB port on the left).
-
-1. **Difficulty** — tap one of 15 levels (1k – ∞) to choose engine strength, then OK.
-2. **Side** — tap White, Black, or Random, then OK.
-3. **Game loop:**
-   - *Stockfish's turn:* the display shows its move in large SAN notation. Make the move on the physical board, then tap OK.
-   - *Your turn:* tap the three button rows — piece type (♟♞♝♜♛♚), file (a–h), rank (1–8) — then OK. If the combination is illegal the selection resets (illegal count shown in the title bar).
-4. **Game over:** when the game ends for any reason (checkmate, stalemate, draw) a result screen appears. Tap OK to start a new game from the difficulty selection.
+<a id="screenshots"></a>
 
 ## Screenshots
 
 All screens run at 250 × 122 px in landscape orientation (122 × 250 px for the score sheet).
-PNGs are generated by [`generate_screenshots.py`](generate_screenshots.py) (requires `chess` and `pillow`).
 
 ### Splash
 ![Splash](docs/screenshots/01_splash.png)
@@ -193,105 +86,115 @@ Portrait-orientation move list showing up to the last 15 full moves. **Back** re
 
 Result and termination reason. Tap **OK** to start a new game from the splash screen.
 
-## Testing
+---
 
-### Unit tests (dev machine, no hardware)
+## English
 
-Run the full unit suite locally. The `conftest.py` in `tests/` stubs out all RPi hardware, so no Pi is needed.
+ZeroFish is a standalone chess computer. Stockfish runs as the engine on a Raspberry Pi Zero 2 W; you play on any physical chess board. After each move — yours or the engine's — you enter it on the small touch e-paper display.
 
-```bash
-.venv/bin/python3 -m pytest tests/ --ignore=tests/rpi -v
-```
+Hold the device landscape (short edge top/bottom, USB port on the left).
 
-The RPi integration tests auto-skip on a non-Pi machine — running without `--ignore` is safe but produces skips rather than runs.
+### How to play
 
-### RPi integration tests (real hardware required)
+1. **Difficulty** — Tap one of 15 levels (1k – ∞) to choose engine strength, then **OK**. Level 1k plays at roughly 1000 Elo; ∞ uses Stockfish at full strength.
+2. **Side** — Tap **White**, **Black**, or **Random**, then **OK**.
+3. **Game loop:**
+   - *Stockfish's turn:* The display shows its move in large SAN notation. Make the move on the physical board, then tap **OK**.
+   - *Your turn:* Tap the three button rows — piece type (♟♞♝♜♛♚), file (a–h), rank (1–8) — then **OK**. If the combination is illegal the selection resets; the illegal-move count is shown in the title bar.
+4. **Special moves:**
+   - *Promotion:* When your pawn reaches the back rank a promotion screen appears. Tap the desired piece, then **OK**.
+   - *Disambiguation:* If two pieces of the same type can reach the chosen square, a disambiguation screen appears. Tap the source square.
+5. **In-game menu:** Tap **More** on the player-move screen to reach **Resign**, **Board** (position view), **Score Sheet**, and **Time**.
+6. **Game over:** When the game ends for any reason (checkmate, stalemate, draw) a result screen appears. Tap **OK** to start a new game from the difficulty selection.
 
-The tests in `tests/rpi/` exercise the complete game loop on real e-ink hardware with a mock Stockfish engine (instant, deterministic first-legal-move replies) and injected touch events. They skip automatically on any machine that isn't a Raspberry Pi.
+---
 
-**Deploy the code first**, then SSH into the Pi and run pytest:
+## Deutsch
 
-```bash
-bash deploy/deploy.sh                                         # sync latest code to the Pi
-ssh zero@zerofish.local 'cd ~/zerofish && pytest tests/rpi/ -v'
-```
+ZeroFish ist ein eigenständiger Schachcomputer. Stockfish läuft als Engine auf einem Raspberry Pi Zero 2 W; gespielt wird auf einem beliebigen physischen Schachbrett. Nach jedem Zug — Ihrem oder dem der Engine — wird er auf dem kleinen Touch-E-Ink-Display eingegeben.
 
-The two tests covered:
+Das Gerät im Querformat halten (kurze Kante oben/unten, USB-Anschluss links).
 
-| Test | What it exercises |
-|------|-------------------|
-| `test_new_game_white_resign` | New game as White → play 1.e4 → acknowledge Stockfish reply → open menu → resign → game over → splash |
-| `test_resume_unfinished_game` | Pre-existing save file detected on startup → resume screen → select game → resign → game over → splash |
+### Spielanleitung
 
-Each test starts `main.main()` in a background thread, injects touch events via a semaphore-synchronised queue, and blocks until the real e-ink display finishes each full refresh. pytest must be installed on the Pi:
+1. **Schwierigkeitsgrad** — Tippen Sie auf einen der 15 Level (1k – ∞), um die Stärke der Engine zu wählen, dann **OK**. Level 1k entspricht etwa 1000 Elo; ∞ nutzt Stockfish in voller Stärke.
+2. **Seite** — Tippen Sie auf **Weiß**, **Schwarz** oder **Zufällig**, dann **OK**.
+3. **Spielablauf:**
+   - *Zug von Stockfish:* Das Display zeigt den Zug in großer SAN-Notation. Führen Sie den Zug auf dem physischen Brett aus und tippen Sie dann **OK**.
+   - *Ihr Zug:* Tippen Sie auf die drei Schaltflächenreihen — Figurentyp (♟♞♝♜♛♚), Spalte (a–h), Reihe (1–8) — dann **OK**. Bei einem unzulässigen Zug wird die Auswahl zurückgesetzt; die Anzahl ungültiger Züge erscheint in der Titelleiste.
+4. **Spezielle Züge:**
+   - *Umwandlung:* Wenn Ihr Bauer die letzte Reihe erreicht, erscheint ein Umwandlungsbildschirm. Wählen Sie die gewünschte Figur und tippen Sie **OK**.
+   - *Disambiguierung:* Falls zwei gleichartige Figuren das gewählte Feld erreichen können, erscheint ein Auswahlbildschirm. Tippen Sie auf das Ausgangsfeld.
+5. **Spielmenü:** Tippen Sie auf **More** im Eingabebildschirm, um zu **Aufgeben**, **Brett** (Positionsansicht), **Spielblatt** und **Zeit** zu gelangen.
+6. **Spielende:** Wenn das Spiel endet (Schachmatt, Patt, Remis), erscheint ein Ergebnisbildschirm. Tippen Sie **OK**, um ein neues Spiel ab der Schwierigkeitsauswahl zu starten.
 
-```bash
-pip3 install pytest --break-system-packages
-```
+*Screenshots siehe [oben](#screenshots).*
 
-## Project structure
+---
 
-```
-zerofish/
-  main.py              # full application — all screens and game loop
-  game_state.py        # save/load/clear game state (Resume after power loss)
-  boot_splash.py       # early-boot script: shows "Booting…" before main service starts
-  ui.py                # shared layout, font cache, drawing helpers
-  config.py            # all tunable constants: sizes, fonts, paths, idle timeout
-  screen_*.py          # one module per screen
-  TP_lib/              # WaveShare drivers (epd2in13_V4, gt1151, epdconfig)
-deploy/
-  deploy.sh            # rsync + service install/restart (run from dev machine)
-  rpi_setup.sh         # first-time RPi setup: interfaces, packages, power tuning
-  zerofish.service     # systemd unit — autorun on boot, restarts on failure
-  zerofish-boot.service # early-boot splash service (runs before zerofish.service)
-```
+## Français
 
-## Dev Notes
+ZeroFish est un ordinateur d'échecs autonome. Stockfish tourne comme moteur sur un Raspberry Pi Zero 2 W ; la partie se joue sur n'importe quel échiquier physique. Après chaque coup — le vôtre ou celui du moteur — vous le saisissez sur le petit écran e-paper tactile.
 
-### GT1151 touch controller — don't write the config
+Tenez l'appareil en mode paysage (bord court en haut/bas, port USB à gauche).
 
-`Screen_Touch_Level` at register `0x8053` reads `0xFA` (250) from the factory — already at the hardware maximum. Writing any value via the config block write corrupts the chip and makes it unresponsive until the next reset. Leave it alone.
+### Comment jouer
 
-Missed taps are a software race condition, not a hardware sensitivity issue. `irq_poll()` must be **set-only**: it raises `dev.Touch = 1` when INT is low but never clears it. `GT_Scan()` clears it after reading. If `irq_poll` clears `dev.Touch` back to 0 between the `had_irq` snapshot and the `GT_Scan` call, the event is silently dropped. The thread also needs a small sleep (5 ms) — without it, it runs as a busy loop pinning one CPU core at 100%.
+1. **Difficulté** — Appuyez sur l'un des 15 niveaux (1k – ∞) pour choisir la force du moteur, puis **OK**. Le niveau 1k correspond à environ 1000 Elo ; ∞ utilise Stockfish à pleine puissance.
+2. **Camp** — Appuyez sur **Blanc**, **Noir** ou **Aléatoire**, puis **OK**.
+3. **Déroulement de la partie :**
+   - *Tour de Stockfish :* L'écran affiche son coup en grande notation SAN. Effectuez le coup sur l'échiquier physique, puis appuyez sur **OK**.
+   - *Votre tour :* Appuyez sur les trois rangées de boutons — type de pièce (♟♞♝♜♛♚), colonne (a–h), rangée (1–8) — puis **OK**. Si la combinaison est illégale, la sélection se réinitialise ; le nombre de coups illégaux s'affiche dans la barre de titre.
+4. **Coups spéciaux :**
+   - *Promotion :* Quand votre pion atteint la dernière rangée, un écran de promotion apparaît. Appuyez sur la pièce souhaitée, puis **OK**.
+   - *Désambiguïsation :* Si deux pièces du même type peuvent atteindre la case choisie, un écran de désambiguïsation apparaît. Appuyez sur la case de départ.
+5. **Menu en jeu :** Appuyez sur **More** depuis l'écran de saisie pour accéder à **Abandonner**, **Échiquier** (vue de la position), **Feuille de partie** et **Temps**.
+6. **Fin de partie :** Quand la partie se termine (échec et mat, pat, nulle), un écran de résultat apparaît. Appuyez sur **OK** pour commencer une nouvelle partie depuis la sélection de difficulté.
 
-### E-paper refresh strategy
+*Captures d'écran : voir [ci-dessus](#screenshots).*
 
-Two refresh paths exist and must be used correctly:
+---
 
-- `displayPartBaseImage` — writes to **both** frame buffers simultaneously. Use this on every screen transition so the previous screen doesn't ghost through on the next partial update.
-- `displayPartial_Wait` — fast in-screen update. Use for button tap feedback.
-- Force a full `FULL_UPDATE` cycle every 5 partial updates to prevent ghost accumulation.
+## Español
 
-On every screen transition: `epd.init(FULL_UPDATE)` → `displayPartBaseImage` → `epd.init(PART_UPDATE)`.
+ZeroFish es una computadora de ajedrez autónoma. Stockfish funciona como motor en una Raspberry Pi Zero 2 W; la partida se juega en cualquier tablero físico. Después de cada movimiento — tuyo o del motor — lo introduces en la pequeña pantalla e-paper táctil.
 
-### Coordinate systems
+Sostén el dispositivo en horizontal (borde corto arriba/abajo, puerto USB a la izquierda).
 
-The PIL canvas is always 250 × 122 (landscape). `epd.getbuffer()` applies a 270° rotation internally before sending to the display. Hold the device with the USB port on the left.
+### Cómo jugar
 
-Touch coordinates from the GT1151 arrive in portrait space and must be swapped:
-```python
-lx = 249 - ty   # landscape X
-ly = tx          # landscape Y
-```
+1. **Dificultad** — Toca uno de los 15 niveles (1k – ∞) para elegir la fuerza del motor, luego **OK**. El nivel 1k equivale a aproximadamente 1000 Elo; ∞ usa Stockfish a plena potencia.
+2. **Lado** — Toca **Blancas**, **Negras** o **Aleatorio**, luego **OK**.
+3. **Ciclo de juego:**
+   - *Turno de Stockfish:* La pantalla muestra su movimiento en notación SAN grande. Realiza el movimiento en el tablero físico, luego toca **OK**.
+   - *Tu turno:* Toca las tres filas de botones — tipo de pieza (♟♞♝♜♛♚), columna (a–h), fila (1–8) — luego **OK**. Si la combinación es ilegal, la selección se reinicia; el conteo de movimientos ilegales se muestra en la barra de título.
+4. **Movimientos especiales:**
+   - *Promoción:* Cuando tu peón llega a la última fila, aparece una pantalla de promoción. Toca la pieza deseada, luego **OK**.
+   - *Desambiguación:* Si dos piezas del mismo tipo pueden alcanzar la casilla elegida, aparece una pantalla de desambiguación. Toca la casilla de origen.
+5. **Menú en partida:** Toca **More** en la pantalla de entrada para acceder a **Rendirse**, **Tablero** (vista de posición), **Planilla** y **Tiempo**.
+6. **Fin del juego:** Cuando la partida termina (jaque mate, tablas, empate), aparece una pantalla de resultado. Toca **OK** para comenzar una nueva partida desde la selección de dificultad.
 
-The score sheet is an exception — it renders a 122 × 250 portrait image. `getbuffer()` rotates it 180° for display. Hold the device upright (USB at the bottom). No touch transform is needed in portrait mode; raw `(tx, ty)` map directly to PIL coordinates.
+*Capturas de pantalla: ver [arriba](#screenshots).*
 
-### CPU governor
+---
 
-`powersave` is active at all times except during Stockfish's think:
-```python
-_set_cpu_governor('performance')
-result = engine.play(board, think_limit)
-_set_cpu_governor('powersave')
-```
+## 한국어
 
-This is done at both call sites. The helper script (`/usr/local/bin/zerofish-set-governor`) is whitelisted in sudoers so no password prompt is needed.
+ZeroFish는 독립형 체스 컴퓨터입니다. Stockfish가 Raspberry Pi Zero 2 W에서 엔진으로 실행되며, 실제 체스판에서 게임을 진행합니다. 각 수를 두고 나면 — 당신의 수든 엔진의 수든 — 작은 터치 전자잉크 디스플레이에 입력합니다.
 
-### Chess glyph font
+기기를 가로 방향으로 잡으세요 (짧은 면이 위/아래, USB 포트가 왼쪽).
 
-Unicode chess symbols (♟♞♝♜♛♚) require a font with coverage at U+2654–U+265F. The code tries **Chess Merida Unicode** first (traditional figurines, manual install) then falls back to **DejaVu Sans** (confirmed working). The piece font path list (`config.FONT_PIECE_PATHS`) is separate from the regular font family system because glyph coverage matters more than style here.
+### 게임 방법
 
-## Possible next steps
+1. **난이도** — 15개 레벨 중 하나(1k – ∞)를 탭하여 엔진 강도를 선택한 후 **OK**. 레벨 1k는 약 1000 Elo에 해당하며, ∞는 Stockfish 최대 강도를 사용합니다.
+2. **진영** — **백**, **흑** 또는 **랜덤**을 탭한 후 **OK**.
+3. **게임 진행:**
+   - *Stockfish의 차례:* 디스플레이에 큰 SAN 표기법으로 수가 표시됩니다. 실제 체스판에서 해당 수를 두고 **OK**를 탭하세요.
+   - *당신의 차례:* 세 줄의 버튼을 탭하세요 — 기물 종류(♟♞♝♜♛♚), 열(a–h), 행(1–8) — 그런 다음 **OK**. 조합이 불법이면 선택이 초기화됩니다; 불법 수 횟수가 타이틀 바에 표시됩니다.
+4. **특수 수:**
+   - *프로모션:* 폰이 마지막 행에 도달하면 프로모션 화면이 나타납니다. 원하는 기물을 탭한 후 **OK**.
+   - *중의성 해소:* 같은 종류의 기물 두 개가 선택한 칸에 도달할 수 있는 경우 중의성 해소 화면이 나타납니다. 출발 칸을 탭하세요.
+5. **게임 중 메뉴:** 기물 입력 화면에서 **More**를 탭하면 **기권**, **보드** (포지션 보기), **기보**, **시간** 메뉴에 접근할 수 있습니다.
+6. **게임 종료:** 게임이 끝나면 (체크메이트, 스테일메이트, 무승부) 결과 화면이 나타납니다. **OK**를 탭하여 난이도 선택부터 새 게임을 시작하세요.
 
-- Bluetooth board integration (auto-detect moves)
+*스크린샷은 [위](#screenshots)를 참조하세요.*
