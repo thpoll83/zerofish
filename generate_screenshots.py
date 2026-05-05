@@ -37,6 +37,7 @@ import chess
 from PIL import Image
 
 from screen_splash        import build_splash_screen
+from screen_main_menu     import build_main_menu_screen
 from screen_difficulty    import build_difficulty_screen
 from screen_color         import build_color_screen
 from screen_thinking      import build_thinking_screen
@@ -51,6 +52,7 @@ from screen_board         import build_board_screen
 from screen_scoresheet    import build_scoresheet_screen
 from screen_game_over     import build_game_over_screen
 from screen_resume        import build_resume_screen
+from screen_puzzle        import build_puzzle_screen
 
 SCALE  = 3
 OUTDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', 'screenshots')
@@ -79,61 +81,69 @@ def main() -> None:
         move_history.append(board.san(move))
         board.push(move)
 
+    # Puzzle board: position after 1.e4 e5 Nf3 — Black to move
+    puz_board = chess.Board()
+    for uci in ('e2e4', 'e7e5', 'g1f3'):
+        puz_board.push_uci(uci)
+
     screens = [
         ('01_splash.png',
-         build_splash_screen(('Stockfish 16', '64-bit'), has_resume=False)),
+         build_splash_screen(('Stockfish 16', '64-bit'))),
 
-        ('02_splash_resume.png',
-         build_splash_screen(('Stockfish 16', '64-bit'), has_resume=True)),
+        ('02_splash_loading.png',
+         build_splash_screen(None)),
 
-        ('03_difficulty.png',
+        ('03_main_menu.png',
+         build_main_menu_screen(has_saves=True)),
+
+        ('04_difficulty.png',
          build_difficulty_screen(selected=5)),
 
-        ('04_side.png',
+        ('05_side.png',
          build_color_screen(selected=0)),
 
-        ('05_thinking.png',
+        ('06_thinking.png',
          build_thinking_screen('#1')),
 
-        ('06_sf_move.png',
+        ('07_sf_move.png',
          build_sf_move_screen('e4', '#1')),
 
-        ('07_player_move.png',
+        ('08_player_move.png',
          build_player_move_screen(None, None, None, inv_count=0, move_label='#2')),
 
-        ('08_player_move_partial.png',
+        ('09_player_move_partial.png',
          build_player_move_screen(sel_piece=0, sel_file=4, sel_rank=None,
                                    inv_count=0, move_label='#2')),
 
-        ('09_promotion.png',
+        ('10_promotion.png',
          build_promotion_screen(selected=3, move_label='#7')),
 
-        ('10_disambig.png',
+        ('11_disambig.png',
          build_disambig_screen(['♜a1', '♜a3'],
                                 disambig_rects(2), selected=0, move_label='#5')),
 
-        ('11_ingame_menu.png',
+        ('12_ingame_menu.png',
          build_ingame_menu_screen(move_label='#5')),
 
-        ('12_resign_confirm.png',
+        ('13_resign_confirm.png',
          build_resign_confirm_screen()),
 
-        ('13_time.png',
+        ('14_time.png',
          build_time_screen(game_start=time.time() - 183, sf_time=61.0)),
 
-        ('14_board.png',
+        ('15_board.png',
          build_board_screen(board, player_is_white=True)),
 
-        ('15_scoresheet.png',
+        ('16_scoresheet.png',
          build_scoresheet_screen(move_history, move_label='#5')),
 
-        ('16_game_over_win.png',
+        ('17_game_over_win.png',
          build_game_over_screen('You win!', 'Checkmate')),
 
-        ('17_game_over_draw.png',
+        ('18_game_over_draw.png',
          build_game_over_screen('Draw', 'Stalemate')),
 
-        ('18_resume_few.png',
+        ('19_resume_few.png',
          build_resume_screen(
              [{'start_date': '2026-05-01', 'move_history': ['e4', 'e5'],
                'diff_sel': 15, 'player_is_white': True},
@@ -143,11 +153,37 @@ def main() -> None:
                'diff_sel': 10, 'player_is_white': True}],
              page=0, sel=1)),
 
-        ('19_resume_many.png',
+        ('20_resume_many.png',
          build_resume_screen(
              [{'start_date': f'2026-0{m}-{d:02d}', 'move_history': ['e4', 'e5']}
               for m, d in [(5,1),(4,30),(4,29),(4,28),(4,27),(4,26),(4,25)]],
              page=0, sel=None)),
+
+        # ── Puzzle screens ──────────────────────────────────────────────────
+        ('21_puzzle.png',
+         build_puzzle_screen(puz_board, puzzle_num=1, total=200,
+                              solved=0, wrong=0, diff_label='1540')),
+
+        ('22_puzzle_progress.png',
+         build_puzzle_screen(puz_board, puzzle_num=42, total=200,
+                              solved=12, wrong=3, diff_label='1720')),
+
+        ('23_puzzle_solve_input.png',
+         build_player_move_screen(None, None, None, inv_count=0,
+                                   move_label='Puzzle', sec_label='Back')),
+
+        ('24_puzzle_solve_partial.png',
+         build_player_move_screen(sel_piece=1, sel_file=5, sel_rank=None,
+                                   inv_count=0, move_label='Puzzle',
+                                   sec_label='Back')),
+
+        ('25_puzzle_no_puzzles.png',
+         build_puzzle_screen(None, puzzle_num=0, total=0,
+                              solved=0, wrong=0, diff_label='')),
+
+        ('26_puzzle_disambig.png',
+         build_disambig_screen(['♞c3', '♞f3'],
+                                disambig_rects(2), selected=0, move_label='Puzzle')),
     ]
 
     for name, img in screens:

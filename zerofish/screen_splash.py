@@ -5,23 +5,14 @@ from PIL import Image, ImageDraw
 import ui
 import config
 
-_LOGO_PATH         = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stockfish_logo.png')
-_SPLASH_OK_Y0      = 6
-_SPLASH_OK_Y1_FULL = ui.H - 6
-_SPLASH_MID_Y      = (_SPLASH_OK_Y0 + (ui.H - 6)) // 2   # = 61
-_SPLASH_OK_Y1      = _SPLASH_MID_Y - 2                    # = 59
-_SPLASH_SEC_Y0     = _SPLASH_MID_Y + 2                    # = 63
-_SPLASH_SEC_Y1     = ui.H - 6                             # = 116
-_SPLASH_LOGO_MAX   = 90
+_LOGO_PATH    = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stockfish_logo.png')
+_SPLASH_OK_Y0 = 6
+_SPLASH_OK_Y1 = ui.H - 6
 
-_OK_RECT_FULL  = (ui.OK_X0, _SPLASH_OK_Y0, ui.OK_X1, _SPLASH_OK_Y1_FULL)
-_OK_RECT_SPLIT = (ui.OK_X0, _SPLASH_OK_Y0, ui.OK_X1, _SPLASH_OK_Y1)
-_SEC_RECT      = (ui.OK_X0, _SPLASH_SEC_Y0, ui.OK_X1, _SPLASH_SEC_Y1)
+_OK_RECT = (ui.OK_X0, _SPLASH_OK_Y0, ui.OK_X1, _SPLASH_OK_Y1)
+_OK_BTN  = ui.Button(_OK_RECT, 'OK', ui.Button.BAR)
 
-# Module-level Button constants used for both drawing and hit-detection.
-_OK_BTN_FULL  = ui.Button(_OK_RECT_FULL,  'OK',   ui.Button.BAR)
-_OK_BTN_SPLIT = ui.Button(_OK_RECT_SPLIT, 'OK',   ui.Button.BAR)
-_SEC_BTN      = ui.Button(_SEC_RECT,      'Cont', ui.Button.BAR)
+_SPLASH_LOGO_MAX = 90
 
 
 def _wifi_ip() -> str:
@@ -76,18 +67,15 @@ def get_sf_info() -> tuple[str, str]:
 class SplashScreen(ui.Screen):
     name = 'splash'
 
-    def build(self, sf_info=None, has_resume: bool = False) -> Image.Image:
+    def build(self, sf_info=None) -> Image.Image:
         img, draw = self.new_image()
         f = self.fonts
 
         # Right panel — only drawn once SF info is available
         if sf_info is not None:
             sf_name, sf_bits = sf_info
-            ok_btn = _OK_BTN_SPLIT if has_resume else _OK_BTN_FULL
             draw.line([(ui.VSEP_X, 0), (ui.VSEP_X, ui.H - 1)], fill=0)
-            ok_btn.draw(draw, f['ok'])
-            if has_resume:
-                _SEC_BTN.draw(draw, f['btn'])
+            _OK_BTN.draw(draw, f['ok'])
         else:
             sf_name = sf_bits = None
 
@@ -139,24 +127,18 @@ class SplashScreen(ui.Screen):
 
         return img
 
-    def hit(self, lx: int, ly: int, has_resume: bool = False) -> str | None:
-        if (_OK_BTN_SPLIT if has_resume else _OK_BTN_FULL).hit(lx, ly):
-            return 'new_game'
-        if has_resume and _SEC_BTN.hit(lx, ly):
-            return 'resume'
+    def hit(self, lx: int, ly: int) -> str | None:
+        if _OK_BTN.hit(lx, ly):
+            return 'ok'
         return None
 
 
 _screen = SplashScreen()
 
 
-def build_splash_screen(sf_info=None, has_resume: bool = False) -> Image.Image:
-    return _screen.build(sf_info=sf_info, has_resume=has_resume)
+def build_splash_screen(sf_info=None, **_kw) -> Image.Image:
+    return _screen.build(sf_info=sf_info)
 
 
-def hit_splash_ok(lx: int, ly: int, has_resume: bool = False) -> bool:
-    return (_OK_BTN_SPLIT if has_resume else _OK_BTN_FULL).hit(lx, ly)
-
-
-def hit_splash_resume(lx: int, ly: int) -> bool:
-    return _SEC_BTN.hit(lx, ly)
+def hit_splash_ok(lx: int, ly: int, **_kw) -> bool:
+    return _OK_BTN.hit(lx, ly)

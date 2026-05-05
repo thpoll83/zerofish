@@ -32,7 +32,7 @@ sudo apt install -y \
     fonts-dejavu-core \
     fonts-dejavu-extra \
     fonts-noto-core
-pip3 install chess --break-system-packages
+pip3 install chess zstandard --break-system-packages
 
 echo ""
 echo "=== 3. Allowing passwordless sudo for deploy script ==="
