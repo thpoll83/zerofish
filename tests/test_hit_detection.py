@@ -6,9 +6,8 @@ the production code uses, then verify that the centre of each zone registers
 as a hit and a clearly-out-of-bounds point does not.
 """
 import ui
-from screen_splash       import (hit_splash_ok, hit_splash_resume,
-                                  _SPLASH_OK_Y0, _SPLASH_OK_Y1_FULL,
-                                  _SPLASH_OK_Y1, _SPLASH_SEC_Y0, _SPLASH_SEC_Y1)
+from screen_splash       import hit_splash_ok, _SPLASH_OK_Y0, _SPLASH_OK_Y1
+from screen_main_menu    import hit_main_menu, _menu_rect
 from screen_difficulty   import hit_diff, diff_rect
 from screen_color        import (hit_color, COLOR_BTN_X, COLOR_BTN_W,
                                   COLOR_BTN_Y0, COLOR_BTN_Y1)
@@ -21,6 +20,8 @@ from screen_resign_confirm import (hit_resign_yes,
                                     _YES_X0, _YES_X1, _YES_Y0, _YES_Y1)
 from screen_scoresheet   import hit_scoresheet_back, SCORE_BACK_Y0, SCORE_BACK_Y1
 from screen_board        import hit_board_back
+from screen_puzzle       import (hit_puzzle,
+                                  _SOLVE_BTN, _SKIP_BTN, _END_BTN)
 import config
 
 
@@ -89,34 +90,47 @@ def test_hit_sec_no_title_rejects_ok_zone():
 
 # ── Splash ────────────────────────────────────────────────────────────────────
 
-def test_hit_splash_ok_no_resume():
+def test_hit_splash_ok_centre():
     cx = (ui.OK_X0 + ui.OK_X1) // 2
-    cy = (_SPLASH_OK_Y0 + _SPLASH_OK_Y1_FULL) // 2
-    assert hit_splash_ok(cx, cy, has_resume=False)
+    cy = (_SPLASH_OK_Y0 + _SPLASH_OK_Y1) // 2
+    assert hit_splash_ok(cx, cy)
 
 
-def test_hit_splash_ok_with_resume_upper():
+def test_hit_splash_ok_misses_left_of_separator():
+    assert not hit_splash_ok(ui.VSEP_X - 10, 60)
+
+
+def test_hit_splash_ok_ignores_has_resume_kwarg():
     cx = (ui.OK_X0 + ui.OK_X1) // 2
     cy = (_SPLASH_OK_Y0 + _SPLASH_OK_Y1) // 2
     assert hit_splash_ok(cx, cy, has_resume=True)
+    assert hit_splash_ok(cx, cy, has_resume=False)
 
 
-def test_hit_splash_ok_with_resume_rejects_lower():
-    cx = (ui.OK_X0 + ui.OK_X1) // 2
-    cy = (_SPLASH_SEC_Y0 + _SPLASH_SEC_Y1) // 2   # resume button region
-    assert not hit_splash_ok(cx, cy, has_resume=True)
+# ── Main menu ─────────────────────────────────────────────────────────────────
+
+def test_hit_main_menu_new_game():
+    r = _menu_rect(0)
+    assert hit_main_menu(_cx(r), _cy(r)) == 'new_game'
 
 
-def test_hit_splash_resume():
-    cx = (ui.OK_X0 + ui.OK_X1) // 2
-    cy = (_SPLASH_SEC_Y0 + _SPLASH_SEC_Y1) // 2
-    assert hit_splash_resume(cx, cy)
+def test_hit_main_menu_cont():
+    r = _menu_rect(1)
+    assert hit_main_menu(_cx(r), _cy(r)) == 'cont'
 
 
-def test_hit_splash_resume_rejects_ok_region():
-    cx = (ui.OK_X0 + ui.OK_X1) // 2
-    cy = (_SPLASH_OK_Y0 + _SPLASH_OK_Y1) // 2
-    assert not hit_splash_resume(cx, cy)
+def test_hit_main_menu_puzzle():
+    r = _menu_rect(2)
+    assert hit_main_menu(_cx(r), _cy(r)) == 'puzzle'
+
+
+def test_hit_main_menu_back():
+    r = _menu_rect(3)
+    assert hit_main_menu(_cx(r), _cy(r)) == 'back'
+
+
+def test_hit_main_menu_title_bar_misses():
+    assert hit_main_menu(125, 5) is None
 
 
 # ── Difficulty ────────────────────────────────────────────────────────────────
@@ -274,3 +288,57 @@ def test_hit_board_back_right_panel():
 
 def test_hit_board_back_misses_board_area():
     assert not hit_board_back(ui.VSEP_X - 10, 50)
+
+
+# ── Puzzle screen hit detection ───────────────────────────────────────────────
+
+def _btn_cx(btn):
+    return (btn.rect[0] + btn.rect[2]) // 2
+
+
+def _btn_cy(btn):
+    return (btn.rect[1] + btn.rect[3]) // 2
+
+
+def test_hit_puzzle_end_button():
+    cx, cy = _btn_cx(_END_BTN), _btn_cy(_END_BTN)
+    assert hit_puzzle(cx, cy) == 'end'
+
+
+def test_hit_puzzle_solve_button_with_board():
+    cx, cy = _btn_cx(_SOLVE_BTN), _btn_cy(_SOLVE_BTN)
+    assert hit_puzzle(cx, cy, board_available=True) == 'solve'
+
+
+def test_hit_puzzle_skip_button_with_board():
+    cx, cy = _btn_cx(_SKIP_BTN), _btn_cy(_SKIP_BTN)
+    assert hit_puzzle(cx, cy, board_available=True) == 'skip'
+
+
+def test_hit_puzzle_solve_blocked_without_board():
+    cx, cy = _btn_cx(_SOLVE_BTN), _btn_cy(_SOLVE_BTN)
+    assert hit_puzzle(cx, cy, board_available=False) is None
+
+
+def test_hit_puzzle_skip_blocked_without_board():
+    cx, cy = _btn_cx(_SKIP_BTN), _btn_cy(_SKIP_BTN)
+    assert hit_puzzle(cx, cy, board_available=False) is None
+
+
+def test_hit_puzzle_end_works_without_board():
+    """End button is always active regardless of board_available."""
+    cx, cy = _btn_cx(_END_BTN), _btn_cy(_END_BTN)
+    assert hit_puzzle(cx, cy, board_available=False) == 'end'
+
+
+def test_hit_puzzle_left_panel_misses():
+    """Tapping the board area (left panel) should return None."""
+    assert hit_puzzle(ui.VSEP_X // 2, 60) is None
+
+
+def test_hit_puzzle_end_takes_priority_over_solve():
+    """When solve and end zones are distinct, end only fires at its own position."""
+    end_cx, end_cy = _btn_cx(_END_BTN), _btn_cy(_END_BTN)
+    solve_cx, solve_cy = _btn_cx(_SOLVE_BTN), _btn_cy(_SOLVE_BTN)
+    assert hit_puzzle(end_cx, end_cy) == 'end'
+    assert hit_puzzle(solve_cx, solve_cy) != 'end'
