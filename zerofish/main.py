@@ -447,8 +447,20 @@ def main():
                             _transition(epd, build_thinking_screen(sf_label), partial_count)
                             t0 = time.time()
                             set_cpu_governor('performance')
-                            result = engine.play(board, engine_limit)
-                            set_cpu_governor('powersave')
+                            try:
+                                result = engine.play(board, engine_limit)
+                            except Exception as exc:
+                                log.error('Engine.play failed on opening move: %s', exc)
+                                engine.quit()
+                                engine = None
+                                board = None
+                                move_history = []
+                                machine.force(ui.SCREEN_GAME_OVER)
+                                _transition(epd, build_game_over_screen('Engine error', ''),
+                                            partial_count)
+                                continue
+                            finally:
+                                set_cpu_governor('powersave')
                             sf_time_acc[0] += time.time() - t0
                             sf_san = board.san(result.move)
                             board.push(result.move)
@@ -876,7 +888,7 @@ def main():
                         log.warning('Puzzle promotion move not found')
                         sel_promo = None
                         _show(epd, build_promotion_screen(None, 'Puzzle'), partial_count)
-                    else:
+                    elif len(candidates) == 1:
                         move_uci = candidates[0].uci()
                         sel_piece = sel_file = sel_rank = None
                         prom_piece = prom_file = prom_rank = None
@@ -888,6 +900,22 @@ def main():
                         else:
                             machine.transition('ok')
                             _transition(epd, pz.screen(), partial_count)
+                    else:
+                        disambig_candidates = candidates
+                        disambig_labels = [
+                            PIECE_SYMBOLS[prom_piece]
+                            + chess.square_name(m.from_square)
+                            for m in candidates
+                        ]
+                        disambig_rects_cur = disambig_rects(len(candidates))
+                        sel_disambig = None
+                        prom_piece = prom_file = prom_rank = sel_promo = None
+                        machine.transition('disambig')
+                        _transition(epd,
+                                    build_disambig_screen(disambig_labels,
+                                                           disambig_rects_cur,
+                                                           None, 'Puzzle'),
+                                    partial_count)
 
             # ── Puzzle disambiguation ─────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_PUZZLE_DISAMBIG):

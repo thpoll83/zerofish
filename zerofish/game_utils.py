@@ -68,8 +68,14 @@ def push_and_continue(board, move, move_history, engine, engine_think_limit,
     transition_fn(epd, build_thinking_screen(sf_label), partial_count)
     t0 = time.time()
     set_cpu_governor('performance')
-    result = engine.play(board, engine_think_limit)
-    set_cpu_governor('powersave')
+    try:
+        result = engine.play(board, engine_think_limit)
+    except Exception as exc:
+        log.error('Engine.play failed: %s', exc)
+        transition_fn(epd, build_game_over_screen('Engine error', ''), partial_count)
+        return ui.SCREEN_GAME_OVER, cur_move_label
+    finally:
+        set_cpu_governor('powersave')
     if sf_time_acc is not None:
         sf_time_acc[0] += time.time() - t0
     sf_san = board.san(result.move)

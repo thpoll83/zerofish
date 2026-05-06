@@ -123,7 +123,10 @@ class PuzzleSession:
             if self.move_idx < len(self.moves):
                 engine_uci = self.moves[self.move_idx]
                 try:
-                    self.board.push(chess.Move.from_uci(engine_uci))
+                    engine_move = chess.Move.from_uci(engine_uci)
+                    if not self.board.is_legal(engine_move):
+                        raise ValueError(f'illegal engine move {engine_uci}')
+                    self.board.push(engine_move)
                 except Exception as exc:
                     log.warning('Puzzle %s: invalid engine move %s (idx=%d): %s',
                                 self.id, engine_uci, self.move_idx, exc)
