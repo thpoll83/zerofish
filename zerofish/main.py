@@ -43,7 +43,10 @@ from screen_time           import build_time_screen
 from screen_board        import build_board_screen, hit_board_back
 from screen_scoresheet   import (build_scoresheet_screen, hit_scoresheet_back,
                                   hit_scoresheet_more, next_score_end, SCORE_ROWS)
-from screen_puzzle       import build_puzzle_screen, hit_puzzle
+from screen_puzzle         import build_puzzle_screen, hit_puzzle
+from screen_puzzle_loading     import build_puzzle_loading_screen, hit_puzzle_loading
+from screen_puzzle_end_confirm import build_puzzle_end_confirm_screen, hit_puzzle_end_confirm
+import download_puzzles
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s: %(message)s')
 log = logging.getLogger('zerofish')
@@ -62,6 +65,53 @@ def _move_label(board: chess.Board) -> str:
 
 
 _last_display_buf = None
+
+# Background puzzle download state (written by download thread, read by main loop)
+_dl: dict = {
+    'running':    False,
+    'done':       False,
+    'stop_event': threading.Event(),
+    'rows':       0,
+    'found':      0,
+}
+
+
+def _start_puzzle_download() -> None:
+    """Start a daemon thread that downloads puzzles if internet is available."""
+    def _worker() -> None:
+        # Retry the connectivity check: network-online.target is declared as a
+        # service dependency, but DHCP / DNS can still lag a few seconds on
+        # first boot.  Try immediately, then at 5 s and 20 s before giving up.
+        connected = False
+        for delay in (0, 5, 20):
+            if delay:
+                time.sleep(delay)
+            if download_puzzles.has_internet():
+                connected = True
+                break
+        if not connected:
+            log.info('No internet after retries — skipping puzzle auto-download')
+            _dl['done'] = True
+            return
+        _dl['running'] = True
+
+        def _progress(rows: int, found: int) -> None:
+            _dl['rows'] = rows
+            _dl['found'] = found
+
+        try:
+            download_puzzles.run_download(
+                stop_event=_dl['stop_event'],
+                progress_cb=_progress,
+            )
+        except Exception:
+            log.exception('Puzzle download error')
+        finally:
+            _dl['running'] = False
+            _dl['done'] = True
+            log.info('Puzzle download finished')
+
+    threading.Thread(target=_worker, daemon=True, name='puzzle-dl').start()
 
 
 class _TestHooks:
@@ -161,6 +211,10 @@ def main():
 
     log.info('ZeroFish v%s starting', config.VERSION)
 
+    # Start puzzle download early so puzzles are ready by the time the user
+    # navigates to puzzle mode.
+    _start_puzzle_download()
+
     # Probe Stockfish in the background so the splash appears immediately.
     sf_info        = None
     _sf_result     = [None]
@@ -223,15 +277,17 @@ def main():
         'sol':        '',    # UCI string: correct answer
         'id':         '',    # Lichess puzzle ID
         'diff_label': '',    # rating string shown in stats
-        'solved':     0,     # solved this session
-        'wrong':      0,     # wrong attempts this session
+        'solved':      0,     # solved this session
+        'wrong':       0,     # wrong attempts this session
+        'last_result': None,  # 'solved' | 'skipped' | 'wrong' | None
     }
 
     def _pz_screen():
         total = puzzle_state.total_available()
         return build_puzzle_screen(
             pz['board'], pz['idx'] + 1 if pz['board'] else 0,
-            total, pz['solved'], pz['wrong'], pz['diff_label'])
+            total, pz['solved'], pz['wrong'], pz['diff_label'],
+            last_result=pz['last_result'])
 
     def _pz_load_current():
         """Populate pz fields from pz['list'][pz['idx']]."""
@@ -272,6 +328,14 @@ def main():
         while True:
             if _test_hooks.stop:
                 break
+
+            # Auto-advance loading screen once download finishes.
+            if machine.is_at(ui.SCREEN_PUZZLE_LOADING) and _dl['done']:
+                pz['list'] = puzzle_state.load_unsolved()
+                pz['idx']  = 0
+                _pz_load_current()
+                machine.transition('play')
+                _transition(epd, _pz_screen(), partial_count)
 
             # Once the SF probe finishes, update the splash and show the button.
             if machine.is_at(ui.SCREEN_SPLASH) and sf_info is None and not sf_thread.is_alive():
@@ -331,17 +395,51 @@ def main():
                                     partial_count)
 
                 elif action == 'puzzle':
-                    pz['list']   = puzzle_state.load_unsolved()
-                    pz['idx']    = 0
-                    pz['solved'] = 0
-                    pz['wrong']  = 0
+                    pz['list']        = puzzle_state.load_unsolved()
+                    pz['idx']         = 0
+                    pz['solved']      = 0
+                    pz['wrong']       = 0
+                    pz['last_result'] = None
                     _pz_load_current()
-                    machine.transition('puzzle')
-                    _transition(epd, _pz_screen(), partial_count)
+                    # Show loading screen only when download is running AND no
+                    # puzzles are available yet; otherwise go straight to puzzle.
+                    if _dl['running'] and not pz['list']:
+                        machine.transition('puzzle_loading')
+                        _transition(epd,
+                                    build_puzzle_loading_screen(
+                                        has_existing=False,
+                                        rows_scanned=_dl['rows'],
+                                        found=_dl['found']),
+                                    partial_count)
+                    else:
+                        machine.transition('puzzle')
+                        _transition(epd, _pz_screen(), partial_count)
 
                 elif action == 'back':
                     machine.transition('back')
                     _transition(epd, build_splash_screen(sf_info), partial_count)
+
+            # ── Puzzle loading (download in progress, no puzzles yet) ─────────
+            elif machine.is_at(ui.SCREEN_PUZZLE_LOADING):
+                _has_existing = bool(pz['list'])
+                action = hit_puzzle_loading(lx, ly, has_existing=_has_existing)
+                if action == 'back':
+                    machine.transition('back')
+                    saves_list = game_state.list_saves()
+                    _transition(epd,
+                                build_main_menu_screen(has_saves=bool(saves_list)),
+                                partial_count)
+                elif action == 'play' and _has_existing:
+                    machine.transition('play')
+                    _transition(epd, _pz_screen(), partial_count)
+                else:
+                    # Refresh progress display periodically (touch event cadence)
+                    _show(epd,
+                          build_puzzle_loading_screen(
+                              has_existing=_has_existing,
+                              rows_scanned=_dl['rows'],
+                              found=_dl['found']),
+                          partial_count)
 
             # ── Difficulty ────────────────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_DIFFICULTY):
@@ -740,7 +838,7 @@ def main():
                 action = hit_puzzle(lx, ly, board_available=(pz['board'] is not None))
                 if action == 'end':
                     machine.transition('end')
-                    _transition(epd, build_splash_screen(sf_info), partial_count)
+                    _transition(epd, build_puzzle_end_confirm_screen(), partial_count)
 
                 elif action == 'solve' and pz['board'] is not None:
                     machine.transition('solve')
@@ -751,8 +849,19 @@ def main():
                                 partial_count)
 
                 elif action == 'skip' and pz['board'] is not None:
+                    pz['last_result'] = 'skipped'
                     _pz_advance()
                     machine.transition('skip')
+                    _transition(epd, _pz_screen(), partial_count)
+
+            # ── Puzzle end confirmation ───────────────────────────────────────
+            elif machine.is_at(ui.SCREEN_PUZZLE_END_CONFIRM):
+                action = hit_puzzle_end_confirm(lx, ly)
+                if action == 'yes':
+                    machine.transition('yes')
+                    _transition(epd, build_main_menu_screen(), partial_count)
+                elif action == 'no':
+                    machine.transition('no')
                     _transition(epd, _pz_screen(), partial_count)
 
             # ── Puzzle move input ─────────────────────────────────────────────
@@ -783,43 +892,86 @@ def main():
                             and sel_piece is not None
                             and sel_file  is not None
                             and sel_rank  is not None):
-                        candidates = find_candidates(pz['board'], sel_piece,
-                                                     sel_file, sel_rank)
-                        if not candidates:
-                            sel_piece = sel_file = sel_rank = None
-                            _show(epd,
-                                  build_player_move_screen(None, None, None,
-                                                            0, 'Puzzle', 'Back'),
-                                  partial_count)
-                        elif len(candidates) == 1:
-                            move_uci = candidates[0].uci()
-                            sel_piece = sel_file = sel_rank = None
-                            if move_uci == pz['sol']:
-                                pz['solved'] += 1
-                                puzzle_state.mark_solved(pz['id'])
-                                log.info('Puzzle solved: %s', pz['id'])
-                                _pz_advance()
-                            else:
-                                pz['wrong'] += 1
-                                log.info('Puzzle wrong: played %s expected %s',
-                                         move_uci, pz['sol'])
-                            machine.transition('ok')
-                            _transition(epd, _pz_screen(), partial_count)
-                        else:
-                            disambig_candidates = candidates
-                            disambig_labels = [
-                                PIECE_SYMBOLS[sel_piece]
-                                + chess.square_name(m.from_square)
-                                for m in candidates
-                            ]
-                            disambig_rects_cur = disambig_rects(len(candidates))
-                            sel_disambig = None
-                            machine.transition('disambig')
-                            _transition(epd,
-                                        build_disambig_screen(disambig_labels,
-                                                               disambig_rects_cur,
-                                                               None, 'Puzzle'),
+                        if needs_promotion(pz['board'], sel_piece, sel_file, sel_rank):
+                            prom_piece, prom_file, prom_rank = sel_piece, sel_file, sel_rank
+                            sel_promo = None
+                            machine.transition('promote')
+                            _transition(epd, build_promotion_screen(None, 'Puzzle'),
                                         partial_count)
+                        else:
+                            candidates = find_candidates(pz['board'], sel_piece,
+                                                         sel_file, sel_rank)
+                            if not candidates:
+                                sel_piece = sel_file = sel_rank = None
+                                _show(epd,
+                                      build_player_move_screen(None, None, None,
+                                                                0, 'Puzzle', 'Back'),
+                                      partial_count)
+                            elif len(candidates) == 1:
+                                move_uci = candidates[0].uci()
+                                sel_piece = sel_file = sel_rank = None
+                                if move_uci == pz['sol']:
+                                    pz['solved'] += 1
+                                    pz['last_result'] = 'solved'
+                                    puzzle_state.mark_solved(pz['id'])
+                                    log.info('Puzzle solved: %s', pz['id'])
+                                    _pz_advance()
+                                else:
+                                    pz['wrong'] += 1
+                                    pz['last_result'] = 'wrong'
+                                    log.info('Puzzle wrong: played %s expected %s',
+                                             move_uci, pz['sol'])
+                                machine.transition('ok')
+                                _transition(epd, _pz_screen(), partial_count)
+                            else:
+                                disambig_candidates = candidates
+                                disambig_labels = [
+                                    PIECE_SYMBOLS[sel_piece]
+                                    + chess.square_name(m.from_square)
+                                    for m in candidates
+                                ]
+                                disambig_rects_cur = disambig_rects(len(candidates))
+                                sel_disambig = None
+                                machine.transition('disambig')
+                                _transition(epd,
+                                            build_disambig_screen(disambig_labels,
+                                                                   disambig_rects_cur,
+                                                                   None, 'Puzzle'),
+                                            partial_count)
+
+            # ── Puzzle promotion ──────────────────────────────────────────────
+            elif machine.is_at(ui.SCREEN_PUZZLE_PROMOTION):
+                changed = False
+                for i in range(4):
+                    if hit_promo(i, lx, ly) and i != sel_promo:
+                        sel_promo = i; changed = True; break
+                if changed:
+                    _show(epd, build_promotion_screen(sel_promo, 'Puzzle'), partial_count)
+                elif ui.hit_ok(lx, ly) and sel_promo is not None:
+                    candidates = find_candidates(pz['board'], prom_piece,
+                                                 prom_file, prom_rank, sel_promo)
+                    if not candidates:
+                        log.warning('Puzzle promotion move not found')
+                        sel_promo = None
+                        _show(epd, build_promotion_screen(None, 'Puzzle'), partial_count)
+                    else:
+                        move_uci = candidates[0].uci()
+                        sel_piece = sel_file = sel_rank = None
+                        prom_piece = prom_file = prom_rank = None
+                        if move_uci == pz['sol']:
+                            pz['solved'] += 1
+                            pz['last_result'] = 'solved'
+                            puzzle_state.mark_solved(pz['id'])
+                            log.info('Puzzle solved (promo): %s', pz['id'])
+                            _pz_advance()
+                        else:
+                            pz['wrong'] += 1
+                            pz['last_result'] = 'wrong'
+                            log.info('Puzzle wrong (promo): played %s expected %s',
+                                     move_uci, pz['sol'])
+                        sel_promo = None
+                        machine.transition('ok')
+                        _transition(epd, _pz_screen(), partial_count)
 
             # ── Puzzle disambiguation ─────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_PUZZLE_DISAMBIG):
@@ -839,11 +991,13 @@ def main():
                     sel_piece = sel_file = sel_rank = None
                     if move_uci == pz['sol']:
                         pz['solved'] += 1
+                        pz['last_result'] = 'solved'
                         puzzle_state.mark_solved(pz['id'])
                         log.info('Puzzle solved (disambig): %s', pz['id'])
                         _pz_advance()
                     else:
                         pz['wrong'] += 1
+                        pz['last_result'] = 'wrong'
                         log.info('Puzzle wrong (disambig): played %s expected %s',
                                  move_uci, pz['sol'])
                     machine.transition('ok')

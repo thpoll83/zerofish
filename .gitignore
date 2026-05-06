@@ -9,3 +9,9 @@ CLAUDE.md
 *.tar
 .venv
 get-pip.py
+.cache/*
+.local/*
+.vscode-server/*
+.bash*
+.wget*
+.profile

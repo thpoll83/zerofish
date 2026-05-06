@@ -1,15 +1,21 @@
-"""Puzzle screen: board on the left, puzzle info + controls on the right."""
+"""Puzzle screen: board in the centre-left area, puzzle info + controls on the right."""
 
+import os
 import chess
 from PIL import Image, ImageDraw, ImageFont
 import ui
 import config
 
-# ── Board rendering constants (same formula as screen_board.py) ───────────────
-_SQ       = config.BOARD_SQ
-_BOARD_W  = 8 * _SQ                                   # 120 px
-_BOARD_X0 = (ui.VSEP_X - _BOARD_W) // 2 + config.BOARD_OFFSET_X  # = 36
-_BOARD_Y0 = (ui.H - _BOARD_W) // 2 + config.BOARD_OFFSET_Y       # = 1
+# ── Board position ────────────────────────────────────────────────────────────
+# The board is shifted right of centre so the stats column on its left is wide
+# enough for two-line labels.  Shift = half of the centred-gap (18 px), giving
+# a 54 px stats column and an 18 px gap between board and right-panel separator.
+_SQ      = config.BOARD_SQ
+_BOARD_W = 8 * _SQ                                         # 120 px
+
+_CENTRED_GAP = (ui.VSEP_X - _BOARD_W) // 2                # 36 px (each side when centred)
+_BOARD_X0    = _CENTRED_GAP + _CENTRED_GAP // 2 + config.BOARD_OFFSET_X  # 54 px
+_BOARD_Y0    = (ui.H - _BOARD_W) // 2 + config.BOARD_OFFSET_Y             # 1 px
 
 _WHITE_GLYPHS = {
     chess.PAWN:   '♙', chess.KNIGHT: '♘', chess.BISHOP: '♗',
@@ -20,32 +26,53 @@ _BLACK_GLYPHS = {
     chess.ROOK:   '♜', chess.QUEEN:  '♛', chess.KING:   '♚',
 }
 
-# ── Stats strip (left of board, x = 0 … _BOARD_X0-2) ─────────────────────────
-_STATS_CX  = (_BOARD_X0 - 2) // 2     # horizontal centre ≈ 17
-_STATS_YS  = [12, 43, 74, 105]        # y-centres for D / S / W / # lines
+# ── Stats column (x = 0 … _BOARD_X0 - 2) ─────────────────────────────────────
+# Four two-line items (label + value) left-aligned.
+# With SIZE_LABEL=12 noto: line_h=17, but we use ls=14 to fit 4 blocks
+# vertically.  Visual block height ≈ 27 px; inter-block gap ≈ 3 px.
+_STATS_LX  = 3           # left edge of stats text
+_STATS_LS  = 14          # line spacing inside each two-line block
+_STATS_YS  = [14, 44, 74, 104]   # y-centres of the four blocks
 
 # ── Right-panel layout ────────────────────────────────────────────────────────
-_HDR_H    = 36                         # height of black header block
-_HDR_CY1  = _HDR_H // 4               # = 9   (centre line 1)
-_HDR_CY2  = _HDR_H * 3 // 4           # = 27  (centre line 2)
-_RX0      = ui.OK_X0                   # = 195
-_RX1      = ui.OK_X1                   # = 247
-_RCX      = (_RX0 + _RX1) // 2        # = 221
+_HDR_H    = 36
+_HDR_CY1  = _HDR_H // 4          # 9
+_HDR_CY2  = _HDR_H * 3 // 4      # 27
+_RX0      = ui.OK_X0              # 195
+_RX1      = ui.OK_X1              # 247
+_RCX      = (_RX0 + _RX1) // 2   # 221
 
-_BTN_Y_SOLVE  = (_HDR_H + 4,  _HDR_H + 4 + 24)   # (y0, y1) = (40, 64)
-_BTN_Y_SKIP   = (_HDR_H + 32, _HDR_H + 32 + 24)  # (68, 92)
-_BTN_Y_END    = (_HDR_H + 60, _HDR_H + 60 + 24)  # (96, 120)
+_BTN_Y_SOLVE = (_HDR_H + 4,  _HDR_H + 4 + 24)    # (40, 64)
+_BTN_Y_SKIP  = (_HDR_H + 32, _HDR_H + 32 + 24)   # (68, 92)
+_BTN_Y_END   = (_HDR_H + 60, _HDR_H + 60 + 24)   # (96, 120)
 
 _SOLVE_BTN = ui.Button((_RX0, _BTN_Y_SOLVE[0], _RX1, _BTN_Y_SOLVE[1]), 'Solve', ui.Button.BAR)
 _SKIP_BTN  = ui.Button((_RX0, _BTN_Y_SKIP[0],  _RX1, _BTN_Y_SKIP[1]),  'Skip',  ui.Button.OUTLINE)
 _END_BTN   = ui.Button((_RX0, _BTN_Y_END[0],   _RX1, _BTN_Y_END[1]),   'End',   ui.Button.OUTLINE)
 
-_NO_PUZZLE_MSG = ['No puzzles!', 'Run deploy/', 'download_puzzles.py']
+_NO_PUZZLE_MSG = ['No puzzles!', 'Check internet', '& restart app']
+
+_RESULT_GLYPHS = {'solved': '✓', 'skipped': '−', 'wrong': '✗'}
+_RESULT_CX     = _BOARD_X0 // 2                      # 27 px — centre of stats column
+_RESULT_SIZE   = round(config.SIZE_BTN * 1.7)         # ≈ 31 pt
+
+_result_font_cache: ImageFont.FreeTypeFont | None = None
+
+
+def _get_result_font() -> ImageFont.FreeTypeFont:
+    global _result_font_cache
+    if _result_font_cache is None:
+        family = config.SCREEN_FONT_FAMILY.get('puzzle', 'noto')
+        bold_paths = config.FONT_FAMILIES[family]['bold']
+        path = next((p for p in bold_paths if os.path.exists(p)), None)
+        _result_font_cache = (ImageFont.truetype(path, _RESULT_SIZE)
+                              if path else ImageFont.load_default())
+    return _result_font_cache
 
 
 def _piece_font() -> ImageFont.FreeTypeFont | None:
     path = next((p for p in config.FONT_PIECE_PATHS
-                 if __import__('os').path.exists(p)), None)
+                 if os.path.exists(p)), None)
     return ImageFont.truetype(path, config.SIZE_BOARD_PIECE) if path else None
 
 
@@ -69,13 +96,23 @@ def _hatch_square(draw, px, py):
                        (px + d - sq + 1, py + sq - 1)], fill=0)
 
 
+def _draw_stat(draw, lx: int, cy: int, label: str, value: str, font) -> None:
+    """Draw a two-line stat (label above, value below) left-aligned at lx,
+    vertically centred around cy using line spacing _STATS_LS."""
+    for i, text in enumerate((label, value)):
+        bb = draw.textbbox((0, 0), text, font=font)
+        y_anc = cy + (i - 1) * _STATS_LS   # i=0 → cy-LS (label), i=1 → cy (value)
+        draw.text((lx - bb[0], y_anc - bb[1]), text, font=font, fill=0)
+
+
 class PuzzleScreen(ui.Screen):
     name = 'puzzle'
 
     def build(self, board: chess.Board | None,
               puzzle_num: int, total: int,
               solved: int, wrong: int,
-              diff_label: str) -> Image.Image:
+              diff_label: str,
+              last_result: str | None = None) -> Image.Image:
         img, draw = self.new_image()
         f = self.fonts
         pf = _get_piece_font()
@@ -98,22 +135,21 @@ class PuzzleScreen(ui.Screen):
             _SKIP_BTN.draw(draw, f['btn'])
         _END_BTN.draw(draw, f['btn'])
 
-        # ── Left panel: board ─────────────────────────────────────────────────
+        # ── Left area ─────────────────────────────────────────────────────────
         if board is not None:
+            # Board
             white_down = (board.turn == chess.WHITE)
-            pawn_sz = config.SIZE_BOARD_PIECE - 1
-            pawn_path = next((p for p in config.FONT_PIECE_PATHS
-                              if __import__('os').path.exists(p)), None)
-            pawn_font = (ImageFont.truetype(pawn_path, pawn_sz)
-                         if pawn_path else ImageFont.load_default())
+            pawn_sz    = config.SIZE_BOARD_PIECE - 1
+            pawn_path  = next((p for p in config.FONT_PIECE_PATHS
+                               if os.path.exists(p)), None)
+            pawn_font  = (ImageFont.truetype(pawn_path, pawn_sz)
+                          if pawn_path else ImageFont.load_default())
             bf = pf if pf else f['small']
 
             for vrank in range(8):
                 for vfile in range(8):
-                    if white_down:
-                        sq = chess.square(vfile, vrank)
-                    else:
-                        sq = chess.square(7 - vfile, 7 - vrank)
+                    sq = (chess.square(vfile, vrank) if white_down
+                          else chess.square(7 - vfile, 7 - vrank))
                     px = _BOARD_X0 + vfile * _SQ
                     py = _BOARD_Y0 + (7 - vrank) * _SQ
                     x1, y1 = px + _SQ - 1, py + _SQ - 1
@@ -142,14 +178,24 @@ class PuzzleScreen(ui.Screen):
                 outline=0,
             )
 
-            # ── Stats strip (left of board) ───────────────────────────────────
+            # Stats column (left of board)
             sf = f['small']
-            labels = [f'D:{diff_label}', f'S:{solved}', f'W:{wrong}', f'#{total}']
-            for label, y in zip(labels, _STATS_YS):
-                ui.draw_centered(draw, _STATS_CX, y, label, sf, 0)
+            for (label, value), cy in zip(
+                [('Rating:', str(diff_label)),
+                 ('Solved:', str(solved)),
+                 ('Failed:', str(wrong))],
+                _STATS_YS,
+            ):
+                _draw_stat(draw, _STATS_LX, cy, label, value, sf)
+
+            # 4th slot: last-puzzle result as a bold glyph (✓ / − / ✗)
+            glyph = _RESULT_GLYPHS.get(last_result or '', '')
+            if glyph:
+                ui.draw_centered(draw, _RESULT_CX, _STATS_YS[3] - 2,
+                                 glyph, _get_result_font(), 0)
 
         else:
-            # No-puzzle message centered in left panel
+            # No-puzzle message centred in the left area
             sf = f['small']
             cy_start = (ui.H - len(_NO_PUZZLE_MSG) * 16) // 2
             for i, line in enumerate(_NO_PUZZLE_MSG):
@@ -173,8 +219,10 @@ _screen = PuzzleScreen()
 
 def build_puzzle_screen(board, puzzle_num: int, total: int,
                         solved: int, wrong: int,
-                        diff_label: str) -> Image.Image:
-    return _screen.build(board, puzzle_num, total, solved, wrong, diff_label)
+                        diff_label: str,
+                        last_result: str | None = None) -> Image.Image:
+    return _screen.build(board, puzzle_num, total, solved, wrong, diff_label,
+                         last_result)
 
 
 def hit_puzzle(lx: int, ly: int, board_available: bool = True) -> str | None:

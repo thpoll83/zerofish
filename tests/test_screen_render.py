@@ -24,7 +24,9 @@ from screen_disambig     import build_disambig_screen, disambig_rects
 from screen_time         import build_time_screen
 from screen_board        import build_board_screen
 from screen_resign_confirm import build_resign_confirm_screen
-from screen_puzzle       import build_puzzle_screen
+from screen_puzzle             import build_puzzle_screen
+from screen_puzzle_loading     import build_puzzle_loading_screen
+from screen_puzzle_end_confirm import build_puzzle_end_confirm_screen
 import config
 
 LANDSCAPE = (config.DISPLAY_W, config.DISPLAY_H)   # 250 × 122
@@ -268,3 +270,50 @@ def test_puzzle_screen_mid_game_position():
         board.push_uci(uci)
     _ok(build_puzzle_screen(board, puzzle_num=7, total=200,
                              solved=3, wrong=1, diff_label='1600'))
+
+
+def test_puzzle_screen_last_result_solved():
+    board = _puzzle_board()
+    _ok(build_puzzle_screen(board, puzzle_num=8, total=200,
+                             solved=4, wrong=1, diff_label='1650',
+                             last_result='solved'))
+
+
+def test_puzzle_screen_last_result_wrong():
+    board = _puzzle_board()
+    _ok(build_puzzle_screen(board, puzzle_num=8, total=200,
+                             solved=4, wrong=2, diff_label='1650',
+                             last_result='wrong'))
+
+
+def test_puzzle_screen_last_result_skipped():
+    board = _puzzle_board()
+    _ok(build_puzzle_screen(board, puzzle_num=9, total=200,
+                             solved=4, wrong=1, diff_label='1700',
+                             last_result='skipped'))
+
+
+# ── Puzzle loading screen ─────────────────────────────────────────────────────
+
+def test_puzzle_loading_no_existing():
+    _ok(build_puzzle_loading_screen(has_existing=False))
+
+
+def test_puzzle_loading_with_existing():
+    _ok(build_puzzle_loading_screen(has_existing=True))
+
+
+def test_puzzle_loading_with_progress():
+    _ok(build_puzzle_loading_screen(has_existing=False,
+                                     rows_scanned=50000, found=87))
+
+
+def test_puzzle_loading_with_existing_and_progress():
+    _ok(build_puzzle_loading_screen(has_existing=True,
+                                     rows_scanned=120000, found=200))
+
+
+# ── Puzzle end confirm screen ─────────────────────────────────────────────────
+
+def test_puzzle_end_confirm_screen():
+    _ok(build_puzzle_end_confirm_screen())

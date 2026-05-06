@@ -153,21 +153,24 @@ FONT_FAMILIES = {
 #   board             board coordinate labels
 #
 SCREEN_FONT_FAMILY = {
-    'default':      'noto',   # fallback for any unlisted screen
-    'splash':       'noto',
-    'difficulty':   'noto',
-    'color':        'noto',
-    'thinking':     'noto',
-    'sf_move':      'noto',          # large move glyph benefits from regular-width Noto
-    'game_over':    'noto',
-    'player_move':  'noto',
-    'promotion':    'noto',
-    'disambig':     'noto',
-    'ingame_menu':  'noto',
-    'scoresheet':   'noto',   # condensed fits more moves per line
-    'time':         'noto',
-    'board':        'noto',
-    'resume_games': 'noto',
+    'default':         'noto',   # fallback for any unlisted screen
+    'splash':          'noto',
+    'difficulty':      'noto',
+    'color':           'noto',
+    'thinking':        'noto',
+    'sf_move':         'noto',   # large move glyph benefits from regular-width Noto
+    'game_over':       'noto',
+    'player_move':     'noto',
+    'promotion':       'noto',
+    'disambig':        'noto',
+    'ingame_menu':     'noto',
+    'scoresheet':      'noto',
+    'time':            'noto',
+    'board':           'noto',
+    'resume_games':    'noto',
+    'puzzle':              'noto',
+    'puzzle_loading':      'noto',
+    'puzzle_end_confirm':  'noto',
 }
 
 # ── Piece / chess-glyph font ──────────────────────────────────────────────────

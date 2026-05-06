@@ -12,7 +12,8 @@ from ui import (
     SCREEN_INGAME_MENU, SCREEN_SCORESHEET, SCREEN_BOARD,
     SCREEN_TIME, SCREEN_RESIGN_CONFIRM, SCREEN_RESUME,
     SCREEN_MAIN_MENU, SCREEN_PUZZLE, SCREEN_PUZZLE_MOVE,
-    SCREEN_PUZZLE_DISAMBIG,
+    SCREEN_PUZZLE_DISAMBIG, SCREEN_PUZZLE_LOADING, SCREEN_PUZZLE_PROMOTION,
+    SCREEN_PUZZLE_END_CONFIRM,
 )
 
 
@@ -38,10 +39,11 @@ class ScreenMachine:
         (SCREEN_SPLASH,         'ok'):          SCREEN_MAIN_MENU,
 
         # Main menu
-        (SCREEN_MAIN_MENU,      'new_game'):    SCREEN_DIFFICULTY,
-        (SCREEN_MAIN_MENU,      'cont'):        SCREEN_RESUME,
-        (SCREEN_MAIN_MENU,      'puzzle'):      SCREEN_PUZZLE,
-        (SCREEN_MAIN_MENU,      'back'):        SCREEN_SPLASH,
+        (SCREEN_MAIN_MENU,      'new_game'):      SCREEN_DIFFICULTY,
+        (SCREEN_MAIN_MENU,      'cont'):          SCREEN_RESUME,
+        (SCREEN_MAIN_MENU,      'puzzle'):        SCREEN_PUZZLE,
+        (SCREEN_MAIN_MENU,      'puzzle_loading'): SCREEN_PUZZLE_LOADING,
+        (SCREEN_MAIN_MENU,      'back'):          SCREEN_SPLASH,
 
         # Difficulty / side selection
         (SCREEN_DIFFICULTY,     'ok'):          SCREEN_COLOR,
@@ -89,14 +91,23 @@ class ScreenMachine:
         (SCREEN_RESUME,         'ok'):          SCREEN_PLAYER_MOVE,
         (SCREEN_RESUME,         'next_page'):   SCREEN_RESUME,
 
+        # Puzzle loading screen
+        (SCREEN_PUZZLE_LOADING,  'back'):       SCREEN_MAIN_MENU,
+        (SCREEN_PUZZLE_LOADING,  'play'):       SCREEN_PUZZLE,
+
         # Puzzle flow
         (SCREEN_PUZZLE,         'solve'):       SCREEN_PUZZLE_MOVE,
         (SCREEN_PUZZLE,         'skip'):        SCREEN_PUZZLE,
-        (SCREEN_PUZZLE,         'end'):         SCREEN_SPLASH,
+        (SCREEN_PUZZLE,         'end'):         SCREEN_PUZZLE_END_CONFIRM,
+        (SCREEN_PUZZLE_END_CONFIRM, 'yes'):     SCREEN_MAIN_MENU,
+        (SCREEN_PUZZLE_END_CONFIRM, 'no'):      SCREEN_PUZZLE,
 
         (SCREEN_PUZZLE_MOVE,    'ok'):          SCREEN_PUZZLE,
         (SCREEN_PUZZLE_MOVE,    'back'):        SCREEN_PUZZLE,
+        (SCREEN_PUZZLE_MOVE,    'promote'):     SCREEN_PUZZLE_PROMOTION,
         (SCREEN_PUZZLE_MOVE,    'disambig'):    SCREEN_PUZZLE_DISAMBIG,
+
+        (SCREEN_PUZZLE_PROMOTION, 'ok'):        SCREEN_PUZZLE,
 
         (SCREEN_PUZZLE_DISAMBIG, 'ok'):         SCREEN_PUZZLE,
         (SCREEN_PUZZLE_DISAMBIG, 'back'):       SCREEN_PUZZLE_MOVE,

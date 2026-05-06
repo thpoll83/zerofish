@@ -52,7 +52,9 @@ from screen_board         import build_board_screen
 from screen_scoresheet    import build_scoresheet_screen
 from screen_game_over     import build_game_over_screen
 from screen_resume        import build_resume_screen
-from screen_puzzle        import build_puzzle_screen
+from screen_puzzle             import build_puzzle_screen
+from screen_puzzle_loading     import build_puzzle_loading_screen
+from screen_puzzle_end_confirm import build_puzzle_end_confirm_screen
 
 SCALE  = 3
 OUTDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', 'screenshots')
@@ -166,7 +168,18 @@ def main() -> None:
 
         ('22_puzzle_progress.png',
          build_puzzle_screen(puz_board, puzzle_num=42, total=200,
-                              solved=12, wrong=3, diff_label='1720')),
+                              solved=12, wrong=3, diff_label='1720',
+                              last_result='solved')),
+
+        ('22b_puzzle_wrong.png',
+         build_puzzle_screen(puz_board, puzzle_num=42, total=200,
+                              solved=12, wrong=3, diff_label='1720',
+                              last_result='wrong')),
+
+        ('22c_puzzle_skipped.png',
+         build_puzzle_screen(puz_board, puzzle_num=43, total=200,
+                              solved=12, wrong=3, diff_label='1600',
+                              last_result='skipped')),
 
         ('23_puzzle_solve_input.png',
          build_player_move_screen(None, None, None, inv_count=0,
@@ -184,6 +197,20 @@ def main() -> None:
         ('26_puzzle_disambig.png',
          build_disambig_screen(['♞c3', '♞f3'],
                                 disambig_rects(2), selected=0, move_label='Puzzle')),
+
+        ('27_puzzle_loading.png',
+         build_puzzle_loading_screen(has_existing=False,
+                                      rows_scanned=40000, found=63)),
+
+        ('28_puzzle_loading_existing.png',
+         build_puzzle_loading_screen(has_existing=True,
+                                      rows_scanned=0, found=0)),
+
+        ('29_puzzle_promotion.png',
+         build_promotion_screen(selected=3, move_label='Puzzle')),
+
+        ('30_puzzle_end_confirm.png',
+         build_puzzle_end_confirm_screen()),
     ]
 
     for name, img in screens:

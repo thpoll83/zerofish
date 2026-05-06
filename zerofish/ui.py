@@ -44,9 +44,12 @@ SCREEN_TIME           = 12
 SCREEN_RESIGN_CONFIRM = 13
 SCREEN_RESUME         = 14
 SCREEN_MAIN_MENU      = 15
-SCREEN_PUZZLE         = 16
-SCREEN_PUZZLE_MOVE    = 17
-SCREEN_PUZZLE_DISAMBIG = 18
+SCREEN_PUZZLE           = 16
+SCREEN_PUZZLE_MOVE      = 17
+SCREEN_PUZZLE_DISAMBIG  = 18
+SCREEN_PUZZLE_LOADING       = 19
+SCREEN_PUZZLE_PROMOTION     = 20
+SCREEN_PUZZLE_END_CONFIRM   = 21
 
 # ── Font cache (keyed by family name) ─────────────────────────────────────────
 _fonts_cache: dict = {}

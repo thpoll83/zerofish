@@ -105,6 +105,8 @@ def _clear_hardware_stubs():
         'screen_resume', 'screen_sf_move', 'screen_thinking',
         'screen_game_over', 'screen_board', 'screen_scoresheet',
         'screen_time', 'screen_promotion', 'screen_disambig',
+        'screen_puzzle', 'screen_puzzle_loading', 'screen_machine',
+        'puzzle_state', 'download_puzzles',
     )
     for mod in _app_mods:
         sys.modules.pop(mod, None)
@@ -205,6 +207,8 @@ def _setup(monkeypatch, tmp_path):
     import ui
     from TP_lib import gt1151
 
+    import download_puzzles
+    monkeypatch.setattr(download_puzzles, 'has_internet', lambda *a, **kw: False)
     monkeypatch.setattr(
         chess.engine.SimpleEngine, 'popen_uci',
         lambda *a, **kw: _MockEngine(),
@@ -239,7 +243,8 @@ def test_new_game_white_resign(tmp_path, monkeypatch):
     ui         = h['ui']
 
     # Import layout helpers after the module-cache flush in _setup.
-    from screen_splash       import (_SPLASH_OK_Y0, _SPLASH_OK_Y1_FULL)
+    from screen_splash       import _SPLASH_OK_Y0, _SPLASH_OK_Y1
+    from screen_main_menu    import _menu_rect
     from screen_difficulty   import diff_rect
     from screen_color        import COLOR_BTN_X, COLOR_BTN_W, COLOR_BTN_Y0, COLOR_BTN_Y1
     from screen_player_move  import pm_piece_rect, pm_file_rect, pm_rank_rect
@@ -270,8 +275,11 @@ def test_new_game_white_resign(tmp_path, monkeypatch):
     try:
         # ── Splash ────────────────────────────────────────────────────────────
         wait_startup()
-        # Full-height OK (no saved games yet)
-        inject(ok_cx, (_SPLASH_OK_Y0 + _SPLASH_OK_Y1_FULL) // 2)
+        inject(ok_cx, (_SPLASH_OK_Y0 + _SPLASH_OK_Y1) // 2)  # OK → main menu
+
+        # ── Main menu ─────────────────────────────────────────────────────────
+        wait_refresh()
+        inject_rect(_menu_rect(0))  # "New Game" (index 0)
 
         # ── Difficulty ────────────────────────────────────────────────────────
         wait_refresh()
@@ -364,9 +372,9 @@ def test_resume_unfinished_game(tmp_path, monkeypatch):
     game_state = h['game_state']
     ui         = h['ui']
 
-    from screen_splash  import (_SPLASH_OK_Y0, _SPLASH_OK_Y1,
-                                 _SPLASH_SEC_Y0, _SPLASH_SEC_Y1)
-    from screen_resume  import _slot_rect, _OK2_Y0, _OK2_Y1
+    from screen_splash    import _SPLASH_OK_Y0, _SPLASH_OK_Y1
+    from screen_main_menu import _menu_rect
+    from screen_resume    import _slot_rect, _OK2_Y0, _OK2_Y1
     from screen_ingame_menu    import igmenu_rect
     from screen_resign_confirm import _YES_X0, _YES_X1, _YES_Y0, _YES_Y1
 
@@ -399,10 +407,13 @@ def test_resume_unfinished_game(tmp_path, monkeypatch):
     t.start()
 
     try:
-        # ── Splash (with Cont button because a save exists) ───────────────────
+        # ── Splash ────────────────────────────────────────────────────────────
         wait_startup()
-        # Tap "Cont" (secondary / lower half of right panel)
-        inject(ok_cx, (_SPLASH_SEC_Y0 + _SPLASH_SEC_Y1) // 2)
+        inject(ok_cx, (_SPLASH_OK_Y0 + _SPLASH_OK_Y1) // 2)  # OK → main menu
+
+        # ── Main menu ─────────────────────────────────────────────────────────
+        wait_refresh()
+        inject_rect(_menu_rect(1))  # "Cont" (index 1)
 
         # ── Resume screen ─────────────────────────────────────────────────────
         wait_refresh()

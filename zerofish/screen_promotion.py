@@ -31,7 +31,7 @@ class PromotionScreen(ui.Screen):
     def build(self, selected=None, move_label='') -> Image.Image:
         img, draw = self.new_image()
         f = self.fonts
-        ui.draw_chrome(draw, f, f'Promote {move_label}',
+        ui.draw_chrome(draw, f, f'{move_label} Promotion',
                        ok_active=(selected is not None))
         for i, btn in enumerate(self._buttons):
             btn.style = ui.Button.FILLED if i == selected else ui.Button.OUTLINE

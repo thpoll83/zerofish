@@ -1,6 +1,7 @@
 [Unit]
 Description=ZeroFish Chess Computer
-After=multi-user.target
+After=multi-user.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
