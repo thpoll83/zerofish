@@ -4,8 +4,8 @@
 Run from the repo root:
     python3 generate_screenshots.py
 
-Output goes to docs/screenshots/.  Each image is scaled 3× so the tiny
-250×122 px canvas is readable on a normal monitor.
+Output goes to docs/screenshots/.  Each image is scaled 3x so the tiny
+250x122 px canvas is readable on a normal monitor.
 """
 import os
 import sys
@@ -55,6 +55,7 @@ from screen_resume        import build_resume_screen
 from screen_puzzle             import build_puzzle_screen
 from screen_puzzle_loading     import build_puzzle_loading_screen
 from screen_puzzle_end_confirm import build_puzzle_end_confirm_screen
+from screen_puzzle_hint        import build_puzzle_hint_screen
 
 SCALE  = 3
 OUTDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', 'screenshots')
@@ -66,7 +67,7 @@ def _save(name: str, img: Image.Image) -> None:
     scaled = rgb.resize((w * SCALE, h * SCALE), Image.NEAREST)
     path = os.path.join(OUTDIR, name)
     scaled.save(path)
-    print(f'  {name}  ({w}×{h} → {w*SCALE}×{h*SCALE})')
+    print(f'  {name}  ({w}x{h} → {w*SCALE}x{h*SCALE})')
 
 
 def main() -> None:
@@ -87,6 +88,26 @@ def main() -> None:
     puz_board = chess.Board()
     for uci in ('e2e4', 'e7e5', 'g1f3'):
         puz_board.push_uci(uci)
+
+    # Multi-move puzzle board: mid-sequence (engine played d2d4, player's 2nd move)
+    puz_board_move2 = chess.Board()
+    for uci in ('e2e4', 'e7e5', 'd2d4'):
+        puz_board_move2.push_uci(uci)
+
+    # Hint screen data: puzzle start FEN is after the trigger move (1.e4 played)
+    # so hint_moves[0] = 'e7e5' is legal (black to move).
+    _hint_trigger_board = chess.Board()
+    _hint_trigger_board.push_uci('e2e4')
+    hint_fen_start = _hint_trigger_board.fen()   # after 1.e4, black to move
+
+    # Board shown on hint screen = position at the point of failure
+    # Single-move hint: wrong on very first move → board = hint_fen_start position
+    hint_board_single = chess.Board(hint_fen_start)
+
+    # Multi-move hint: wrong on move 2 (e7e5 + d2d4 already played)
+    hint_board_mm = chess.Board(hint_fen_start)
+    hint_board_mm.push_uci('e7e5')
+    hint_board_mm.push_uci('d2d4')
 
     screens = [
         ('01_splash.png',
@@ -211,6 +232,31 @@ def main() -> None:
 
         ('30_puzzle_end_confirm.png',
          build_puzzle_end_confirm_screen()),
+
+        ('31_puzzle_multimove_1of2.png',
+         build_puzzle_screen(puz_board, puzzle_num=5, total=200,
+                              solved=2, wrong=1, diff_label='1200',
+                              move_num=1, move_total=2, last_result='solved')),
+
+        ('32_puzzle_multimove_2of2.png',
+         build_puzzle_screen(puz_board_move2, puzzle_num=5, total=200,
+                              solved=2, wrong=1, diff_label='1200',
+                              move_num=2, move_total=2, last_result=None)),
+
+        # ── Hint screens ────────────────────────────────────────────────────
+        # Single-move puzzle: wrong on first (and only) move
+        ('33_puzzle_hint_single.png',
+         build_puzzle_hint_screen(hint_board_single,
+                                   hint_fen=hint_fen_start,
+                                   hint_moves=['e7e5'],
+                                   hint_move_idx=0)),
+
+        # Multi-move puzzle: wrong on move 2 (move 1 was e7e5, engine replied d2d4)
+        ('34_puzzle_hint_multimove.png',
+         build_puzzle_hint_screen(hint_board_mm,
+                                   hint_fen=hint_fen_start,
+                                   hint_moves=['e7e5', 'd2d4', 'e5d4'],
+                                   hint_move_idx=2)),
     ]
 
     for name, img in screens:

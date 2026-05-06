@@ -73,7 +73,7 @@ BOARD_PIECE_OFFSET_Y = 1
 DIFF_LABELS = {
     1: '1k',  2: '1k2', 3: '1k4', 4: '1k5', 5: '1k6',
     6: '1k7', 7: '1k8', 8: '1k9', 9: '2k',  10: '2k1',
-    11: '2k2', 12: '2k4', 13: '2k6', 14: '2k8', 15: 'mx',
+    11: '2k2', 12: '2k4', 13: '2k6', 14: '2k8', 15: '∞',
 }
 DIFF_SKILL_LEVELS = {
     1: 0,  2: 2,  3: 4,  4: 5,  5: 6,
@@ -159,6 +159,22 @@ FONT_FAMILIES = {
     },
 }
 
+# Fonts covering ∞ (U+221E).  NotoSansMath-Regular ships with fonts-noto-core
+# and has the symbol; DejaVu Sans is the fallback.
+FONT_MATH_PATHS = [
+    '/usr/share/fonts/truetype/noto/NotoSansMath-Regular.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf',
+]
+
+# Fonts that cover ✓ (U+2713), ✗ (U+2717), and − (U+2212).
+# NotoSans renders these as .notdef boxes; DejaVu Sans Bold has real glyphs.
+FONT_RESULT_PATHS = [
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf',
+]
+
 # ── Per-screen font family ────────────────────────────────────────────────────
 # Maps screen name → key in FONT_FAMILIES above.
 # Changing a value here switches the font for that entire screen.
@@ -199,6 +215,7 @@ SCREEN_FONT_FAMILY = {
     'puzzle_loading':      'noto',
     'puzzle_end_confirm':  'noto',
     'puzzle_difficulty':   'noto',
+    'puzzle_hint':         'noto',
 }
 
 # ── Piece / chess-glyph font ──────────────────────────────────────────────────

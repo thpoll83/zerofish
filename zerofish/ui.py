@@ -51,6 +51,7 @@ SCREEN_PUZZLE_LOADING       = 19
 SCREEN_PUZZLE_PROMOTION     = 20
 SCREEN_PUZZLE_END_CONFIRM   = 21
 SCREEN_PUZZLE_DIFFICULTY    = 22
+SCREEN_PUZZLE_HINT          = 23
 
 # ── Font cache (keyed by family name) ─────────────────────────────────────────
 _fonts_cache: dict = {}

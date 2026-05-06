@@ -76,6 +76,7 @@ def _existing_ids() -> set:
 
 
 def run_download(count: int = 1000,
+                 max_rows: int = 500_000,
                  stop_event: threading.Event | None = None,
                  progress_cb=None) -> bool:
     """Download puzzles from Lichess and merge them into the local puzzle file.
@@ -128,6 +129,9 @@ def run_download(count: int = 1000,
                               f'found {len(candidates)} candidates', flush=True)
                         if progress_cb is not None:
                             progress_cb(rows_checked, len(candidates))
+                    if max_rows > 0 and rows_checked >= max_rows:
+                        print(f'Row scan limit reached ({max_rows:,}).')
+                        break
 
                     puzzle_id = row.get('PuzzleId', '').strip()
                     if puzzle_id in skip_ids:
@@ -168,13 +172,11 @@ def run_download(count: int = 1000,
                                 'moves':  solution_moves,
                                 'rating': int(row.get('Rating', 1500)),
                             })
-                            continue
+                            if len(candidates) >= collect:
+                                break
                         # inner break hit — skip this puzzle
                     except Exception:
-                        continue
-
-                    if len(candidates) >= collect:
-                        break
+                        pass
 
     except Exception as exc:
         print(f'Download error: {exc}')
@@ -183,6 +185,11 @@ def run_download(count: int = 1000,
     if not candidates:
         print('No matching puzzles found.')
         return False
+
+    if len(candidates) < count:
+        print(f'Warning: only {len(candidates)} puzzles found '
+              f'(wanted {count}). Try increasing max_rows or selecting '
+              f'a lower difficulty range.')
 
     sample = random.sample(candidates, min(count, len(candidates)))
     print(f'Sampled {len(sample)} puzzles from {len(candidates)} candidates '

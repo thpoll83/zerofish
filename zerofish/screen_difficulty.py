@@ -1,6 +1,18 @@
-from PIL import Image, ImageDraw
+import os
+from PIL import Image, ImageDraw, ImageFont
 import ui
 import config
+
+_math_font_cache: ImageFont.FreeTypeFont | None = None
+
+
+def _get_math_font() -> ImageFont.FreeTypeFont:
+    global _math_font_cache
+    if _math_font_cache is None:
+        path = next((p for p in config.FONT_MATH_PATHS if os.path.exists(p)), None)
+        _math_font_cache = (ImageFont.truetype(path, config.SIZE_BTN_DIFF)
+                            if path else ImageFont.load_default())
+    return _math_font_cache
 
 _COLS        = 5
 _ROWS        = 3
@@ -40,10 +52,12 @@ class DifficultyScreen(ui.Screen):
         f = self.fonts
         ui.draw_chrome(draw, f, 'Difficulty',
                        ok_active=(selected is not None), sec_label='Back')
+        math_font = _get_math_font()
         for i, btn in enumerate(self._buttons):
             lvl = i + 1
             btn.style = ui.Button.FILLED if lvl == selected else ui.Button.OUTLINE
-            btn.draw(draw, f['btn_diff'])
+            font = math_font if btn.label == '∞' else f['btn_diff']
+            btn.draw(draw, font)
         return img
 
     def hit(self, lx: int, ly: int, selected=None) -> str | None:
