@@ -51,6 +51,12 @@ from screen_puzzle_end_confirm import build_puzzle_end_confirm_screen, hit_puzzl
 from screen_puzzle_difficulty  import (build_puzzle_difficulty_screen,
                                         hit_puzzle_difficulty_screen)
 from screen_puzzle_hint        import build_puzzle_hint_screen, hit_puzzle_hint
+from screen_stats     import build_stats_screen, hit_stats
+from screen_settings  import build_settings_screen, hit_settings
+from screen_wifi      import (build_wifi_screen, hit_wifi,
+                               build_wifi_result_screen, hit_wifi_result,
+                               scan_networks, connect_open, connect_wpa,
+                               forget_network)
 import download_puzzles
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s: %(message)s')
@@ -234,6 +240,15 @@ def main():
     sf_time_acc         = [0.0]
     score_end           = None
 
+    # ── WiFi state ────────────────────────────────────────────────────────────
+    wifi_nets:        list       = []
+    wifi_sel:         int | None = None
+    wifi_passwd:      str        = ''
+    wifi_kbd_page:    int        = 0
+    wifi_scroll_off:  int        = 0
+    wifi_result_ssid: str        = ''
+    wifi_result_msg:  str        = ''
+
     # ── Puzzle state ──────────────────────────────────────────────────────────
     pz = PuzzleSession()
 
@@ -323,6 +338,14 @@ def main():
                     machine.transition('puzzle')
                     pz = PuzzleSession()
                     _transition(epd, build_puzzle_difficulty_screen(), partial_count)
+
+                elif action == 'stats':
+                    machine.transition('stats')
+                    _transition(epd, build_stats_screen(), partial_count)
+
+                elif action == 'settings':
+                    machine.transition('settings')
+                    _transition(epd, build_settings_screen(), partial_count)
 
                 elif action == 'back':
                     machine.transition('back')
@@ -946,6 +969,174 @@ def main():
                     pz.advance()
                     machine.transition('ok')
                     _transition(epd, pz.screen(), partial_count)
+
+            # ── Stats ─────────────────────────────────────────────────────────
+            elif machine.is_at(ui.SCREEN_STATS):
+                if hit_stats(lx, ly) == 'back':
+                    machine.transition('back')
+                    saves_list = game_state.list_saves()
+                    _transition(epd,
+                                build_main_menu_screen(has_saves=bool(saves_list)),
+                                partial_count)
+
+            # ── Settings ──────────────────────────────────────────────────────
+            elif machine.is_at(ui.SCREEN_SETTINGS):
+                action = hit_settings(lx, ly)
+                if action == 'back':
+                    machine.transition('back')
+                    saves_list = game_state.list_saves()
+                    _transition(epd,
+                                build_main_menu_screen(has_saves=bool(saves_list)),
+                                partial_count)
+                elif action == 'wifi':
+                    machine.transition('wifi')
+                    wifi_nets = scan_networks()
+                    wifi_sel  = next((i for i, n in enumerate(wifi_nets)
+                                      if n['in_use']), None)
+                    wifi_passwd    = ''
+                    wifi_kbd_page  = 0
+                    wifi_scroll_off = 0
+                    _transition(epd,
+                                build_wifi_screen(wifi_nets, wifi_sel,
+                                                  wifi_passwd, wifi_kbd_page,
+                                                  wifi_scroll_off),
+                                partial_count)
+
+            # ── WiFi setup ────────────────────────────────────────────────────
+            elif machine.is_at(ui.SCREEN_WIFI):
+                action = hit_wifi(lx, ly, wifi_nets, wifi_sel,
+                                  wifi_kbd_page, wifi_scroll_off)
+                if action == 'back':
+                    machine.transition('back')
+                    _transition(epd, build_settings_screen(), partial_count)
+
+                elif action == 'back_kbd':
+                    # Cancel password entry — deselect network
+                    wifi_sel    = None
+                    wifi_passwd = ''
+                    _show(epd,
+                          build_wifi_screen(wifi_nets, wifi_sel,
+                                            wifi_passwd, wifi_kbd_page,
+                                            wifi_scroll_off),
+                          partial_count)
+
+                elif action is not None and action.startswith('select:'):
+                    new_sel = int(action.split(':')[1])
+                    if new_sel != wifi_sel:
+                        wifi_sel    = new_sel
+                        wifi_passwd = ''
+                        wifi_kbd_page = 0
+                    _show(epd,
+                          build_wifi_screen(wifi_nets, wifi_sel,
+                                            wifi_passwd, wifi_kbd_page,
+                                            wifi_scroll_off),
+                          partial_count)
+
+                elif action is not None and action.startswith('char:'):
+                    ch = action[5:]
+                    wifi_passwd += ch
+                    _show(epd,
+                          build_wifi_screen(wifi_nets, wifi_sel,
+                                            wifi_passwd, wifi_kbd_page,
+                                            wifi_scroll_off),
+                          partial_count)
+
+                elif action == 'del':
+                    wifi_passwd = wifi_passwd[:-1]
+                    _show(epd,
+                          build_wifi_screen(wifi_nets, wifi_sel,
+                                            wifi_passwd, wifi_kbd_page,
+                                            wifi_scroll_off),
+                          partial_count)
+
+                elif action == 'space':
+                    wifi_passwd += ' '
+                    _show(epd,
+                          build_wifi_screen(wifi_nets, wifi_sel,
+                                            wifi_passwd, wifi_kbd_page,
+                                            wifi_scroll_off),
+                          partial_count)
+
+                elif action == 'prev_page':
+                    wifi_kbd_page = (wifi_kbd_page - 1) % 6
+                    _show(epd,
+                          build_wifi_screen(wifi_nets, wifi_sel,
+                                            wifi_passwd, wifi_kbd_page,
+                                            wifi_scroll_off),
+                          partial_count)
+
+                elif action == 'next_page':
+                    wifi_kbd_page = (wifi_kbd_page + 1) % 6
+                    _show(epd,
+                          build_wifi_screen(wifi_nets, wifi_sel,
+                                            wifi_passwd, wifi_kbd_page,
+                                            wifi_scroll_off),
+                          partial_count)
+
+                elif action == 'connect_open':
+                    net = wifi_nets[wifi_sel]
+                    wifi_result_ssid = net['ssid']
+                    ok, msg = connect_open(net['ssid'])
+                    if ok:
+                        wifi_nets = scan_networks()
+                        wifi_sel  = next((i for i, n in enumerate(wifi_nets)
+                                          if n['in_use']), None)
+                        _show(epd,
+                              build_wifi_screen(wifi_nets, wifi_sel,
+                                                wifi_passwd, wifi_kbd_page,
+                                                wifi_scroll_off),
+                              partial_count)
+                    else:
+                        wifi_result_msg = msg
+                        machine.transition('result')
+                        _transition(epd,
+                                    build_wifi_result_screen(wifi_result_ssid,
+                                                             wifi_result_msg),
+                                    partial_count)
+
+                elif action == 'connect_wpa':
+                    net = wifi_nets[wifi_sel]
+                    wifi_result_ssid = net['ssid']
+                    ok, msg = connect_wpa(net['ssid'], wifi_passwd)
+                    if ok:
+                        wifi_nets = scan_networks()
+                        wifi_sel  = next((i for i, n in enumerate(wifi_nets)
+                                          if n['in_use']), None)
+                        wifi_passwd = ''
+                        _show(epd,
+                              build_wifi_screen(wifi_nets, wifi_sel,
+                                                wifi_passwd, wifi_kbd_page,
+                                                wifi_scroll_off),
+                              partial_count)
+                    else:
+                        wifi_result_msg = msg
+                        machine.transition('result')
+                        _transition(epd,
+                                    build_wifi_result_screen(wifi_result_ssid,
+                                                             wifi_result_msg),
+                                    partial_count)
+
+                elif action == 'forget':
+                    net = wifi_nets[wifi_sel]
+                    forget_network(net['ssid'])
+                    wifi_nets = scan_networks()
+                    wifi_sel  = next((i for i, n in enumerate(wifi_nets)
+                                      if n['in_use']), None)
+                    _show(epd,
+                          build_wifi_screen(wifi_nets, wifi_sel,
+                                            wifi_passwd, wifi_kbd_page,
+                                            wifi_scroll_off),
+                          partial_count)
+
+            # ── WiFi result ───────────────────────────────────────────────────
+            elif machine.is_at(ui.SCREEN_WIFI_RESULT):
+                if hit_wifi_result(lx, ly) == 'ok':
+                    machine.transition('ok')
+                    _transition(epd,
+                                build_wifi_screen(wifi_nets, wifi_sel,
+                                                  wifi_passwd, wifi_kbd_page,
+                                                  wifi_scroll_off),
+                                partial_count)
 
             if (config.IDLE_SLEEP_SECS > 0
                     and not machine.is_at(ui.SCREEN_THINKING)
