@@ -6,9 +6,8 @@ the production code uses, then verify that the centre of each zone registers
 as a hit and a clearly-out-of-bounds point does not.
 """
 import ui
-from screen_splash       import (hit_splash_ok, hit_splash_resume,
-                                  _SPLASH_OK_Y0, _SPLASH_OK_Y1_FULL,
-                                  _SPLASH_OK_Y1, _SPLASH_SEC_Y0, _SPLASH_SEC_Y1)
+from screen_splash       import hit_splash_ok, _SPLASH_OK_Y0, _SPLASH_OK_Y1
+from screen_main_menu    import hit_main_menu, _menu_rect
 from screen_difficulty   import hit_diff, diff_rect
 from screen_color        import (hit_color, COLOR_BTN_X, COLOR_BTN_W,
                                   COLOR_BTN_Y0, COLOR_BTN_Y1)
@@ -89,34 +88,47 @@ def test_hit_sec_no_title_rejects_ok_zone():
 
 # ── Splash ────────────────────────────────────────────────────────────────────
 
-def test_hit_splash_ok_no_resume():
+def test_hit_splash_ok_centre():
     cx = (ui.OK_X0 + ui.OK_X1) // 2
-    cy = (_SPLASH_OK_Y0 + _SPLASH_OK_Y1_FULL) // 2
-    assert hit_splash_ok(cx, cy, has_resume=False)
+    cy = (_SPLASH_OK_Y0 + _SPLASH_OK_Y1) // 2
+    assert hit_splash_ok(cx, cy)
 
 
-def test_hit_splash_ok_with_resume_upper():
+def test_hit_splash_ok_misses_left_of_separator():
+    assert not hit_splash_ok(ui.VSEP_X - 10, 60)
+
+
+def test_hit_splash_ok_ignores_has_resume_kwarg():
     cx = (ui.OK_X0 + ui.OK_X1) // 2
     cy = (_SPLASH_OK_Y0 + _SPLASH_OK_Y1) // 2
     assert hit_splash_ok(cx, cy, has_resume=True)
+    assert hit_splash_ok(cx, cy, has_resume=False)
 
 
-def test_hit_splash_ok_with_resume_rejects_lower():
-    cx = (ui.OK_X0 + ui.OK_X1) // 2
-    cy = (_SPLASH_SEC_Y0 + _SPLASH_SEC_Y1) // 2   # resume button region
-    assert not hit_splash_ok(cx, cy, has_resume=True)
+# ── Main menu ─────────────────────────────────────────────────────────────────
+
+def test_hit_main_menu_new_game():
+    r = _menu_rect(0)
+    assert hit_main_menu(_cx(r), _cy(r)) == 'new_game'
 
 
-def test_hit_splash_resume():
-    cx = (ui.OK_X0 + ui.OK_X1) // 2
-    cy = (_SPLASH_SEC_Y0 + _SPLASH_SEC_Y1) // 2
-    assert hit_splash_resume(cx, cy)
+def test_hit_main_menu_cont():
+    r = _menu_rect(1)
+    assert hit_main_menu(_cx(r), _cy(r)) == 'cont'
 
 
-def test_hit_splash_resume_rejects_ok_region():
-    cx = (ui.OK_X0 + ui.OK_X1) // 2
-    cy = (_SPLASH_OK_Y0 + _SPLASH_OK_Y1) // 2
-    assert not hit_splash_resume(cx, cy)
+def test_hit_main_menu_puzzle():
+    r = _menu_rect(2)
+    assert hit_main_menu(_cx(r), _cy(r)) == 'puzzle'
+
+
+def test_hit_main_menu_back():
+    r = _menu_rect(3)
+    assert hit_main_menu(_cx(r), _cy(r)) == 'back'
+
+
+def test_hit_main_menu_title_bar_misses():
+    assert hit_main_menu(125, 5) is None
 
 
 # ── Difficulty ────────────────────────────────────────────────────────────────

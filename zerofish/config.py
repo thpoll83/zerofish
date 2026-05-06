@@ -20,7 +20,8 @@ SCORE_H      = 250
 SCORE_BACK_H = 22
 
 # ── Game state persistence ────────────────────────────────────────────────────
-SAVE_DIR = os.path.expanduser('~/.zerofish_saves')
+SAVE_DIR   = os.path.expanduser('~/.zerofish_saves')
+PUZZLE_DIR = os.path.expanduser('~/.zerofish_puzzles')
 
 
 # ── Idle sleep ────────────────────────────────────────────────────────────────

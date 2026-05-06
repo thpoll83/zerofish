@@ -49,14 +49,14 @@ class PlayerMoveScreen(ui.Screen):
                             for i in range(len(RANKS))]
 
     def build(self, sel_piece=None, sel_file=None, sel_rank=None,
-              inv_count=0, move_label='') -> Image.Image:
+              inv_count=0, move_label='', sec_label='...') -> Image.Image:
         img, draw = self.new_image()
         f = self.fonts
         ok_ready = (sel_piece is not None and sel_file is not None
                     and sel_rank is not None)
         inv_str = f'Inv:{inv_count}' if inv_count else ''
         ui.draw_chrome(draw, f, move_label, ok_active=ok_ready,
-                       sec_label='...', no_title=True, nt_sub=inv_str)
+                       sec_label=sec_label, no_title=True, nt_sub=inv_str)
 
         for i, btn in enumerate(self._piece_btns):
             btn.style = ui.Button.FILLED if i == sel_piece else ui.Button.OUTLINE
@@ -97,8 +97,9 @@ _screen = PlayerMoveScreen()
 
 
 def build_player_move_screen(sel_piece, sel_file, sel_rank,
-                              inv_count=0, move_label='') -> Image.Image:
-    return _screen.build(sel_piece, sel_file, sel_rank, inv_count, move_label)
+                              inv_count=0, move_label='',
+                              sec_label='...') -> Image.Image:
+    return _screen.build(sel_piece, sel_file, sel_rank, inv_count, move_label, sec_label)
 
 
 def hit_pm_piece(idx: int, lx: int, ly: int) -> bool:
