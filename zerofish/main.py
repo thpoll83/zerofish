@@ -1128,6 +1128,19 @@ def main():
                                             wifi_scroll_off),
                           partial_count)
 
+                elif action == 'rescan':
+                    wifi_nets = scan_networks()
+                    wifi_sel  = next((i for i, n in enumerate(wifi_nets)
+                                      if n['in_use']), None)
+                    wifi_passwd    = ''
+                    wifi_kbd_page  = 0
+                    wifi_scroll_off = 0
+                    _show(epd,
+                          build_wifi_screen(wifi_nets, wifi_sel,
+                                            wifi_passwd, wifi_kbd_page,
+                                            wifi_scroll_off),
+                          partial_count)
+
             # ── WiFi result ───────────────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_WIFI_RESULT):
                 if hit_wifi_result(lx, ly) == 'ok':
