@@ -20,6 +20,8 @@ from screen_resign_confirm import (hit_resign_yes,
                                     _YES_X0, _YES_X1, _YES_Y0, _YES_Y1)
 from screen_scoresheet   import hit_scoresheet_back, SCORE_BACK_Y0, SCORE_BACK_Y1
 from screen_board        import hit_board_back
+from screen_puzzle       import (hit_puzzle,
+                                  _SOLVE_BTN, _SKIP_BTN, _END_BTN)
 import config
 
 
@@ -286,3 +288,57 @@ def test_hit_board_back_right_panel():
 
 def test_hit_board_back_misses_board_area():
     assert not hit_board_back(ui.VSEP_X - 10, 50)
+
+
+# ── Puzzle screen hit detection ───────────────────────────────────────────────
+
+def _btn_cx(btn):
+    return (btn.rect[0] + btn.rect[2]) // 2
+
+
+def _btn_cy(btn):
+    return (btn.rect[1] + btn.rect[3]) // 2
+
+
+def test_hit_puzzle_end_button():
+    cx, cy = _btn_cx(_END_BTN), _btn_cy(_END_BTN)
+    assert hit_puzzle(cx, cy) == 'end'
+
+
+def test_hit_puzzle_solve_button_with_board():
+    cx, cy = _btn_cx(_SOLVE_BTN), _btn_cy(_SOLVE_BTN)
+    assert hit_puzzle(cx, cy, board_available=True) == 'solve'
+
+
+def test_hit_puzzle_skip_button_with_board():
+    cx, cy = _btn_cx(_SKIP_BTN), _btn_cy(_SKIP_BTN)
+    assert hit_puzzle(cx, cy, board_available=True) == 'skip'
+
+
+def test_hit_puzzle_solve_blocked_without_board():
+    cx, cy = _btn_cx(_SOLVE_BTN), _btn_cy(_SOLVE_BTN)
+    assert hit_puzzle(cx, cy, board_available=False) is None
+
+
+def test_hit_puzzle_skip_blocked_without_board():
+    cx, cy = _btn_cx(_SKIP_BTN), _btn_cy(_SKIP_BTN)
+    assert hit_puzzle(cx, cy, board_available=False) is None
+
+
+def test_hit_puzzle_end_works_without_board():
+    """End button is always active regardless of board_available."""
+    cx, cy = _btn_cx(_END_BTN), _btn_cy(_END_BTN)
+    assert hit_puzzle(cx, cy, board_available=False) == 'end'
+
+
+def test_hit_puzzle_left_panel_misses():
+    """Tapping the board area (left panel) should return None."""
+    assert hit_puzzle(ui.VSEP_X // 2, 60) is None
+
+
+def test_hit_puzzle_end_takes_priority_over_solve():
+    """When solve and end zones are distinct, end only fires at its own position."""
+    end_cx, end_cy = _btn_cx(_END_BTN), _btn_cy(_END_BTN)
+    solve_cx, solve_cy = _btn_cx(_SOLVE_BTN), _btn_cy(_SOLVE_BTN)
+    assert hit_puzzle(end_cx, end_cy) == 'end'
+    assert hit_puzzle(solve_cx, solve_cy) != 'end'
