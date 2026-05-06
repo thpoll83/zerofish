@@ -10,7 +10,6 @@ import time
 import random
 import logging
 import threading
-import subprocess
 
 from TP_lib import epd2in13_V4, gt1151
 import chess
@@ -20,7 +19,10 @@ import config
 import game_state
 import puzzle_state
 import ui
-from screen_machine import ScreenMachine
+from game_utils       import (skill_level, think_limit, move_label,
+                               push_and_continue, set_cpu_governor)
+from puzzle_session   import PuzzleSession
+from screen_machine   import ScreenMachine
 from screen_splash       import (get_sf_info, build_splash_screen,
                                   hit_splash_ok)
 from screen_main_menu    import build_main_menu_screen, hit_main_menu
@@ -54,21 +56,6 @@ import download_puzzles
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s: %(message)s')
 log = logging.getLogger('zerofish')
 
-def _skill_level(difficulty):
-    return config.DIFF_SKILL_LEVELS.get(difficulty, 0)
-
-
-def _think_limit(difficulty):
-    return chess.engine.Limit(time=config.DIFF_THINK_SECS.get(difficulty, 1.0))
-
-
-def _move_label(board: chess.Board) -> str:
-    n = board.fullmove_number
-    return f'#{n}' if board.turn == chess.WHITE else f'#…{n}'
-
-
-_last_display_buf = None
-
 # Background puzzle download state (written by download thread, read by main loop)
 _dl: dict = {
     'running':    False,
@@ -82,9 +69,7 @@ _dl: dict = {
 def _start_puzzle_download() -> None:
     """Start a daemon thread that downloads puzzles if internet is available."""
     def _worker() -> None:
-        # Retry the connectivity check: network-online.target is declared as a
-        # service dependency, but DHCP / DNS can still lag a few seconds on
-        # first boot.  Try immediately, then at 5 s and 20 s before giving up.
+        # Retry connectivity: DHCP/DNS may lag a few seconds on first boot.
         connected = False
         for delay in (0, 5, 20):
             if delay:
@@ -129,6 +114,9 @@ class _TestHooks:
 _test_hooks = _TestHooks()
 
 
+_last_display_buf = None
+
+
 def _transition(epd, img, partial_count):
     global _last_display_buf
     buf = epd.getbuffer(img)
@@ -168,42 +156,21 @@ def _sleep_until_touch(epd, dev, partial_count):
     partial_count[0] = 0
 
 
-def _set_cpu_governor(gov):
-    subprocess.run(['sudo', '/usr/local/bin/zerofish-set-governor', gov],
-                   check=False, capture_output=True)
+def _scan_move_buttons(lx, ly, sel_piece, sel_file, sel_rank):
+    """Check piece/file/rank button grid for a touch.
 
-
-def _push_and_continue(board, move, move_history, engine, think_limit,
-                        epd, partial_count, player_is_white, inv_count,
-                        cur_move_label, sf_time_acc=None):
-    """Push player move → check game over → Stockfish reply.
-    Returns (new_screen, new_move_label).
+    Returns (changed, new_sel_piece, new_sel_file, new_sel_rank).
     """
-    san = board.san(move)
-    board.push(move)
-    move_history.append(san)
-    log.info('Player: %s', san)
-
-    if board.is_game_over():
-        log.info('Game over: %s', board.result())
-        line1, line2 = game_over_message(board, player_is_white)
-        _transition(epd, build_game_over_screen(line1, line2), partial_count)
-        return ui.SCREEN_GAME_OVER, cur_move_label
-
-    sf_label = _move_label(board)
-    _transition(epd, build_thinking_screen(sf_label), partial_count)
-    t0     = time.time()
-    _set_cpu_governor('performance')
-    result = engine.play(board, think_limit)
-    _set_cpu_governor('powersave')
-    if sf_time_acc is not None:
-        sf_time_acc[0] += time.time() - t0
-    sf_san = board.san(result.move)
-    board.push(result.move)
-    move_history.append(sf_san)
-    log.info('Stockfish: %s', sf_san)
-    _transition(epd, build_sf_move_screen(sf_san, sf_label), partial_count)
-    return ui.SCREEN_SF_MOVE, sf_label
+    for i in range(len(PIECES)):
+        if hit_pm_piece(i, lx, ly) and i != sel_piece:
+            return True, i, sel_file, sel_rank
+    for i in range(len(FILES)):
+        if hit_pm_file(i, lx, ly) and i != sel_file:
+            return True, sel_piece, i, sel_rank
+    for i in range(len(RANKS)):
+        if hit_pm_rank(i, lx, ly) and i != sel_rank:
+            return True, sel_piece, sel_file, i
+    return False, sel_piece, sel_file, sel_rank
 
 
 def main():
@@ -214,13 +181,12 @@ def main():
 
     log.info('ZeroFish v%s starting', config.VERSION)
 
-    # Start puzzle download early so puzzles are ready by the time the user
-    # navigates to puzzle mode.
+    # Start puzzle download early so puzzles are ready when the user gets there.
     _start_puzzle_download()
 
     # Probe Stockfish in the background so the splash appears immediately.
-    sf_info        = None
-    _sf_result     = [None]
+    sf_info    = None
+    _sf_result = [None]
     def _probe_sf():
         _sf_result[0] = get_sf_info()
         log.info('Engine: %s  %s', *_sf_result[0])
@@ -245,10 +211,9 @@ def main():
     partial_count   = [0]
     last_touch_time = time.time()
 
-    # Game state
+    # ── Game state ────────────────────────────────────────────────────────────
     board               = None
     engine              = None
-    think_limit         = chess.engine.Limit(time=1.0)
     player_is_white     = True
     sel_piece           = None
     sel_file            = None
@@ -263,140 +228,14 @@ def main():
     disambig_rects_cur  = []
     sel_disambig        = None
     save_path           = None
-    # Resume screen state
     resume_page         = 0
     sel_resume          = None
-    # Time tracking
-    game_start  = 0.0
-    sf_time_acc = [0.0]
-    # Score sheet scroll state (None = most recent moves)
-    score_end   = None
+    game_start          = 0.0
+    sf_time_acc         = [0.0]
+    score_end           = None
 
-    # Puzzle state
-    pz = {
-        'list':        [],    # unsolved puzzles for current session (filtered by rating)
-        'idx':         0,     # current index into pz['list']
-        'board':       None,  # chess.Board at current position in the puzzle sequence
-        'fen':         '',    # FEN at puzzle start
-        'moves':       [],    # full solution sequence [player1, engine1, player2, …]
-        'move_idx':    0,     # index into pz['moves'] for the next expected player move
-        'move_num':    1,     # player-move counter (1-based, displayed as "1/3")
-        'move_total':  1,     # total player moves in this puzzle
-        'sol':         '',    # UCI of the currently expected player move
-        'id':          '',    # Lichess puzzle ID
-        'diff_label':  '',    # rating string shown in stats
-        'diff_sel':    None,  # selected puzzle difficulty level (1–8)
-        'solved':       0,    # puzzles fully solved this session
-        'wrong':        0,    # puzzles abandoned due to wrong move this session
-        'skipped':      0,    # puzzles skipped this session
-        'last_result':  None, # 'solved' | 'skipped' | 'wrong' | None
-        # Hint info (populated on wrong move, consumed by hint screen)
-        'hint_fen':      '',
-        'hint_moves':    [],
-        'hint_move_idx': 0,
-    }
-
-    def _pz_screen():
-        total = puzzle_state.total_available()
-        puzzle_num = (pz['solved'] + pz['wrong'] + pz['skipped'] + 1
-                      if pz['board'] else 0)
-        return build_puzzle_screen(
-            pz['board'], puzzle_num,
-            total, pz['solved'], pz['wrong'], pz['diff_label'],
-            move_num=pz['move_num'], move_total=pz['move_total'],
-            last_result=pz['last_result'])
-
-    def _pz_hint_screen():
-        return build_puzzle_hint_screen(
-            pz['board'],
-            pz['hint_fen'],
-            pz['hint_moves'],
-            pz['hint_move_idx'],
-        )
-
-    def _pz_load_current():
-        """Populate pz fields from pz['list'][pz['idx']]."""
-        if pz['idx'] < len(pz['list']):
-            p = pz['list'][pz['idx']]
-            fen  = p.get('fen', '')
-            mvs  = puzzle_state.get_moves(p)
-            try:
-                pz['board'] = chess.Board(fen)
-            except Exception:
-                pz['board'] = None
-            pz['fen']        = fen
-            pz['moves']      = mvs
-            pz['move_idx']   = 0
-            pz['move_num']   = 1
-            # Player moves are at even indices (0, 2, 4 …); total = ceil(len/2)
-            pz['move_total'] = max(1, (len(mvs) + 1) // 2)
-            pz['sol']        = mvs[0] if mvs else ''
-            pz['id']         = p.get('id', '')
-            pz['diff_label'] = str(p.get('rating', '?'))
-        else:
-            pz['board']      = None
-            pz['fen']        = ''
-            pz['moves']      = []
-            pz['move_idx']   = 0
-            pz['move_num']   = 1
-            pz['move_total'] = 1
-            pz['sol']        = ''
-            pz['id']         = ''
-            pz['diff_label'] = ''
-
-    def _pz_advance():
-        """Move to the next unsolved puzzle, reloading from disk if exhausted."""
-        pz['idx'] += 1
-        if pz['idx'] >= len(pz['list']):
-            min_r = config.PUZZLE_DIFF_MIN.get(pz['diff_sel'], 0)
-            max_r = config.PUZZLE_DIFF_MAX.get(pz['diff_sel'], 9999)
-            pz['list'] = puzzle_state.load_unsolved_by_rating(min_r, max_r)
-            pz['idx']  = 0
-        _pz_load_current()
-
-    def _pz_check_move(move_uci: str) -> str:
-        """Validate *move_uci* against the current expected solution move.
-
-        On a correct move the board and move-sequence pointers are advanced;
-        the engine's response (if any) is applied automatically.
-        On a wrong move hint info is saved but _pz_advance() is NOT called —
-        the caller must transition to the hint screen, then call _pz_advance()
-        when the player dismisses it.
-
-        Returns 'partial' (more moves remain), 'solved', or 'wrong'.
-        """
-        if move_uci == pz['sol']:
-            pz['board'].push(chess.Move.from_uci(move_uci))
-            pz['move_idx'] += 1
-            if pz['move_idx'] < len(pz['moves']):
-                # Apply engine's response and prepare next player move.
-                engine_uci = pz['moves'][pz['move_idx']]
-                try:
-                    pz['board'].push(chess.Move.from_uci(engine_uci))
-                except Exception:
-                    pass
-                pz['move_idx'] += 1
-                pz['move_num'] += 1
-                pz['sol'] = pz['moves'][pz['move_idx']] if pz['move_idx'] < len(pz['moves']) else ''
-                log.info('Puzzle %s move %d/%d correct', pz['id'],
-                         pz['move_num'] - 1, pz['move_total'])
-                return 'partial'
-            else:
-                # All player moves done — puzzle solved.
-                pz['solved'] += 1
-                pz['last_result'] = 'solved'
-                puzzle_state.mark_solved(pz['id'])
-                log.info('Puzzle solved: %s', pz['id'])
-                _pz_advance()
-                return 'solved'
-        else:
-            pz['wrong'] += 1
-            pz['last_result'] = 'wrong'
-            pz['hint_fen']      = pz['fen']
-            pz['hint_moves']    = list(pz['moves'])
-            pz['hint_move_idx'] = pz['move_idx']
-            log.info('Puzzle wrong: played %s expected %s', move_uci, pz['sol'])
-            return 'wrong'
+    # ── Puzzle state ──────────────────────────────────────────────────────────
+    pz = PuzzleSession()
 
     running = True
     def irq_poll():
@@ -415,13 +254,13 @@ def main():
 
             # Auto-advance loading screen once download finishes.
             if machine.is_at(ui.SCREEN_PUZZLE_LOADING) and _dl['done']:
-                min_r = config.PUZZLE_DIFF_MIN.get(pz['diff_sel'], 0)
-                max_r = config.PUZZLE_DIFF_MAX.get(pz['diff_sel'], 9999)
-                pz['list'] = puzzle_state.load_unsolved_by_rating(min_r, max_r)
-                pz['idx']  = 0
-                _pz_load_current()
+                min_r = config.PUZZLE_DIFF_MIN.get(pz.diff_sel, 0)
+                max_r = config.PUZZLE_DIFF_MAX.get(pz.diff_sel, 9999)
+                pz.list = puzzle_state.load_unsolved_by_rating(min_r, max_r)
+                pz.idx  = 0
+                pz.load_current()
                 machine.transition('play')
-                _transition(epd, _pz_screen(), partial_count)
+                _transition(epd, pz.screen(), partial_count)
 
             # Once the SF probe finishes, update the splash and show the button.
             if machine.is_at(ui.SCREEN_SPLASH) and sf_info is None and not sf_thread.is_alive():
@@ -482,11 +321,7 @@ def main():
 
                 elif action == 'puzzle':
                     machine.transition('puzzle')
-                    pz['diff_sel']    = None
-                    pz['solved']      = 0
-                    pz['wrong']       = 0
-                    pz['skipped']     = 0
-                    pz['last_result'] = None
+                    pz = PuzzleSession()
                     _transition(epd, build_puzzle_difficulty_screen(), partial_count)
 
                 elif action == 'back':
@@ -495,21 +330,20 @@ def main():
 
             # ── Puzzle difficulty selection ───────────────────────────────────
             elif machine.is_at(ui.SCREEN_PUZZLE_DIFFICULTY):
-                action = hit_puzzle_difficulty_screen(lx, ly,
-                                                      selected=pz['diff_sel'])
+                action = hit_puzzle_difficulty_screen(lx, ly, selected=pz.diff_sel)
                 if action == 'back':
                     machine.transition('back')
                     saves_list = game_state.list_saves()
                     _transition(epd,
                                 build_main_menu_screen(has_saves=bool(saves_list)),
                                 partial_count)
-                elif action == 'ok' and pz['diff_sel'] is not None:
-                    min_r = config.PUZZLE_DIFF_MIN[pz['diff_sel']]
-                    max_r = config.PUZZLE_DIFF_MAX[pz['diff_sel']]
-                    pz['list'] = puzzle_state.load_unsolved_by_rating(min_r, max_r)
-                    pz['idx']  = 0
-                    _pz_load_current()
-                    if _dl['running'] and not pz['list']:
+                elif action == 'ok' and pz.diff_sel is not None:
+                    min_r = config.PUZZLE_DIFF_MIN[pz.diff_sel]
+                    max_r = config.PUZZLE_DIFF_MAX[pz.diff_sel]
+                    pz.list = puzzle_state.load_unsolved_by_rating(min_r, max_r)
+                    pz.idx  = 0
+                    pz.load_current()
+                    if not _dl['done'] and not pz.list:
                         machine.transition('loading')
                         _transition(epd,
                                     build_puzzle_loading_screen(
@@ -519,18 +353,17 @@ def main():
                                     partial_count)
                     else:
                         machine.transition('ok')
-                        _transition(epd, _pz_screen(), partial_count)
+                        _transition(epd, pz.screen(), partial_count)
                 elif action is not None and action.startswith('pz_diff:'):
                     lvl = int(action.split(':')[1])
-                    if lvl != pz['diff_sel']:
-                        pz['diff_sel'] = lvl
-                        _show(epd,
-                              build_puzzle_difficulty_screen(pz['diff_sel']),
+                    if lvl != pz.diff_sel:
+                        pz.diff_sel = lvl
+                        _show(epd, build_puzzle_difficulty_screen(pz.diff_sel),
                               partial_count)
 
             # ── Puzzle loading (download in progress, no puzzles yet) ─────────
             elif machine.is_at(ui.SCREEN_PUZZLE_LOADING):
-                _has_existing = bool(pz['list'])
+                _has_existing = bool(pz.list)
                 action = hit_puzzle_loading(lx, ly, has_existing=_has_existing)
                 if action == 'back':
                     machine.transition('back')
@@ -540,7 +373,7 @@ def main():
                                 partial_count)
                 elif action == 'play' and _has_existing:
                     machine.transition('play')
-                    _transition(epd, _pz_screen(), partial_count)
+                    _transition(epd, pz.screen(), partial_count)
                 else:
                     # Refresh progress display periodically (touch event cadence)
                     _show(epd,
@@ -592,14 +425,14 @@ def main():
                         sf_time_acc  = [0.0]
                         game_start   = time.time()
                         engine       = chess.engine.SimpleEngine.popen_uci(config.STOCKFISH_PATH)
-                        engine.configure({'Skill Level': _skill_level(diff_sel),
+                        engine.configure({'Skill Level': skill_level(diff_sel),
                                       'Hash': config.DIFF_HASH_MB.get(diff_sel, 16)})
-                        think_limit  = _think_limit(diff_sel)
+                        engine_limit = think_limit(diff_sel)
                         log.info('Think limit: %.1fs', config.DIFF_THINK_SECS.get(diff_sel, 1.0))
 
                         save_path = None
                         if player_is_white:
-                            cur_move_label = _move_label(board)
+                            cur_move_label = move_label(board)
                             sel_piece = sel_file = sel_rank = None
                             machine.transition('ok')
                             save_path = game_state.save(board, move_history,
@@ -609,13 +442,25 @@ def main():
                                                                   cur_move_label),
                                         partial_count)
                         else:
-                            sf_label = _move_label(board)
+                            sf_label = move_label(board)
                             machine.transition('ok_black')
                             _transition(epd, build_thinking_screen(sf_label), partial_count)
                             t0 = time.time()
-                            _set_cpu_governor('performance')
-                            result = engine.play(board, think_limit)
-                            _set_cpu_governor('powersave')
+                            set_cpu_governor('performance')
+                            try:
+                                result = engine.play(board, engine_limit)
+                            except Exception as exc:
+                                log.error('Engine.play failed on opening move: %s', exc)
+                                engine.quit()
+                                engine = None
+                                board = None
+                                move_history = []
+                                machine.force(ui.SCREEN_GAME_OVER)
+                                _transition(epd, build_game_over_screen('Engine error', ''),
+                                            partial_count)
+                                continue
+                            finally:
+                                set_cpu_governor('powersave')
                             sf_time_acc[0] += time.time() - t0
                             sf_san = board.san(result.move)
                             board.push(result.move)
@@ -637,7 +482,7 @@ def main():
                         machine.transition('game_over')
                         _transition(epd, build_game_over_screen(line1, line2), partial_count)
                     else:
-                        cur_move_label = _move_label(board)
+                        cur_move_label = move_label(board)
                         sel_piece = sel_file = sel_rank = None
                         machine.transition('ok')
                         save_path = game_state.save(board, move_history,
@@ -654,19 +499,8 @@ def main():
                     machine.transition('menu')
                     _transition(epd, build_ingame_menu_screen(cur_move_label), partial_count)
                 else:
-                    changed = False
-                    for i in range(len(PIECES)):
-                        if hit_pm_piece(i, lx, ly) and i != sel_piece:
-                            sel_piece = i; changed = True; break
-                    if not changed:
-                        for i in range(len(FILES)):
-                            if hit_pm_file(i, lx, ly) and i != sel_file:
-                                sel_file = i; changed = True; break
-                    if not changed:
-                        for i in range(len(RANKS)):
-                            if hit_pm_rank(i, lx, ly) and i != sel_rank:
-                                sel_rank = i; changed = True; break
-
+                    changed, sel_piece, sel_file, sel_rank = _scan_move_buttons(
+                        lx, ly, sel_piece, sel_file, sel_rank)
                     if changed:
                         _show(epd,
                               build_player_move_screen(sel_piece, sel_file, sel_rank,
@@ -692,11 +526,12 @@ def main():
                                                                 inv_count, cur_move_label),
                                       partial_count)
                             elif len(candidates) == 1:
-                                new_screen, cur_move_label = _push_and_continue(
+                                new_screen, cur_move_label = push_and_continue(
                                     board, candidates[0], move_history, engine,
-                                    think_limit, epd, partial_count,
+                                    think_limit(diff_sel), epd, partial_count,
                                     player_is_white, inv_count, cur_move_label,
-                                    sf_time_acc)
+                                    sf_time_acc,
+                                    transition_fn=_transition, show_fn=_show)
                                 machine.force(new_screen)
                                 if machine.is_at(ui.SCREEN_PLAYER_MOVE):
                                     sel_piece = sel_file = sel_rank = None
@@ -739,11 +574,12 @@ def main():
                     elif len(candidates) == 1:
                         sel_piece = sel_file = sel_rank = None
                         prom_piece = prom_file = prom_rank = sel_promo = None
-                        new_screen, cur_move_label = _push_and_continue(
+                        new_screen, cur_move_label = push_and_continue(
                             board, candidates[0], move_history, engine,
-                            think_limit, epd, partial_count,
+                            think_limit(diff_sel), epd, partial_count,
                             player_is_white, inv_count, cur_move_label,
-                            sf_time_acc)
+                            sf_time_acc,
+                            transition_fn=_transition, show_fn=_show)
                         machine.force(new_screen)
                         if machine.is_at(ui.SCREEN_PLAYER_MOVE):
                             save_path = game_state.save(board, move_history,
@@ -781,11 +617,12 @@ def main():
                     move = disambig_candidates[sel_disambig]
                     sel_disambig = None
                     sel_piece = sel_file = sel_rank = None
-                    new_screen, cur_move_label = _push_and_continue(
+                    new_screen, cur_move_label = push_and_continue(
                         board, move, move_history, engine,
-                        think_limit, epd, partial_count,
+                        think_limit(diff_sel), epd, partial_count,
                         player_is_white, inv_count, cur_move_label,
-                        sf_time_acc)
+                        sf_time_acc,
+                        transition_fn=_transition, show_fn=_show)
                     machine.force(new_screen)
                     if machine.is_at(ui.SCREEN_PLAYER_MOVE):
                         save_path = game_state.save(board, move_history,
@@ -894,11 +731,10 @@ def main():
                         engine          = chess.engine.SimpleEngine.popen_uci(
                                             config.STOCKFISH_PATH)
                         engine.configure({
-                            'Skill Level': _skill_level(diff_sel),
+                            'Skill Level': skill_level(diff_sel),
                             'Hash':        config.DIFF_HASH_MB.get(diff_sel, 16),
                         })
-                        think_limit    = _think_limit(diff_sel)
-                        cur_move_label = _move_label(board)
+                        cur_move_label = move_label(board)
                         sel_piece = sel_file = sel_rank = None
                         sel_resume = None
                         log.info('Resuming %s diff=%d player=%s fen=%s',
@@ -944,12 +780,12 @@ def main():
 
             # ── Puzzle display ────────────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_PUZZLE):
-                action = hit_puzzle(lx, ly, board_available=(pz['board'] is not None))
+                action = hit_puzzle(lx, ly, board_available=(pz.board is not None))
                 if action == 'end':
                     machine.transition('end')
                     _transition(epd, build_puzzle_end_confirm_screen(), partial_count)
 
-                elif action == 'solve' and pz['board'] is not None:
+                elif action == 'solve' and pz.board is not None:
                     machine.transition('solve')
                     sel_piece = sel_file = sel_rank = None
                     _transition(epd,
@@ -957,12 +793,12 @@ def main():
                                                           'Puzzle', sec_label='Back'),
                                 partial_count)
 
-                elif action == 'skip' and pz['board'] is not None:
-                    pz['last_result'] = 'skipped'
-                    pz['skipped'] += 1
-                    _pz_advance()
+                elif action == 'skip' and pz.board is not None:
+                    pz.last_result = 'skipped'
+                    pz.skipped += 1
+                    pz.advance()
                     machine.transition('skip')
-                    _transition(epd, _pz_screen(), partial_count)
+                    _transition(epd, pz.screen(), partial_count)
 
             # ── Puzzle end confirmation ───────────────────────────────────────
             elif machine.is_at(ui.SCREEN_PUZZLE_END_CONFIRM):
@@ -972,27 +808,16 @@ def main():
                     _transition(epd, build_main_menu_screen(), partial_count)
                 elif action == 'no':
                     machine.transition('no')
-                    _transition(epd, _pz_screen(), partial_count)
+                    _transition(epd, pz.screen(), partial_count)
 
             # ── Puzzle move input ─────────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_PUZZLE_MOVE):
-                if ui.hit_sec(lx, ly, no_title=True):   # Back → puzzle screen
+                if ui.hit_sec(lx, ly, no_title=True):
                     machine.transition('back')
-                    _transition(epd, _pz_screen(), partial_count)
+                    _transition(epd, pz.screen(), partial_count)
                 else:
-                    changed = False
-                    for i in range(len(PIECES)):
-                        if hit_pm_piece(i, lx, ly) and i != sel_piece:
-                            sel_piece = i; changed = True; break
-                    if not changed:
-                        for i in range(len(FILES)):
-                            if hit_pm_file(i, lx, ly) and i != sel_file:
-                                sel_file = i; changed = True; break
-                    if not changed:
-                        for i in range(len(RANKS)):
-                            if hit_pm_rank(i, lx, ly) and i != sel_rank:
-                                sel_rank = i; changed = True; break
-
+                    changed, sel_piece, sel_file, sel_rank = _scan_move_buttons(
+                        lx, ly, sel_piece, sel_file, sel_rank)
                     if changed:
                         _show(epd,
                               build_player_move_screen(sel_piece, sel_file, sel_rank,
@@ -1002,36 +827,36 @@ def main():
                             and sel_piece is not None
                             and sel_file  is not None
                             and sel_rank  is not None):
-                        if needs_promotion(pz['board'], sel_piece, sel_file, sel_rank):
+                        if needs_promotion(pz.board, sel_piece, sel_file, sel_rank):
                             prom_piece, prom_file, prom_rank = sel_piece, sel_file, sel_rank
                             sel_promo = None
                             machine.transition('promote')
                             _transition(epd, build_promotion_screen(None, 'Puzzle'),
                                         partial_count)
                         else:
-                            candidates = find_candidates(pz['board'], sel_piece,
+                            candidates = find_candidates(pz.board, sel_piece,
                                                          sel_file, sel_rank)
                             if not candidates:
-                                pz['wrong'] += 1
-                                pz['last_result'] = 'wrong'
-                                pz['hint_fen']      = pz['fen']
-                                pz['hint_moves']    = list(pz['moves'])
-                                pz['hint_move_idx'] = pz['move_idx']
+                                pz.wrong += 1
+                                pz.last_result = 'wrong'
+                                pz.hint_fen      = pz.fen
+                                pz.hint_moves    = list(pz.moves)
+                                pz.hint_move_idx = pz.move_idx
                                 log.info('Puzzle wrong: impossible move (p=%s f=%s r=%s)',
                                          sel_piece, sel_file, sel_rank)
                                 sel_piece = sel_file = sel_rank = None
                                 machine.transition('wrong')
-                                _transition(epd, _pz_hint_screen(), partial_count)
+                                _transition(epd, pz.hint_screen(), partial_count)
                             elif len(candidates) == 1:
                                 move_uci = candidates[0].uci()
                                 sel_piece = sel_file = sel_rank = None
-                                result = _pz_check_move(move_uci)
+                                result = pz.check_move(move_uci)
                                 if result == 'wrong':
                                     machine.transition('wrong')
-                                    _transition(epd, _pz_hint_screen(), partial_count)
+                                    _transition(epd, pz.hint_screen(), partial_count)
                                 else:
                                     machine.transition('ok')
-                                    _transition(epd, _pz_screen(), partial_count)
+                                    _transition(epd, pz.screen(), partial_count)
                             else:
                                 disambig_candidates = candidates
                                 disambig_labels = [
@@ -1057,24 +882,40 @@ def main():
                 if changed:
                     _show(epd, build_promotion_screen(sel_promo, 'Puzzle'), partial_count)
                 elif ui.hit_ok(lx, ly) and sel_promo is not None:
-                    candidates = find_candidates(pz['board'], prom_piece,
+                    candidates = find_candidates(pz.board, prom_piece,
                                                  prom_file, prom_rank, sel_promo)
                     if not candidates:
                         log.warning('Puzzle promotion move not found')
                         sel_promo = None
                         _show(epd, build_promotion_screen(None, 'Puzzle'), partial_count)
-                    else:
+                    elif len(candidates) == 1:
                         move_uci = candidates[0].uci()
                         sel_piece = sel_file = sel_rank = None
                         prom_piece = prom_file = prom_rank = None
                         sel_promo = None
-                        result = _pz_check_move(move_uci)
+                        result = pz.check_move(move_uci)
                         if result == 'wrong':
                             machine.transition('wrong')
-                            _transition(epd, _pz_hint_screen(), partial_count)
+                            _transition(epd, pz.hint_screen(), partial_count)
                         else:
                             machine.transition('ok')
-                            _transition(epd, _pz_screen(), partial_count)
+                            _transition(epd, pz.screen(), partial_count)
+                    else:
+                        disambig_candidates = candidates
+                        disambig_labels = [
+                            PIECE_SYMBOLS[prom_piece]
+                            + chess.square_name(m.from_square)
+                            for m in candidates
+                        ]
+                        disambig_rects_cur = disambig_rects(len(candidates))
+                        sel_disambig = None
+                        prom_piece = prom_file = prom_rank = sel_promo = None
+                        machine.transition('disambig')
+                        _transition(epd,
+                                    build_disambig_screen(disambig_labels,
+                                                           disambig_rects_cur,
+                                                           None, 'Puzzle'),
+                                    partial_count)
 
             # ── Puzzle disambiguation ─────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_PUZZLE_DISAMBIG):
@@ -1091,20 +932,20 @@ def main():
                     move_uci = disambig_candidates[sel_disambig].uci()
                     sel_disambig = None
                     sel_piece = sel_file = sel_rank = None
-                    result = _pz_check_move(move_uci)
+                    result = pz.check_move(move_uci)
                     if result == 'wrong':
                         machine.transition('wrong')
-                        _transition(epd, _pz_hint_screen(), partial_count)
+                        _transition(epd, pz.hint_screen(), partial_count)
                     else:
                         machine.transition('ok')
-                        _transition(epd, _pz_screen(), partial_count)
+                        _transition(epd, pz.screen(), partial_count)
 
             # ── Puzzle hint (wrong move → show solution before advancing) ────
             elif machine.is_at(ui.SCREEN_PUZZLE_HINT):
                 if hit_puzzle_hint(lx, ly) == 'ok':
-                    _pz_advance()
+                    pz.advance()
                     machine.transition('ok')
-                    _transition(epd, _pz_screen(), partial_count)
+                    _transition(epd, pz.screen(), partial_count)
 
             if (config.IDLE_SLEEP_SECS > 0
                     and not machine.is_at(ui.SCREEN_THINKING)

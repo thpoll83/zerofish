@@ -5,6 +5,7 @@ import chess
 from PIL import Image, ImageDraw, ImageFont
 import ui
 import config
+import board_widget
 
 # ── Board position ────────────────────────────────────────────────────────────
 # The board is shifted right of centre so the stats column on its left is wide
@@ -16,15 +17,6 @@ _BOARD_W = 8 * _SQ                                         # 120 px
 _CENTRED_GAP = (ui.VSEP_X - _BOARD_W) // 2                # 36 px (each side when centred)
 _BOARD_X0    = _CENTRED_GAP + _CENTRED_GAP // 2 + config.BOARD_OFFSET_X  # 54 px
 _BOARD_Y0    = (ui.H - _BOARD_W) // 2 + config.BOARD_OFFSET_Y             # 1 px
-
-_WHITE_GLYPHS = {
-    chess.PAWN:   '♙', chess.KNIGHT: '♘', chess.BISHOP: '♗',
-    chess.ROOK:   '♖', chess.QUEEN:  '♕', chess.KING:   '♔',
-}
-_BLACK_GLYPHS = {
-    chess.PAWN:   '♟', chess.KNIGHT: '♞', chess.BISHOP: '♝',
-    chess.ROOK:   '♜', chess.QUEEN:  '♛', chess.KING:   '♚',
-}
 
 # ── Stats column (x = 0 … _BOARD_X0 - 2) ─────────────────────────────────────
 # Three two-line items (label + value) left-aligned: Rating, Solved, result.
@@ -71,73 +63,11 @@ def _get_result_font() -> ImageFont.FreeTypeFont:
     return _result_font_cache
 
 
-def _piece_font() -> ImageFont.FreeTypeFont | None:
-    path = next((p for p in config.FONT_PIECE_PATHS
-                 if os.path.exists(p)), None)
-    return ImageFont.truetype(path, config.SIZE_BOARD_PIECE) if path else None
-
-
-_piece_font_cache: ImageFont.FreeTypeFont | None = None
-
-
-def _get_piece_font():
-    global _piece_font_cache
-    if _piece_font_cache is None:
-        _piece_font_cache = _piece_font()
-    return _piece_font_cache
-
-
-def _hatch_square(draw, px, py):
-    sq = _SQ
-    for d in range(0, 2 * sq, 3):
-        if d < sq:
-            draw.line([(px + d, py), (px, py + d)], fill=0)
-        else:
-            draw.line([(px + sq - 1, py + d - sq + 1),
-                       (px + d - sq + 1, py + sq - 1)], fill=0)
-
-
-def draw_puzzle_board(draw, board: chess.Board, fonts: dict) -> None:
+def draw_puzzle_board(draw: ImageDraw.ImageDraw, board: chess.Board, fonts: dict) -> None:
     """Draw the puzzle board (pieces + outline + rank labels) at the standard position."""
-    pf = _get_piece_font()
     white_down = (board.turn == chess.WHITE)
-    pawn_sz   = config.SIZE_BOARD_PIECE - 1
-    pawn_path = next((p for p in config.FONT_PIECE_PATHS if os.path.exists(p)), None)
-    pawn_font = (ImageFont.truetype(pawn_path, pawn_sz)
-                 if pawn_path else ImageFont.load_default())
-    bf = pf if pf else fonts['small']
-
-    for vrank in range(8):
-        for vfile in range(8):
-            sq = (chess.square(vfile, vrank) if white_down
-                  else chess.square(7 - vfile, 7 - vrank))
-            px = _BOARD_X0 + vfile * _SQ
-            py = _BOARD_Y0 + (7 - vrank) * _SQ
-            x1, y1 = px + _SQ - 1, py + _SQ - 1
-            if (vfile + vrank) % 2 == 0:
-                _hatch_square(draw, px, py)
-            piece = board.piece_at(sq)
-            if piece:
-                cx = (px + x1) // 2 + config.BOARD_PIECE_OFFSET_X
-                cy = (py + y1) // 2 + config.BOARD_PIECE_OFFSET_Y
-                if piece.color == chess.WHITE:
-                    is_pawn  = piece.piece_type == chess.PAWN
-                    out_font = pawn_font if is_pawn else bf
-                    draw_cy  = cy if is_pawn else cy - 1
-                    og = _WHITE_GLYPHS[piece.piece_type]
-                    fg = _BLACK_GLYPHS[piece.piece_type]
-                    for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                        ui.draw_centered(draw, cx + dx, draw_cy + dy, og, out_font, 0)
-                    ui.draw_centered(draw, cx, draw_cy, fg, out_font, 255)
-                else:
-                    ui.draw_centered(draw, cx, cy,
-                                     _BLACK_GLYPHS[piece.piece_type], bf, 0)
-
-    draw.rectangle(
-        [(_BOARD_X0, _BOARD_Y0),
-         (_BOARD_X0 + _BOARD_W - 1, _BOARD_Y0 + _BOARD_W - 1)],
-        outline=0,
-    )
+    board_widget.draw_board(draw, board, _BOARD_X0, _BOARD_Y0, _SQ, fonts,
+                            player_white=white_down)
     sf = fonts['small']
     for vrank in range(8):
         rank_num = (vrank + 1) if white_down else (8 - vrank)
@@ -145,7 +75,8 @@ def draw_puzzle_board(draw, board: chess.Board, fonts: dict) -> None:
         ui.draw_centered(draw, _RANK_LABEL_X, ly, str(rank_num), sf, 0)
 
 
-def _draw_stat(draw, lx: int, cy: int, label: str, value: str, font) -> None:
+def _draw_stat(draw: ImageDraw.ImageDraw, lx: int, cy: int,
+               label: str, value: str, font) -> None:
     """Draw a two-line stat (label above, value below) left-aligned at lx,
     vertically centred around cy using line spacing _STATS_LS."""
     for i, text in enumerate((label, value)):

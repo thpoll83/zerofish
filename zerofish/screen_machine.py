@@ -114,6 +114,7 @@ class ScreenMachine:
 
         (SCREEN_PUZZLE_PROMOTION, 'ok'):        SCREEN_PUZZLE,
         (SCREEN_PUZZLE_PROMOTION, 'wrong'):     SCREEN_PUZZLE_HINT,
+        (SCREEN_PUZZLE_PROMOTION, 'disambig'):  SCREEN_PUZZLE_DISAMBIG,
 
         (SCREEN_PUZZLE_DISAMBIG, 'ok'):         SCREEN_PUZZLE,
         (SCREEN_PUZZLE_DISAMBIG, 'back'):       SCREEN_PUZZLE_MOVE,

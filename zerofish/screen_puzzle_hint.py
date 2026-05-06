@@ -10,7 +10,8 @@ import chess
 from PIL import Image, ImageDraw, ImageFont
 import ui
 import config
-from screen_puzzle import draw_puzzle_board, _STATS_LX
+from screen_puzzle import (draw_puzzle_board, _STATS_LX,
+                           _RESULT_CX, _STATS_YS, _get_result_font)
 
 _hint_font_cache: ImageFont.FreeTypeFont | None = None
 
@@ -84,6 +85,9 @@ class PuzzleHintScreen(ui.Screen):
 
         if current:
             draw.text((x, y), current, font=hf, fill=0)
+
+        # ✗ glyph in the same bottom-left position as the puzzle screen result
+        ui.draw_centered(draw, _RESULT_CX, _STATS_YS[2] - 2, '✗', _get_result_font(), 0)
 
         return img
 
