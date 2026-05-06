@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download 1-move chess puzzles from the Lichess database.
+"""Download chess puzzles from the Lichess database.
 
 Can be imported by the application for background auto-download, or run as a
 standalone script on the Raspberry Pi:
@@ -13,9 +13,18 @@ CSV columns: PuzzleId, FEN, Moves, Rating, RatingDeviation, Popularity,
              NbPlays, Themes, GameUrl, OpeningTags
 
 FEN is the position BEFORE the opponent's "trigger" move.
-Moves: first UCI move = trigger (opponent), remaining = solution path.
-A 1-move puzzle has exactly 2 UCI moves: trigger + the one solution move.
-Promotion puzzles (5-char solution UCI such as e7e8q) are included.
+Moves: first UCI move = trigger (opponent), remaining = full solution path
+       alternating player / engine / player / … .
+Both single-move (2 total UCI) and multi-move puzzles are accepted.
+Promotion moves (5-char UCI such as e7e8q) are included.
+
+Stored puzzle format:
+  {
+    "id":     "<PuzzleId>",
+    "fen":    "<FEN after trigger>",
+    "moves":  ["<player1>", "<engine1>", "<player2>", …],
+    "rating": <int>
+  }
 
 Requires: zstandard  (pip3 install zstandard --break-system-packages)
 """
@@ -125,13 +134,17 @@ def run_download(count: int = 1000,
                         continue
 
                     moves = row.get('Moves', '').strip().split()
-                    if len(moves) != 2:
-                        continue  # not a 1-move puzzle
+                    # Need trigger + at least one player move; total is always even
+                    # (trigger, player, [engine, player, …]).
+                    if len(moves) < 2 or len(moves) % 2 != 0:
+                        continue
 
-                    trigger_uci, solution_uci = moves
+                    trigger_uci   = moves[0]
+                    # moves[1:] = [player1, engine1, player2, engine2, …, playerN]
+                    solution_moves = moves[1:]
 
-                    # Accept both normal (4-char) and promotion (5-char) moves.
-                    if len(solution_uci) not in (4, 5):
+                    # All move strings must be normal (4-char) or promotion (5-char).
+                    if not all(len(m) in (4, 5) for m in solution_moves):
                         continue
 
                     try:
@@ -140,16 +153,23 @@ def run_download(count: int = 1000,
                         if trigger not in b.legal_moves:
                             continue
                         b.push(trigger)
-                        solution = chess.Move.from_uci(solution_uci)
-                        if solution not in b.legal_moves:
-                            continue
 
-                        candidates.append({
-                            'id':       puzzle_id,
-                            'fen':      b.fen(),
-                            'solution': solution_uci,
-                            'rating':   int(row.get('Rating', 1500)),
-                        })
+                        # Validate every move in the full solution sequence.
+                        b_check = b.copy()
+                        for m_uci in solution_moves:
+                            mv = chess.Move.from_uci(m_uci)
+                            if mv not in b_check.legal_moves:
+                                break
+                            b_check.push(mv)
+                        else:
+                            candidates.append({
+                                'id':     puzzle_id,
+                                'fen':    b.fen(),
+                                'moves':  solution_moves,
+                                'rating': int(row.get('Rating', 1500)),
+                            })
+                            continue
+                        # inner break hit — skip this puzzle
                     except Exception:
                         continue
 

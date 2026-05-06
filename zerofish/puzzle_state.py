@@ -26,6 +26,24 @@ def load_unsolved() -> list[dict]:
         return []
 
 
+def load_unsolved_by_rating(min_rating: int, max_rating: int) -> list[dict]:
+    """Return unsolved puzzles whose Lichess rating falls within [min_rating, max_rating]."""
+    return [p for p in load_unsolved()
+            if min_rating <= p.get('rating', 0) <= max_rating]
+
+
+def get_moves(puzzle: dict) -> list[str]:
+    """Return the solution-move sequence for *puzzle*, handling old and new formats.
+
+    Old format: ``{'solution': '<uci>'}`` — single-move string.
+    New format: ``{'moves': ['<uci>', …]}`` — full alternating sequence.
+    """
+    if 'moves' in puzzle:
+        return list(puzzle['moves'])
+    sol = puzzle.get('solution', '')
+    return [sol] if sol else []
+
+
 def total_available() -> int:
     """Total puzzle count in the file (solved + unsolved)."""
     try:

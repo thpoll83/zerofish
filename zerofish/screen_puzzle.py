@@ -34,6 +34,11 @@ _STATS_LX  = 3           # left edge of stats text
 _STATS_LS  = 14          # line spacing inside each two-line block
 _STATS_YS  = [14, 44, 74, 104]   # y-centres of the four blocks
 
+# ── Rank labels (right of board, inside the gap) ─────────────────────────────
+# The 18 px gap between the board's right edge and the vertical separator line
+# is used for rank numbers (1–8), one per row, to make board orientation clear.
+_RANK_LABEL_X = _BOARD_X0 + _BOARD_W + (ui.VSEP_X - _BOARD_X0 - _BOARD_W) // 2  # ≈ 183
+
 # ── Right-panel layout ────────────────────────────────────────────────────────
 _HDR_H    = 36
 _HDR_CY1  = _HDR_H // 4          # 9
@@ -112,6 +117,7 @@ class PuzzleScreen(ui.Screen):
               puzzle_num: int, total: int,
               solved: int, wrong: int,
               diff_label: str,
+              move_num: int = 1, move_total: int = 1,
               last_result: str | None = None) -> Image.Image:
         img, draw = self.new_image()
         f = self.fonts
@@ -123,8 +129,8 @@ class PuzzleScreen(ui.Screen):
 
         if board is not None:
             ui.draw_centered(draw, _RCX, _HDR_CY1, f'P#{puzzle_num}', f['title'], 255)
-            mover = 'White' if board.turn == chess.WHITE else 'Black'
-            ui.draw_centered(draw, _RCX, _HDR_CY2, mover, f['title'], 255)
+            ui.draw_centered(draw, _RCX, _HDR_CY2,
+                             f'{move_num}/{move_total}', f['title'], 255)
         else:
             ui.draw_centered(draw, _RCX, _HDR_CY1, 'No', f['title'], 255)
             ui.draw_centered(draw, _RCX, _HDR_CY2, 'puzzles', f['title'], 255)
@@ -178,6 +184,13 @@ class PuzzleScreen(ui.Screen):
                 outline=0,
             )
 
+            # Rank labels (1–8) to the right of the board
+            sf = f['small']
+            for vrank in range(8):
+                rank_num = (vrank + 1) if white_down else (8 - vrank)
+                ly = _BOARD_Y0 + (7 - vrank) * _SQ + _SQ // 2
+                ui.draw_centered(draw, _RANK_LABEL_X, ly, str(rank_num), sf, 0)
+
             # Stats column (left of board)
             sf = f['small']
             for (label, value), cy in zip(
@@ -220,9 +233,10 @@ _screen = PuzzleScreen()
 def build_puzzle_screen(board, puzzle_num: int, total: int,
                         solved: int, wrong: int,
                         diff_label: str,
+                        move_num: int = 1, move_total: int = 1,
                         last_result: str | None = None) -> Image.Image:
     return _screen.build(board, puzzle_num, total, solved, wrong, diff_label,
-                         last_result)
+                         move_num, move_total, last_result)
 
 
 def hit_puzzle(lx: int, ly: int, board_available: bool = True) -> str | None:

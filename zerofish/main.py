@@ -43,9 +43,11 @@ from screen_time           import build_time_screen
 from screen_board        import build_board_screen, hit_board_back
 from screen_scoresheet   import (build_scoresheet_screen, hit_scoresheet_back,
                                   hit_scoresheet_more, next_score_end, SCORE_ROWS)
-from screen_puzzle         import build_puzzle_screen, hit_puzzle
+from screen_puzzle             import build_puzzle_screen, hit_puzzle
 from screen_puzzle_loading     import build_puzzle_loading_screen, hit_puzzle_loading
 from screen_puzzle_end_confirm import build_puzzle_end_confirm_screen, hit_puzzle_end_confirm
+from screen_puzzle_difficulty  import (build_puzzle_difficulty_screen,
+                                        hit_puzzle_difficulty_screen)
 import download_puzzles
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s: %(message)s')
@@ -269,17 +271,23 @@ def main():
     # Score sheet scroll state (None = most recent moves)
     score_end   = None
 
-    # Puzzle state (mutable via list to allow nested-function writes)
+    # Puzzle state
     pz = {
-        'list':       [],    # unsolved puzzles for current session
-        'idx':        0,     # current index into pz['list']
-        'board':      None,  # chess.Board at puzzle position
-        'sol':        '',    # UCI string: correct answer
-        'id':         '',    # Lichess puzzle ID
-        'diff_label': '',    # rating string shown in stats
-        'solved':      0,     # solved this session
-        'wrong':       0,     # wrong attempts this session
-        'last_result': None,  # 'solved' | 'skipped' | 'wrong' | None
+        'list':        [],    # unsolved puzzles for current session (filtered by rating)
+        'idx':         0,     # current index into pz['list']
+        'board':       None,  # chess.Board at current position in the puzzle sequence
+        'fen':         '',    # FEN at puzzle start (for retry on wrong answer)
+        'moves':       [],    # full solution sequence [player1, engine1, player2, …]
+        'move_idx':    0,     # index into pz['moves'] for the next expected player move
+        'move_num':    1,     # player-move counter (1-based, displayed as "1/3")
+        'move_total':  1,     # total player moves in this puzzle
+        'sol':         '',    # UCI of the currently expected player move
+        'id':          '',    # Lichess puzzle ID
+        'diff_label':  '',    # rating string shown in stats
+        'diff_sel':    None,  # selected puzzle difficulty level (1–8)
+        'solved':       0,    # solved this session
+        'wrong':        0,    # wrong attempts this session
+        'last_result':  None, # 'solved' | 'skipped' | 'wrong' | None
     }
 
     def _pz_screen():
@@ -287,21 +295,35 @@ def main():
         return build_puzzle_screen(
             pz['board'], pz['idx'] + 1 if pz['board'] else 0,
             total, pz['solved'], pz['wrong'], pz['diff_label'],
+            move_num=pz['move_num'], move_total=pz['move_total'],
             last_result=pz['last_result'])
 
     def _pz_load_current():
         """Populate pz fields from pz['list'][pz['idx']]."""
         if pz['idx'] < len(pz['list']):
             p = pz['list'][pz['idx']]
+            fen  = p.get('fen', '')
+            mvs  = puzzle_state.get_moves(p)
             try:
-                pz['board'] = chess.Board(p['fen'])
+                pz['board'] = chess.Board(fen)
             except Exception:
                 pz['board'] = None
-            pz['sol']        = p.get('solution', '')
+            pz['fen']        = fen
+            pz['moves']      = mvs
+            pz['move_idx']   = 0
+            pz['move_num']   = 1
+            # Player moves are at even indices (0, 2, 4 …); total = ceil(len/2)
+            pz['move_total'] = max(1, (len(mvs) + 1) // 2)
+            pz['sol']        = mvs[0] if mvs else ''
             pz['id']         = p.get('id', '')
             pz['diff_label'] = str(p.get('rating', '?'))
         else:
             pz['board']      = None
+            pz['fen']        = ''
+            pz['moves']      = []
+            pz['move_idx']   = 0
+            pz['move_num']   = 1
+            pz['move_total'] = 1
             pz['sol']        = ''
             pz['id']         = ''
             pz['diff_label'] = ''
@@ -310,9 +332,58 @@ def main():
         """Move to the next unsolved puzzle, reloading from disk if exhausted."""
         pz['idx'] += 1
         if pz['idx'] >= len(pz['list']):
-            pz['list'] = puzzle_state.load_unsolved()
+            min_r = config.PUZZLE_DIFF_MIN.get(pz['diff_sel'], 0)
+            max_r = config.PUZZLE_DIFF_MAX.get(pz['diff_sel'], 9999)
+            pz['list'] = puzzle_state.load_unsolved_by_rating(min_r, max_r)
             pz['idx']  = 0
         _pz_load_current()
+
+    def _pz_check_move(move_uci: str) -> bool:
+        """Validate *move_uci* against the current expected solution move.
+
+        On a correct move the board and move-sequence pointers are advanced;
+        the engine's response (if any) is applied automatically.
+        On a wrong move the board is reset to the puzzle start for a retry.
+
+        Returns True when the puzzle is fully solved (last player move correct).
+        """
+        if move_uci == pz['sol']:
+            pz['board'].push(chess.Move.from_uci(move_uci))
+            pz['move_idx'] += 1
+            if pz['move_idx'] < len(pz['moves']):
+                # Apply engine's response and prepare next player move.
+                engine_uci = pz['moves'][pz['move_idx']]
+                try:
+                    pz['board'].push(chess.Move.from_uci(engine_uci))
+                except Exception:
+                    pass
+                pz['move_idx'] += 1
+                pz['move_num'] += 1
+                pz['sol'] = pz['moves'][pz['move_idx']] if pz['move_idx'] < len(pz['moves']) else ''
+                log.info('Puzzle %s move %d/%d correct', pz['id'],
+                         pz['move_num'] - 1, pz['move_total'])
+                return False  # more player moves remain
+            else:
+                # All player moves done — puzzle solved.
+                pz['solved'] += 1
+                pz['last_result'] = 'solved'
+                puzzle_state.mark_solved(pz['id'])
+                log.info('Puzzle solved: %s', pz['id'])
+                _pz_advance()
+                return True
+        else:
+            pz['wrong'] += 1
+            pz['last_result'] = 'wrong'
+            log.info('Puzzle wrong: played %s expected %s', move_uci, pz['sol'])
+            # Reset board to puzzle start so the player can retry from move 1.
+            try:
+                pz['board'] = chess.Board(pz['fen'])
+            except Exception:
+                pz['board'] = None
+            pz['move_idx']  = 0
+            pz['move_num']  = 1
+            pz['sol']       = pz['moves'][0] if pz['moves'] else ''
+            return False
 
     running = True
     def irq_poll():
@@ -331,7 +402,9 @@ def main():
 
             # Auto-advance loading screen once download finishes.
             if machine.is_at(ui.SCREEN_PUZZLE_LOADING) and _dl['done']:
-                pz['list'] = puzzle_state.load_unsolved()
+                min_r = config.PUZZLE_DIFF_MIN.get(pz['diff_sel'], 0)
+                max_r = config.PUZZLE_DIFF_MAX.get(pz['diff_sel'], 9999)
+                pz['list'] = puzzle_state.load_unsolved_by_rating(min_r, max_r)
                 pz['idx']  = 0
                 _pz_load_current()
                 machine.transition('play')
@@ -395,16 +468,35 @@ def main():
                                     partial_count)
 
                 elif action == 'puzzle':
-                    pz['list']        = puzzle_state.load_unsolved()
-                    pz['idx']         = 0
+                    machine.transition('puzzle')
+                    pz['diff_sel']    = None
                     pz['solved']      = 0
                     pz['wrong']       = 0
                     pz['last_result'] = None
+                    _transition(epd, build_puzzle_difficulty_screen(), partial_count)
+
+                elif action == 'back':
+                    machine.transition('back')
+                    _transition(epd, build_splash_screen(sf_info), partial_count)
+
+            # ── Puzzle difficulty selection ───────────────────────────────────
+            elif machine.is_at(ui.SCREEN_PUZZLE_DIFFICULTY):
+                action = hit_puzzle_difficulty_screen(lx, ly,
+                                                      selected=pz['diff_sel'])
+                if action == 'back':
+                    machine.transition('back')
+                    saves_list = game_state.list_saves()
+                    _transition(epd,
+                                build_main_menu_screen(has_saves=bool(saves_list)),
+                                partial_count)
+                elif action == 'ok' and pz['diff_sel'] is not None:
+                    min_r = config.PUZZLE_DIFF_MIN[pz['diff_sel']]
+                    max_r = config.PUZZLE_DIFF_MAX[pz['diff_sel']]
+                    pz['list'] = puzzle_state.load_unsolved_by_rating(min_r, max_r)
+                    pz['idx']  = 0
                     _pz_load_current()
-                    # Show loading screen only when download is running AND no
-                    # puzzles are available yet; otherwise go straight to puzzle.
                     if _dl['running'] and not pz['list']:
-                        machine.transition('puzzle_loading')
+                        machine.transition('loading')
                         _transition(epd,
                                     build_puzzle_loading_screen(
                                         has_existing=False,
@@ -412,12 +504,15 @@ def main():
                                         found=_dl['found']),
                                     partial_count)
                     else:
-                        machine.transition('puzzle')
+                        machine.transition('ok')
                         _transition(epd, _pz_screen(), partial_count)
-
-                elif action == 'back':
-                    machine.transition('back')
-                    _transition(epd, build_splash_screen(sf_info), partial_count)
+                elif action is not None and action.startswith('pz_diff:'):
+                    lvl = int(action.split(':')[1])
+                    if lvl != pz['diff_sel']:
+                        pz['diff_sel'] = lvl
+                        _show(epd,
+                              build_puzzle_difficulty_screen(pz['diff_sel']),
+                              partial_count)
 
             # ── Puzzle loading (download in progress, no puzzles yet) ─────────
             elif machine.is_at(ui.SCREEN_PUZZLE_LOADING):
@@ -910,17 +1005,7 @@ def main():
                             elif len(candidates) == 1:
                                 move_uci = candidates[0].uci()
                                 sel_piece = sel_file = sel_rank = None
-                                if move_uci == pz['sol']:
-                                    pz['solved'] += 1
-                                    pz['last_result'] = 'solved'
-                                    puzzle_state.mark_solved(pz['id'])
-                                    log.info('Puzzle solved: %s', pz['id'])
-                                    _pz_advance()
-                                else:
-                                    pz['wrong'] += 1
-                                    pz['last_result'] = 'wrong'
-                                    log.info('Puzzle wrong: played %s expected %s',
-                                             move_uci, pz['sol'])
+                                _pz_check_move(move_uci)
                                 machine.transition('ok')
                                 _transition(epd, _pz_screen(), partial_count)
                             else:
@@ -958,18 +1043,8 @@ def main():
                         move_uci = candidates[0].uci()
                         sel_piece = sel_file = sel_rank = None
                         prom_piece = prom_file = prom_rank = None
-                        if move_uci == pz['sol']:
-                            pz['solved'] += 1
-                            pz['last_result'] = 'solved'
-                            puzzle_state.mark_solved(pz['id'])
-                            log.info('Puzzle solved (promo): %s', pz['id'])
-                            _pz_advance()
-                        else:
-                            pz['wrong'] += 1
-                            pz['last_result'] = 'wrong'
-                            log.info('Puzzle wrong (promo): played %s expected %s',
-                                     move_uci, pz['sol'])
                         sel_promo = None
+                        _pz_check_move(move_uci)
                         machine.transition('ok')
                         _transition(epd, _pz_screen(), partial_count)
 
@@ -985,21 +1060,10 @@ def main():
                                                  sel_disambig, 'Puzzle'),
                           partial_count)
                 elif ui.hit_ok(lx, ly) and sel_disambig is not None:
-                    move = disambig_candidates[sel_disambig]
-                    move_uci = move.uci()
+                    move_uci = disambig_candidates[sel_disambig].uci()
                     sel_disambig = None
                     sel_piece = sel_file = sel_rank = None
-                    if move_uci == pz['sol']:
-                        pz['solved'] += 1
-                        pz['last_result'] = 'solved'
-                        puzzle_state.mark_solved(pz['id'])
-                        log.info('Puzzle solved (disambig): %s', pz['id'])
-                        _pz_advance()
-                    else:
-                        pz['wrong'] += 1
-                        pz['last_result'] = 'wrong'
-                        log.info('Puzzle wrong (disambig): played %s expected %s',
-                                 move_uci, pz['sol'])
+                    _pz_check_move(move_uci)
                     machine.transition('ok')
                     _transition(epd, _pz_screen(), partial_count)
 

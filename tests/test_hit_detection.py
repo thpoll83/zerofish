@@ -6,9 +6,10 @@ the production code uses, then verify that the centre of each zone registers
 as a hit and a clearly-out-of-bounds point does not.
 """
 import ui
-from screen_splash       import hit_splash_ok, _SPLASH_OK_Y0, _SPLASH_OK_Y1
-from screen_main_menu    import hit_main_menu, _menu_rect
-from screen_difficulty   import hit_diff, diff_rect
+from screen_splash             import hit_splash_ok, _SPLASH_OK_Y0, _SPLASH_OK_Y1
+from screen_main_menu          import hit_main_menu, _menu_rect
+from screen_difficulty         import hit_diff, diff_rect
+from screen_puzzle_difficulty  import hit_puzzle_diff, pz_diff_rect
 from screen_color        import (hit_color, COLOR_BTN_X, COLOR_BTN_W,
                                   COLOR_BTN_Y0, COLOR_BTN_Y1)
 from screen_player_move  import (hit_pm_piece, hit_pm_file, hit_pm_rank,
@@ -286,3 +287,23 @@ def test_hit_board_back_right_panel():
 
 def test_hit_board_back_misses_board_area():
     assert not hit_board_back(ui.VSEP_X - 10, 50)
+
+
+# ── Puzzle difficulty ─────────────────────────────────────────────────────────
+
+def test_hit_pz_diff_level_1():
+    r = pz_diff_rect(1)
+    assert hit_puzzle_diff(1, _cx(r), _cy(r))
+    assert not hit_puzzle_diff(2, _cx(r), _cy(r))
+
+
+def test_hit_pz_diff_level_4():
+    r = pz_diff_rect(4)
+    assert hit_puzzle_diff(4, _cx(r), _cy(r))
+    assert not hit_puzzle_diff(3, _cx(r), _cy(r))
+
+
+def test_hit_pz_diff_level_8():
+    r = pz_diff_rect(8)
+    assert hit_puzzle_diff(8, _cx(r), _cy(r))
+    assert not hit_puzzle_diff(7, _cx(r), _cy(r))

@@ -148,19 +148,71 @@ pip3 install pytest --break-system-packages
 
 ```
 zerofish/
-  main.py              # full application — all screens and game loop
-  game_state.py        # save/load/clear game state (Resume after power loss)
-  boot_splash.py       # early-boot script: shows "Booting…" before main service starts
-  ui.py                # shared layout, font cache, drawing helpers
-  config.py            # all tunable constants: sizes, fonts, paths, idle timeout
-  screen_*.py          # one module per screen
-  TP_lib/              # WaveShare drivers (epd2in13_V4, gt1151, epdconfig)
+  main.py                     # full application — all screens and game loop
+  game_state.py               # save/load/clear game state (Resume after power loss)
+  puzzle_state.py             # load/filter/mark-solved Lichess puzzles
+  download_puzzles.py         # background downloader (Lichess puzzle CSV)
+  boot_splash.py              # early-boot script: shows "Booting…" before main service starts
+  ui.py                       # shared layout, font cache, drawing helpers
+  config.py                   # all tunable constants: sizes, fonts, paths, idle timeout
+  screen_*.py                 # one module per screen
+    screen_puzzle.py          # puzzle board + move-counter header + rank labels
+    screen_puzzle_difficulty.py  # 8-band rating selector (new)
+  TP_lib/                     # WaveShare drivers (epd2in13_V4, gt1151, epdconfig)
 deploy/
   deploy.sh            # rsync + service install/restart (run from dev machine)
   rpi_setup.sh         # first-time RPi setup: interfaces, packages, power tuning
   zerofish.service     # systemd unit — autorun on boot, restarts on failure
   zerofish-boot.service # early-boot splash service (runs before zerofish.service)
 ```
+
+## Puzzle system
+
+### Screen flow
+
+```
+Main menu → Puzzle difficulty → Puzzle (or Puzzle loading if download running)
+              ↑ Back                ↓ Solve / Skip / End
+                              Player move input
+                                  ↓ OK (move validated)
+                              Puzzle (updated board + move counter)
+```
+
+### Puzzle difficulty
+
+`screen_puzzle_difficulty.py` mirrors `screen_difficulty.py` but offers 8 Lichess-rating bands instead of 15 engine-strength levels. The selected band is stored in `pz['diff_sel']` and used by `puzzle_state.load_unsolved_by_rating()` to filter the puzzle list. The ranges are defined in `config.PUZZLE_DIFF_MIN` / `config.PUZZLE_DIFF_MAX`.
+
+### Multi-move puzzles
+
+The downloader (`download_puzzles.py`) now accepts puzzles with any even number of total UCI moves (trigger + player/engine alternating). The stored format is:
+
+```json
+{
+  "id": "abcde",
+  "fen": "<FEN after trigger>",
+  "moves": ["<player1>", "<engine1>", "<player2>", "…"],
+  "rating": 1500
+}
+```
+
+`moves[0]`, `moves[2]`, `moves[4]` … are the player's moves. `moves[1]`, `moves[3]` … are the engine's automatic responses. `puzzle_state.get_moves()` provides backward compatibility with the old single-`solution` format.
+
+The `pz` dict in `main.py` tracks:
+
+| Key | Meaning |
+|-----|---------|
+| `moves` | Full solution sequence from puzzle data |
+| `move_idx` | Current position in `moves` (next expected player move index) |
+| `move_num` | Player-move counter displayed as the numerator in "1/3" |
+| `move_total` | Total player moves = `ceil(len(moves)/2)` |
+| `sol` | UCI of the currently expected player move |
+| `fen` | FEN at puzzle start — used to reset the board on a wrong answer |
+
+`_pz_check_move(move_uci)` handles all three puzzle answer paths (normal, promotion, disambiguation). On a correct move it applies the engine response and advances the counter. On a wrong move it resets the board to `pz['fen']` for retry.
+
+### Rank labels on the board
+
+`screen_puzzle.py` draws rank numbers 1–8 in the 18 px gap between the board's right edge and the vertical separator line. The label for visual row `vrank` is `vrank+1` when white is at the bottom, or `8-vrank` when black is at the bottom. This makes the board orientation immediately clear without requiring the header to say "White" or "Black".
 
 ## Dev Notes
 
