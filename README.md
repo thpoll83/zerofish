@@ -26,6 +26,10 @@ Startup screen. Shows the installed Stockfish version. Tap **OK** to begin, or *
 
 Tap a level (1k – ∞) to highlight it, then **OK**. Higher levels think longer and play stronger.
 
+### Puzzle difficulty selection
+
+Before starting puzzles, choose a Lichess-rating band that matches your level. Eight bands are available: **&lt;1k**, **1k–1k4**, **1k4–1k8**, **1k8–2k2**, **2k2–2k4**, **2k4–2k6**, **2k6–2k8**, **&gt;2k8**. Tap a band to highlight it, then **OK**. **Back** returns to the main menu.
+
 ### Side selection
 ![Side](docs/screenshots/04_side.png)
 
@@ -76,6 +80,12 @@ Elapsed time split between you, Stockfish, and the total game clock. **Back** re
 
 Current position from the player's perspective. Dark squares are hatched; white pieces are outlined. **Back** returns to the in-game menu.
 
+### Puzzle screen
+
+The board shows the puzzle position. The right panel header shows the puzzle number (e.g. **P#5**) and the current move within the sequence (e.g. **1/3** = first of three player moves). Rank numbers 1–8 are displayed to the right of the board so you can immediately see the board orientation. The side with rank 1 is White's home side.
+
+Buttons: **Solve** (enter your move), **Skip** (skip to the next puzzle), **End** (return to the main menu).
+
 ### Score sheet
 ![Score sheet](docs/screenshots/15_scoresheet.png)
 
@@ -107,6 +117,16 @@ Hold the device landscape (short edge top/bottom, USB port on the left).
 5. **In-game menu:** Tap **More** on the player-move screen to reach **Resign**, **Board** (position view), **Score Sheet**, and **Time**.
 6. **Game over:** When the game ends for any reason (checkmate, stalemate, draw) a result screen appears. Tap **OK** to start a new game from the difficulty selection.
 
+### Puzzles
+
+Tap **Puzzles** on the main menu to train with Lichess tactical puzzles.
+
+1. **Puzzle difficulty** — Choose a Lichess-rating band that matches your current strength. Eight ranges are available: **&lt;1k**, **1k–1k4**, **1k4–1k8**, **1k8–2k2**, **2k2–2k4**, **2k4–2k6**, **2k6–2k8**, **&gt;2k8**. Tap one to highlight it, then **OK**.
+2. **Puzzle screen** — The board shows the position after the opponent's trigger move has already been played. The header shows **P#n** (puzzle number) and **m/M** (current player move out of total player moves). Rank numbers 1–8 appear to the right of the board so you can see which side is White (rank 1 = White's back rank).
+3. **Solving** — Tap **Solve** to enter your move using the same piece / file / rank grid as in a normal game. If your move is correct and the puzzle has more moves, the engine's response is applied automatically and the counter advances (e.g. 1/3 → 2/3). A wrong move resets the board to the start of the puzzle so you can retry. A fully solved puzzle is never shown again.
+4. **Skip / End** — Tap **Skip** to pass to the next puzzle without marking it solved. Tap **End** to finish the puzzle session and return to the main menu.
+5. **Puzzle download** — Puzzles are downloaded automatically from the Lichess database in the background when an internet connection is available. If no puzzles have been downloaded yet, a loading screen is shown instead.
+
 ---
 
 ## Deutsch
@@ -127,6 +147,10 @@ Das Gerät im Querformat halten (kurze Kante oben/unten, USB-Anschluss links).
    - *Disambiguierung:* Falls zwei gleichartige Figuren das gewählte Feld erreichen können, erscheint ein Auswahlbildschirm. Tippen Sie auf das Ausgangsfeld.
 5. **Spielmenü:** Tippen Sie auf **More** im Eingabebildschirm, um zu **Aufgeben**, **Brett** (Positionsansicht), **Spielblatt** und **Zeit** zu gelangen.
 6. **Spielende:** Wenn das Spiel endet (Schachmatt, Patt, Remis), erscheint ein Ergebnisbildschirm. Tippen Sie **OK**, um ein neues Spiel ab der Schwierigkeitsauswahl zu starten.
+
+### Aufgaben (Puzzles)
+
+Tippen Sie im Hauptmenü auf **Puzzles**. Wählen Sie einen Lichess-Ratingbereich (**&lt;1k** bis **&gt;2k8**), dann **OK**. Der Titelbereich zeigt die Aufgabennummer (**P#n**) und den aktuellen Zug (**m/M**). Die Rangzahlen 1–8 rechts vom Brett zeigen die Brettausrichtung: Reihe 1 ist die weiße Grundreihe.
 
 *Screenshots siehe [oben](#screenshots).*
 
@@ -151,6 +175,10 @@ Tenez l'appareil en mode paysage (bord court en haut/bas, port USB à gauche).
 5. **Menu en jeu :** Appuyez sur **More** depuis l'écran de saisie pour accéder à **Abandonner**, **Échiquier** (vue de la position), **Feuille de partie** et **Temps**.
 6. **Fin de partie :** Quand la partie se termine (échec et mat, pat, nulle), un écran de résultat apparaît. Appuyez sur **OK** pour commencer une nouvelle partie depuis la sélection de difficulté.
 
+### Puzzles
+
+Appuyez sur **Puzzles** dans le menu principal. Choisissez une plage de classement Lichess (**&lt;1k** à **&gt;2k8**), puis **OK**. L'en-tête affiche le numéro du puzzle (**P#n**) et le coup en cours (**m/M**). Les chiffres de rangée 1–8 à droite de l'échiquier indiquent l'orientation : la rangée 1 est la rangée de base des Blancs.
+
 *Captures d'écran : voir [ci-dessus](#screenshots).*
 
 ---
@@ -174,6 +202,10 @@ Sostén el dispositivo en horizontal (borde corto arriba/abajo, puerto USB a la 
 5. **Menú en partida:** Toca **More** en la pantalla de entrada para acceder a **Rendirse**, **Tablero** (vista de posición), **Planilla** y **Tiempo**.
 6. **Fin del juego:** Cuando la partida termina (jaque mate, tablas, empate), aparece una pantalla de resultado. Toca **OK** para comenzar una nueva partida desde la selección de dificultad.
 
+### Puzzles
+
+Toca **Puzzles** en el menú principal. Elige un rango de puntuación Lichess (**&lt;1k** a **&gt;2k8**), luego **OK**. El encabezado muestra el número del puzzle (**P#n**) y el movimiento actual (**m/M**). Los números de fila 1–8 a la derecha del tablero indican la orientación: la fila 1 es la fila base de las Blancas.
+
 *Capturas de pantalla: ver [arriba](#screenshots).*
 
 ---
@@ -196,5 +228,9 @@ ZeroFish는 독립형 체스 컴퓨터입니다. Stockfish가 Raspberry Pi Zero 
    - *중의성 해소:* 같은 종류의 기물 두 개가 선택한 칸에 도달할 수 있는 경우 중의성 해소 화면이 나타납니다. 출발 칸을 탭하세요.
 5. **게임 중 메뉴:** 기물 입력 화면에서 **More**를 탭하면 **기권**, **보드** (포지션 보기), **기보**, **시간** 메뉴에 접근할 수 있습니다.
 6. **게임 종료:** 게임이 끝나면 (체크메이트, 스테일메이트, 무승부) 결과 화면이 나타납니다. **OK**를 탭하여 난이도 선택부터 새 게임을 시작하세요.
+
+### 퍼즐
+
+메인 메뉴에서 **Puzzles**를 탭하세요. Lichess 레이팅 범위(**&lt;1k** ~ **&gt;2k8**)를 선택한 후 **OK**. 헤더에는 퍼즐 번호(**P#n**)와 현재 수(**m/M**)가 표시됩니다. 보드 오른쪽의 1–8 행 번호로 방향을 확인할 수 있으며, 1행이 백의 뒷줄입니다.
 
 *스크린샷은 [위](#screenshots)를 참조하세요.*

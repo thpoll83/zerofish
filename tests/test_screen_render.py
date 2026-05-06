@@ -27,6 +27,7 @@ from screen_resign_confirm import build_resign_confirm_screen
 from screen_puzzle             import build_puzzle_screen
 from screen_puzzle_loading     import build_puzzle_loading_screen
 from screen_puzzle_end_confirm import build_puzzle_end_confirm_screen
+from screen_puzzle_difficulty  import build_puzzle_difficulty_screen
 import config
 
 LANDSCAPE = (config.DISPLAY_W, config.DISPLAY_H)   # 250 × 122
@@ -264,6 +265,27 @@ def test_puzzle_screen_high_counts():
                              solved=100, wrong=50, diff_label='2100'))
 
 
+def test_puzzle_screen_move_counter_single():
+    board = _puzzle_board()
+    _ok(build_puzzle_screen(board, puzzle_num=3, total=200,
+                             solved=1, wrong=0, diff_label='1550',
+                             move_num=1, move_total=1))
+
+
+def test_puzzle_screen_move_counter_multi_first():
+    board = _puzzle_board()
+    _ok(build_puzzle_screen(board, puzzle_num=5, total=200,
+                             solved=2, wrong=0, diff_label='1700',
+                             move_num=1, move_total=3))
+
+
+def test_puzzle_screen_move_counter_multi_last():
+    board = _puzzle_board()
+    _ok(build_puzzle_screen(board, puzzle_num=5, total=200,
+                             solved=2, wrong=0, diff_label='1700',
+                             move_num=3, move_total=3))
+
+
 def test_puzzle_screen_mid_game_position():
     board = chess.Board()
     for uci in ('e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1b5'):
@@ -317,3 +339,14 @@ def test_puzzle_loading_with_existing_and_progress():
 
 def test_puzzle_end_confirm_screen():
     _ok(build_puzzle_end_confirm_screen())
+
+
+# ── Puzzle difficulty screen ──────────────────────────────────────────────────
+
+def test_puzzle_difficulty_no_selection():
+    _ok(build_puzzle_difficulty_screen())
+
+
+def test_puzzle_difficulty_with_selection():
+    for lvl in (1, 4, 8):
+        _ok(build_puzzle_difficulty_screen(lvl))

@@ -13,7 +13,7 @@ from ui import (
     SCREEN_TIME, SCREEN_RESIGN_CONFIRM, SCREEN_RESUME,
     SCREEN_MAIN_MENU, SCREEN_PUZZLE, SCREEN_PUZZLE_MOVE,
     SCREEN_PUZZLE_DISAMBIG, SCREEN_PUZZLE_LOADING, SCREEN_PUZZLE_PROMOTION,
-    SCREEN_PUZZLE_END_CONFIRM,
+    SCREEN_PUZZLE_END_CONFIRM, SCREEN_PUZZLE_DIFFICULTY,
 )
 
 
@@ -41,9 +41,13 @@ class ScreenMachine:
         # Main menu
         (SCREEN_MAIN_MENU,      'new_game'):      SCREEN_DIFFICULTY,
         (SCREEN_MAIN_MENU,      'cont'):          SCREEN_RESUME,
-        (SCREEN_MAIN_MENU,      'puzzle'):        SCREEN_PUZZLE,
-        (SCREEN_MAIN_MENU,      'puzzle_loading'): SCREEN_PUZZLE_LOADING,
+        (SCREEN_MAIN_MENU,      'puzzle'):        SCREEN_PUZZLE_DIFFICULTY,
         (SCREEN_MAIN_MENU,      'back'):          SCREEN_SPLASH,
+
+        # Puzzle difficulty selection (new screen inserted before puzzle)
+        (SCREEN_PUZZLE_DIFFICULTY, 'ok'):         SCREEN_PUZZLE,
+        (SCREEN_PUZZLE_DIFFICULTY, 'loading'):    SCREEN_PUZZLE_LOADING,
+        (SCREEN_PUZZLE_DIFFICULTY, 'back'):       SCREEN_MAIN_MENU,
 
         # Difficulty / side selection
         (SCREEN_DIFFICULTY,     'ok'):          SCREEN_COLOR,

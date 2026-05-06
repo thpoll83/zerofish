@@ -91,6 +91,33 @@ DIFF_HASH_MB = {
     11: 64, 12: 64, 13: 64, 14: 128, 15: 128,
 }
 
+# ── Puzzle difficulty ranges ──────────────────────────────────────────────────
+# 8 Lichess-rating bands shown on the puzzle difficulty screen.
+#
+# Level | Label      | Min rating | Max rating
+#   1     <1k           0            999
+#   2     1k-1k4        1000         1399
+#   3     1k4-1k8       1400         1799
+#   4     1k8-2k2       1800         2199
+#   5     2k2-2k4       2200         2399
+#   6     2k4-2k6       2400         2599
+#   7     2k6-2k8       2600         2799
+#   8     >2k8          2800         9999
+PUZZLE_DIFF_LABELS = {
+    1: '<1k',
+    2: '1k-1k4',
+    3: '1k4-1k8',
+    4: '1k8-2k2',
+    5: '2k2-2k4',
+    6: '2k4-2k6',
+    7: '2k6-2k8',
+    8: '>2k8',
+}
+PUZZLE_DIFF_MIN = {1: 0,    2: 1000, 3: 1400, 4: 1800,
+                   5: 2200, 6: 2400, 7: 2600, 8: 2800}
+PUZZLE_DIFF_MAX = {1: 999,  2: 1399, 3: 1799, 4: 2199,
+                   5: 2399, 6: 2599, 7: 2799, 8: 9999}
+
 # ── Font families ─────────────────────────────────────────────────────────────
 # Each family maps to bold and regular (non-piece) font search paths.
 # First existing path on the system wins.
@@ -171,6 +198,7 @@ SCREEN_FONT_FAMILY = {
     'puzzle':              'noto',
     'puzzle_loading':      'noto',
     'puzzle_end_confirm':  'noto',
+    'puzzle_difficulty':   'noto',
 }
 
 # ── Piece / chess-glyph font ──────────────────────────────────────────────────
