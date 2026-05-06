@@ -65,15 +65,17 @@ class PuzzleSession:
     # ── State management ──────────────────────────────────────────────────────
 
     def load_current(self) -> None:
-        """Populate fields from list[idx]."""
-        if self.idx < len(self.list):
+        """Populate fields from list[idx], skipping entries with invalid FENs."""
+        while self.idx < len(self.list):
             p   = self.list[self.idx]
             fen = p.get('fen', '')
             mvs = puzzle_state.get_moves(p)
             try:
                 self.board = chess.Board(fen)
             except Exception:
-                self.board = None
+                log.warning('Skipping puzzle %s: invalid FEN', p.get('id', '?'))
+                self.idx += 1
+                continue
             self.fen        = fen
             self.moves      = mvs
             self.move_idx   = 0
@@ -82,16 +84,17 @@ class PuzzleSession:
             self.sol        = mvs[0] if mvs else ''
             self.id         = p.get('id', '')
             self.diff_label = str(p.get('rating', '?'))
-        else:
-            self.board      = None
-            self.fen        = ''
-            self.moves      = []
-            self.move_idx   = 0
-            self.move_num   = 1
-            self.move_total = 1
-            self.sol        = ''
-            self.id         = ''
-            self.diff_label = ''
+            return
+        # Exhausted the list without finding a valid puzzle
+        self.board      = None
+        self.fen        = ''
+        self.moves      = []
+        self.move_idx   = 0
+        self.move_num   = 1
+        self.move_total = 1
+        self.sol        = ''
+        self.id         = ''
+        self.diff_label = ''
 
     def advance(self) -> None:
         """Move to the next unsolved puzzle, reloading from disk if exhausted."""
@@ -121,8 +124,14 @@ class PuzzleSession:
                 engine_uci = self.moves[self.move_idx]
                 try:
                     self.board.push(chess.Move.from_uci(engine_uci))
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log.warning('Puzzle %s: invalid engine move %s (idx=%d): %s',
+                                self.id, engine_uci, self.move_idx, exc)
+                    self.solved += 1
+                    self.last_result = 'solved'
+                    puzzle_state.mark_solved(self.id)
+                    self.advance()
+                    return 'solved'
                 self.move_idx += 1
                 self.move_num += 1
                 self.sol = (self.moves[self.move_idx]

@@ -33,8 +33,13 @@ def move_label(board: chess.Board) -> str:
 
 def set_cpu_governor(gov: str) -> None:
     import subprocess
-    subprocess.run(['sudo', '/usr/local/bin/zerofish-set-governor', gov],
-                   check=False, capture_output=True)
+    try:
+        subprocess.run(['sudo', '/usr/local/bin/zerofish-set-governor', gov],
+                       check=False, capture_output=True, timeout=1)
+    except subprocess.TimeoutExpired:
+        log.warning('set_cpu_governor %s timed out', gov)
+    except Exception as exc:
+        log.warning('set_cpu_governor %s failed: %s', gov, exc)
 
 
 def push_and_continue(board, move, move_history, engine, engine_think_limit,

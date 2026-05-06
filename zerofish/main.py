@@ -343,7 +343,7 @@ def main():
                     pz.list = puzzle_state.load_unsolved_by_rating(min_r, max_r)
                     pz.idx  = 0
                     pz.load_current()
-                    if _dl['running'] and not pz.list:
+                    if not _dl['done'] and not pz.list:
                         machine.transition('loading')
                         _transition(epd,
                                     build_puzzle_loading_screen(
