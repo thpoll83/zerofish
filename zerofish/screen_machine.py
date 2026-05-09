@@ -14,6 +14,7 @@ from ui import (
     SCREEN_MAIN_MENU, SCREEN_PUZZLE, SCREEN_PUZZLE_MOVE,
     SCREEN_PUZZLE_DISAMBIG, SCREEN_PUZZLE_LOADING, SCREEN_PUZZLE_PROMOTION,
     SCREEN_PUZZLE_END_CONFIRM, SCREEN_PUZZLE_DIFFICULTY, SCREEN_PUZZLE_HINT,
+    SCREEN_STATS, SCREEN_SETTINGS, SCREEN_WIFI, SCREEN_WIFI_RESULT,
 )
 
 
@@ -35,16 +36,32 @@ class ScreenMachine:
 
     # (from_screen_id, action) → to_screen_id
     TRANSITIONS: dict[tuple[int, str], int] = {
-        # Splash → main menu only
+        # Splash
         (SCREEN_SPLASH,         'ok'):          SCREEN_MAIN_MENU,
 
         # Main menu
         (SCREEN_MAIN_MENU,      'new_game'):      SCREEN_DIFFICULTY,
         (SCREEN_MAIN_MENU,      'cont'):          SCREEN_RESUME,
         (SCREEN_MAIN_MENU,      'puzzle'):        SCREEN_PUZZLE_DIFFICULTY,
+        (SCREEN_MAIN_MENU,      'stats'):         SCREEN_STATS,
+        (SCREEN_MAIN_MENU,      'settings'):      SCREEN_SETTINGS,
         (SCREEN_MAIN_MENU,      'back'):          SCREEN_SPLASH,
 
-        # Puzzle difficulty selection (new screen inserted before puzzle)
+        # Stats
+        (SCREEN_STATS,          'back'):          SCREEN_MAIN_MENU,
+
+        # Settings
+        (SCREEN_SETTINGS,       'wifi'):          SCREEN_WIFI,
+        (SCREEN_SETTINGS,       'back'):          SCREEN_MAIN_MENU,
+
+        # WiFi setup
+        (SCREEN_WIFI,           'back'):          SCREEN_SETTINGS,
+        (SCREEN_WIFI,           'result'):        SCREEN_WIFI_RESULT,
+
+        # WiFi result (connection failure message)
+        (SCREEN_WIFI_RESULT,    'ok'):            SCREEN_WIFI,
+
+        # Puzzle difficulty selection
         (SCREEN_PUZZLE_DIFFICULTY, 'ok'):         SCREEN_PUZZLE,
         (SCREEN_PUZZLE_DIFFICULTY, 'loading'):    SCREEN_PUZZLE_LOADING,
         (SCREEN_PUZZLE_DIFFICULTY, 'back'):       SCREEN_MAIN_MENU,
@@ -145,10 +162,5 @@ class ScreenMachine:
         return next_id
 
     def force(self, screen_id: int) -> None:
-        """Unconditionally jump to *screen_id*.
-
-        Use this for context-dependent transitions that cannot be expressed as
-        a simple (state, action) pair, e.g. when the chess engine determines
-        whether the game continues or ends.
-        """
+        """Unconditionally jump to *screen_id*."""
         self._current = screen_id

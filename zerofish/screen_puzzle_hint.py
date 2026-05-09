@@ -80,7 +80,7 @@ class PuzzleHintScreen(ui.Screen):
         y += lh + 2
 
         for san in accomplished:
-            draw.text((x, y), f'{san}✓', font=hf, fill=0)   # "e5✓"
+            draw.text((x, y), san, font=hf, fill=0)
             y += lh
 
         if current:

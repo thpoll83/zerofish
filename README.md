@@ -19,7 +19,47 @@ All screens run at 250 × 122 px in landscape orientation (122 × 250 px for the
 ### Splash
 ![Splash](docs/screenshots/01_splash.png)
 
-Startup screen. Shows the installed Stockfish version. Tap **OK** to begin, or **Cont** to resume an interrupted game.
+Startup screen. Shows the installed Stockfish version. Tap **OK** to reach the main menu, or **Cont** to resume an interrupted game.
+
+### Main menu
+![Main menu](docs/screenshots/03_main_menu.png)
+
+Six buttons in a 3 × 2 grid: **New Game**, **Cont** (continue saved game), **Puzzle**, **Stats**, **Settings**, **Back** (return to splash).
+
+### Stats
+![Stats](docs/screenshots/03b_stats.png)
+
+Total puzzles solved plus a per-difficulty breakdown across all eight Lichess rating bands. **Back** returns to the main menu.
+
+### Settings
+![Settings](docs/screenshots/03c_settings.png)
+
+Currently contains a single **Wifi** button. **Back** returns to the main menu.
+
+### WiFi setup — network list
+![WiFi list](docs/screenshots/03d_wifi_list.png)
+
+Left panel: scrollable list of visible networks with signal-strength bars. Tap a network to select it. **Rescan** refreshes the list. Right panel adapts to the selected network (see below). **Back** returns to Settings.
+
+### WiFi setup — connected network
+![WiFi connected](docs/screenshots/03e_wifi_connected.png)
+
+The currently connected network is highlighted. Right panel shows **Connected**, the assigned IP address, and a **Forget** button. Tapping **Forget** disconnects, rescans, and shows **Disconnected**.
+
+### WiFi setup — open network
+![WiFi open](docs/screenshots/03f_wifi_open.png)
+
+Selecting a password-free network shows a **Connect** button in the right panel.
+
+### WiFi setup — WPA keyboard
+![WiFi keyboard](docs/screenshots/03g_wifi_keyboard.png)
+
+Selecting a WPA-protected network opens a password field and a 5 × 4 on-screen keyboard. **< >** cycle through six character pages (a–z, A–Z, 0–9, symbols). **Del** deletes one character, **Sp** inserts a space, **OK** submits.
+
+### WiFi result
+![WiFi result](docs/screenshots/03i_wifi_result.png)
+
+Shown when a connection attempt fails. Displays the SSID and the error message from nmcli. **OK** returns to the network list with the same network selected.
 
 ### Difficulty selection
 ![Difficulty](docs/screenshots/03_difficulty.png)
@@ -104,6 +144,18 @@ ZeroFish is a standalone chess computer. Stockfish runs as the engine on a Raspb
 
 Hold the device landscape (short edge top/bottom, USB port on the left).
 
+### Main menu
+
+The main menu is a 3 × 2 grid:
+
+| | Left | Right |
+|---|---|---|
+| Row 1 | **New Game** | **Cont** |
+| Row 2 | **Puzzle** | **Stats** |
+| Row 3 | **Settings** | **Back** |
+
+**Stats** shows your solved-puzzle totals per Lichess difficulty band. **Settings** gives access to WiFi configuration.
+
 ### How to play
 
 1. **Difficulty** — Tap one of 15 levels (1k – ∞) to choose engine strength, then **OK**. Level 1k plays at roughly 1000 Elo; ∞ uses Stockfish at full strength.
@@ -116,6 +168,16 @@ Hold the device landscape (short edge top/bottom, USB port on the left).
    - *Disambiguation:* If two pieces of the same type can reach the chosen square, a disambiguation screen appears. Tap the source square.
 5. **In-game menu:** Tap **More** on the player-move screen to reach **Resign**, **Board** (position view), **Score Sheet**, and **Time**.
 6. **Game over:** When the game ends for any reason (checkmate, stalemate, draw) a result screen appears. Tap **OK** to start a new game from the difficulty selection.
+
+### WiFi
+
+Tap **Settings → Wifi** to manage the wireless connection. The left panel lists visible networks (tap to select, **Rescan** to refresh). The right panel shows connection status and action buttons:
+
+- **Connected network** — shows the IP address and a **Forget** button.
+- **Open network** — shows a **Connect** button.
+- **WPA/WPA2 network** — shows a password keyboard; use **< >** to cycle character pages, **OK** to connect.
+
+If connection fails, an error screen shows the nmcli message. **OK** returns to the network list.
 
 ### Puzzles
 

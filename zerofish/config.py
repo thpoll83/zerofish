@@ -216,6 +216,10 @@ SCREEN_FONT_FAMILY = {
     'puzzle_end_confirm':  'noto',
     'puzzle_difficulty':   'noto',
     'puzzle_hint':         'noto',
+    'stats':               'noto',
+    'settings':            'noto',
+    'wifi':                'noto',
+    'wifi_result':         'noto',
 }
 
 # ── Piece / chess-glyph font ──────────────────────────────────────────────────
