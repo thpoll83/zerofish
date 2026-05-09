@@ -32,7 +32,7 @@ class StatsScreen(ui.Screen):
             col_y = y + (i // 2) * (lh + 2)
             s = cat['solved']
             a = cat['available']
-            draw.text((col_x, col_y), f'{cat["label"]}: {s}/{s + a}', font=hf, fill=0)
+            draw.text((col_x, col_y), f'{cat["label"]}: {s}', font=hf, fill=0)
 
         return img
 
