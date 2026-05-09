@@ -60,9 +60,9 @@ _KBD_ROW_Y = [_KBD_Y0 + i * (_KBD_BTN_H + _KBD_GAP) for i in range(_KBD_ROWS)]
 # Row 3 special keys: Del, Space, prev-page, next-page, Connect/OK
 _KBD_SPECIAL = ['Del', 'Sp', '<', '>', 'OK']
 
-# Back button below the keyboard grid (keyboard mode only)
-_KBACK_Y0 = _KBD_ROW_Y[-1] + _KBD_BTN_H + 2  # = 69+16+2 = 87
-_KBACK_Y1 = ui.H - 2                           # = 120
+# Back button below the keyboard grid (keyboard mode only) — same height as Rescan
+_KBACK_Y0 = _RESCAN_Y0   # = 100
+_KBACK_Y1 = _RESCAN_Y1   # = 120
 
 # Right panel buttons – list mode (right panel has no title bar)
 _RP_BTN_X0   = _RP_X0 + 2          # = 104
@@ -76,9 +76,9 @@ _RP_BTN1_Y1  = _RP_BTN1_Y0 + _RP_BTN_H  # = 43
 # Connected-network: Forget button (shifted 20 px below compact position)
 _RP_BTN1_CONN_Y0 = 55
 _RP_BTN1_CONN_Y1 = _RP_BTN1_CONN_Y0 + _RP_BTN_H  # = 77
-# Back button (list mode)
-_RP_BACK_Y0 = ui.H - 14           # = 108
-_RP_BACK_Y1 = ui.H - 2            # = 120
+# Back button (list mode) — same height as Rescan
+_RP_BACK_Y0 = _RESCAN_Y0   # = 100
+_RP_BACK_Y1 = _RESCAN_Y1   # = 120
 
 # Keyboard character pages: 3 char rows × 5 cols = 15 chars per page.
 # Row 3 is always _KBD_SPECIAL (Del / Sp / < / > / OK).
@@ -283,7 +283,7 @@ class WifiScreen(ui.Screen):
 
         # Title bar covers the left panel only
         draw.rectangle([(0, 0), (_WIFI_SEP - 1, ui.TITLE_H - 1)], fill=0)
-        draw.text((4, 3), 'Wifi', font=f['title'], fill=255)
+        draw.text((4, 3), 'Wifi Setup', font=f['title'], fill=255)
 
         _draw_separator(draw)
         _draw_network_list(draw, f, networks, selected_idx, scroll_off)
