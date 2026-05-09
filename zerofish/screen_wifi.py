@@ -52,9 +52,10 @@ _PW_X1 = ui.W - 2
 _KBD_COLS  = 5
 _KBD_ROWS  = 4
 _KBD_BTN_W = (_RP_W - (_KBD_COLS - 1)) // _KBD_COLS  # = (148-4)//5 = 28
-_KBD_BTN_H = 16
 _KBD_GAP   = 1
 _KBD_Y0    = _PW_Y1 + 2   # = 18
+# Stretch keys to fill the space above the Back button
+_KBD_BTN_H = (_RESCAN_Y0 - 2 - _KBD_Y0 - (_KBD_ROWS - 1) * _KBD_GAP) // _KBD_ROWS  # = 19
 _KBD_COL_X = [_RP_X0 + j * (_KBD_BTN_W + _KBD_GAP) for j in range(_KBD_COLS)]
 _KBD_ROW_Y = [_KBD_Y0 + i * (_KBD_BTN_H + _KBD_GAP) for i in range(_KBD_ROWS)]
 # Row 3 special keys: Del, Space, prev-page, next-page, Connect/OK
