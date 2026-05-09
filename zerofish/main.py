@@ -56,7 +56,7 @@ from screen_settings  import build_settings_screen, hit_settings
 from screen_wifi      import (build_wifi_screen, hit_wifi,
                                build_wifi_result_screen, hit_wifi_result,
                                scan_networks, connect_open, connect_wpa,
-                               forget_network)
+                               forget_network, _KBD_NUM_PAGES)
 import download_puzzles
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s: %(message)s')
@@ -991,19 +991,22 @@ def main():
                                 partial_count)
                 elif action == 'wifi':
                     machine.transition('wifi')
-                    wifi_nets = scan_networks()
-                    wifi_sel  = next((i for i, n in enumerate(wifi_nets)
-                                      if n['in_use']), None)
                     wifi_passwd    = ''
                     wifi_kbd_page  = 0
                     wifi_scroll_off = 0
                     wifi_status    = ''
                     _transition(epd,
-                                build_wifi_screen(wifi_nets, wifi_sel,
-                                                  wifi_passwd, wifi_kbd_page,
-                                                  wifi_scroll_off,
-                                                  status=wifi_status),
+                                build_wifi_screen([], None, '', 0, 0),
                                 partial_count)
+                    wifi_nets = scan_networks()
+                    wifi_sel  = next((i for i, n in enumerate(wifi_nets)
+                                      if n['in_use']), None)
+                    _show(epd,
+                          build_wifi_screen(wifi_nets, wifi_sel,
+                                            wifi_passwd, wifi_kbd_page,
+                                            wifi_scroll_off,
+                                            status=wifi_status),
+                          partial_count)
 
             # ── WiFi setup ────────────────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_WIFI):
@@ -1067,7 +1070,7 @@ def main():
                           partial_count)
 
                 elif action == 'prev_page':
-                    wifi_kbd_page = (wifi_kbd_page - 1) % 6
+                    wifi_kbd_page = (wifi_kbd_page - 1) % _KBD_NUM_PAGES
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,
@@ -1076,7 +1079,7 @@ def main():
                           partial_count)
 
                 elif action == 'next_page':
-                    wifi_kbd_page = (wifi_kbd_page + 1) % 6
+                    wifi_kbd_page = (wifi_kbd_page + 1) % _KBD_NUM_PAGES
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,
@@ -1152,13 +1155,16 @@ def main():
                           partial_count)
 
                 elif action == 'rescan':
-                    wifi_nets = scan_networks()
-                    wifi_sel  = next((i for i, n in enumerate(wifi_nets)
-                                      if n['in_use']), None)
                     wifi_passwd    = ''
                     wifi_kbd_page  = 0
                     wifi_scroll_off = 0
                     wifi_status    = ''
+                    _show(epd,
+                          build_wifi_screen([], None, '', 0, 0),
+                          partial_count)
+                    wifi_nets = scan_networks()
+                    wifi_sel  = next((i for i, n in enumerate(wifi_nets)
+                                      if n['in_use']), None)
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,

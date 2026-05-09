@@ -363,12 +363,11 @@ class TestForgetNetwork(unittest.TestCase):
         forget_network('Ghost')  # Must not raise
 
     @patch('screen_wifi._run')
-    def test_silent_on_exception(self, mock_run):
-        mock_run.side_effect = Exception('nmcli crashed')
-        try:
-            forget_network('AnyNet')
-        except Exception:
-            self.fail('forget_network() must not propagate exceptions')
+    def test_silent_on_error_code(self, mock_run):
+        # _run never raises; failure manifests as a non-zero return code.
+        # forget_network must silently ignore it.
+        mock_run.return_value = (-1, '', 'TimeoutExpired: ...')
+        forget_network('AnyNet')  # Must not raise
 
 
 class TestGetActiveIp(unittest.TestCase):

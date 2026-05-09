@@ -100,8 +100,8 @@ def _run(args, timeout=15):
     try:
         r = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
         return r.returncode, r.stdout, r.stderr
-    except Exception as e:
-        return -1, '', str(e)
+    except (subprocess.SubprocessError, OSError) as e:
+        return -1, '', f'{type(e).__name__}: {e}'
 
 
 def get_active_ip():
@@ -157,7 +157,7 @@ def scan_networks():
     nets = []
     seen = set()
     for line in out.splitlines():
-        parts = line.split(':')
+        parts = line.split(':', 3)
         if len(parts) < 4:
             continue
         in_use = parts[0] == '*'
@@ -168,7 +168,7 @@ def scan_networks():
             signal = int(parts[2])
         except ValueError:
             signal = 0
-        security     = ':'.join(parts[3:]).strip()
+        security     = parts[3].strip()
         has_password = bool(security) and security != '--'
         if ssid not in seen:
             seen.add(ssid)
@@ -207,10 +207,7 @@ def connect_wpa(ssid, password):
 
 def forget_network(ssid):
     """Delete the saved connection profile for *ssid* (silent on error)."""
-    try:
-        _run(['nmcli', 'connection', 'delete', ssid], timeout=10)
-    except Exception:
-        pass
+    _run(['nmcli', 'connection', 'delete', ssid], timeout=10)
 
 
 # ── Drawing helpers ───────────────────────────────────────────────────────────

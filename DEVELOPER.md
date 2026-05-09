@@ -149,21 +149,62 @@ pip3 install pytest --break-system-packages
 ```
 zerofish/
   main.py                     # full application — all screens and game loop
+  screen_machine.py           # state machine: (screen_id, action) → next screen_id
   game_state.py               # save/load/clear game state (Resume after power loss)
   puzzle_state.py             # load/filter/mark-solved Lichess puzzles
+  puzzle_session.py           # in-memory state for an active puzzle session
   download_puzzles.py         # background downloader (Lichess puzzle CSV)
   boot_splash.py              # early-boot script: shows "Booting…" before main service starts
-  ui.py                       # shared layout, font cache, drawing helpers
+  ui.py                       # shared layout, font cache, drawing helpers, screen base class
   config.py                   # all tunable constants: sizes, fonts, paths, idle timeout
-  screen_*.py                 # one module per screen
-    screen_puzzle.py          # puzzle board + move-counter header + rank labels
-    screen_puzzle_difficulty.py  # 8-band rating selector (new)
+  board_widget.py             # shared board-drawing widget (used by game + puzzle screens)
+  game_utils.py               # move validation, SAN conversion helpers
+
+  # ── Screen modules (one per screen) ────────────────────────────────────────
+  screen_splash.py            # splash / loading
+  screen_main_menu.py         # 3×2 main menu (New Game, Cont, Puzzle, Stats, Settings, Back)
+  screen_difficulty.py        # engine-strength selection (15 levels)
+  screen_color.py             # side selection (White / Black / Random)
+  screen_thinking.py          # "Stockfish is thinking" indicator
+  screen_sf_move.py           # engine move display
+  screen_player_move.py       # player move input (piece / file / rank grid)
+  screen_promotion.py         # pawn promotion piece selector
+  screen_disambig.py          # source-square disambiguation
+  screen_ingame_menu.py       # in-game menu (Resign, Board, Score Sheet, Time)
+  screen_resign_confirm.py    # resign confirmation dialog
+  screen_time.py              # elapsed-time display
+  screen_board.py             # position viewer
+  screen_scoresheet.py        # move-list viewer (portrait orientation)
+  screen_game_over.py         # game result screen
+  screen_resume.py            # saved-game browser
+  screen_puzzle.py            # puzzle board + move-counter header + rank labels
+  screen_puzzle_difficulty.py # 8-band Lichess-rating selector
+  screen_puzzle_loading.py    # puzzle download progress
+  screen_puzzle_end_confirm.py # "end puzzle session?" confirmation
+  screen_puzzle_hint.py       # hint board after a wrong move
+  screen_stats.py             # solved-puzzle totals per difficulty band
+  screen_settings.py          # settings hub (currently: Wifi button)
+  screen_wifi.py              # WiFi setup: network list + keyboard + result screen
+
   TP_lib/                     # WaveShare drivers (epd2in13_V4, gt1151, epdconfig)
+
 deploy/
   deploy.sh            # rsync + service install/restart (run from dev machine)
   rpi_setup.sh         # first-time RPi setup: interfaces, packages, power tuning
   zerofish.service     # systemd unit — autorun on boot, restarts on failure
   zerofish-boot.service # early-boot splash service (runs before zerofish.service)
+
+tests/
+  conftest.py               # hardware stubs shared across all unit tests
+  test_screen_render.py     # renders every screen without hardware
+  test_hit_detection.py     # hit-zone geometry for all screens
+  test_wifi_screen.py       # comprehensive WiFi screen tests (138 cases)
+  test_game_state.py        # save/load round-trips
+  test_logic.py             # move generation and SAN helpers
+  test_find_candidates.py   # disambiguation logic
+  test_coordinates.py       # touch → landscape coordinate mapping
+
+generate_screenshots.py     # render all screens to docs/screenshots/ (3× scaled PNGs)
 ```
 
 ## Puzzle system
@@ -213,6 +254,44 @@ The `pz` dict in `main.py` tracks:
 ### Rank labels on the board
 
 `screen_puzzle.py` draws rank numbers 1–8 in the 18 px gap between the board's right edge and the vertical separator line. The label for visual row `vrank` is `vrank+1` when white is at the bottom, or `8-vrank` when black is at the bottom. This makes the board orientation immediately clear without requiring the header to say "White" or "Black".
+
+## WiFi system
+
+### Screen layout
+
+`screen_wifi.py` uses a non-standard left/right split at x = 100 px (vs. the standard `VSEP_X = 192`) to give the right panel 148 px for the 5 × 4 on-screen keyboard. The left panel title bar covers only x = 0..99; the right panel has no header and uses the full 122 px height.
+
+```
+x=0         x=100 x=102                  x=249
+┌────────────┬─┬────────────────────────────┐
+│ Wifi       │ │  (right panel — no header) │  y=0
+├────────────│ │                            │  y=21
+│ list rows  │ │  status / keyboard         │
+│ (6 max)    │ │                            │
+├────────────│ │                            │
+│  Rescan    │ │           Back             │  y=100..120
+└────────────┴─┴────────────────────────────┘
+```
+
+### Right panel modes
+
+| Selected network | Mode |
+|---|---|
+| None / deselected | Back only |
+| Open (no password) | "Open" label + Connect + Back |
+| WPA (has password) | Password field + 5×4 keyboard + Back |
+| Connected | "Connected" + IP address + Forget + Back |
+| Post-forget disconnected | "Disconnected" label + Back |
+
+### OS integration
+
+All network operations use `nmcli` via the private `_run()` helper, which catches `subprocess.SubprocessError` and `OSError` and returns `(-1, '', '<type>: <msg>')` instead of raising. The public functions return `(success: bool, message: str)` for connect operations and are silent on error for `forget_network`.
+
+`scan_networks()` parses nmcli tabular output with `line.split(':', 3)` (max 3 splits) so security strings that contain colons (e.g. `WPA1 WPA2:WPA1 WPA2`) are handled correctly. The scan blocks for up to 20 s; `main.py` renders an empty list screen first so the display is immediately responsive.
+
+### `wifi_status` state variable
+
+`main.py` tracks a `wifi_status: str` alongside the other WiFi state. It is set to `'disconnected'` after a successful Forget + rescan confirms no active connection, and reset to `''` on any Select or Rescan action. The flag is passed through to `build_wifi_screen()` / `hit_wifi()` and suppresses keyboard mode for WPA networks (showing "Disconnected" in the right panel instead).
 
 ## Dev Notes
 

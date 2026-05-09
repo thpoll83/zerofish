@@ -56,6 +56,9 @@ from screen_puzzle             import build_puzzle_screen
 from screen_puzzle_loading     import build_puzzle_loading_screen
 from screen_puzzle_end_confirm import build_puzzle_end_confirm_screen
 from screen_puzzle_hint        import build_puzzle_hint_screen
+from screen_stats              import build_stats_screen
+from screen_settings           import build_settings_screen
+from screen_wifi               import build_wifi_screen, build_wifi_result_screen
 
 SCALE  = 3
 OUTDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', 'screenshots')
@@ -118,6 +121,52 @@ def main() -> None:
 
         ('03_main_menu.png',
          build_main_menu_screen(has_saves=True)),
+
+        ('03b_stats.png',
+         build_stats_screen()),
+
+        ('03c_settings.png',
+         build_settings_screen()),
+
+        ('03d_wifi_list.png',
+         build_wifi_screen(
+             [{'ssid': 'HomeWifi',  'signal': 90, 'in_use': True,
+               'has_password': True,  'ip': '192.168.1.42'},
+              {'ssid': 'CafeNet',   'signal': 65, 'in_use': False,
+               'has_password': False, 'ip': None},
+              {'ssid': 'OfficeNet', 'signal': 50, 'in_use': False,
+               'has_password': True,  'ip': None},
+              {'ssid': 'WeakAP',    'signal': 20, 'in_use': False,
+               'has_password': True,  'ip': None}],
+             selected_idx=0, passwd='', kbd_page=0)),
+
+        ('03e_wifi_connected.png',
+         build_wifi_screen(
+             [{'ssid': 'HomeWifi', 'signal': 90, 'in_use': True,
+               'has_password': True, 'ip': '192.168.1.42'}],
+             selected_idx=0, passwd='', kbd_page=0)),
+
+        ('03f_wifi_open.png',
+         build_wifi_screen(
+             [{'ssid': 'CafeNet', 'signal': 65, 'in_use': False,
+               'has_password': False, 'ip': None}],
+             selected_idx=0, passwd='', kbd_page=0)),
+
+        ('03g_wifi_keyboard.png',
+         build_wifi_screen(
+             [{'ssid': 'OfficeNet', 'signal': 50, 'in_use': False,
+               'has_password': True, 'ip': None}],
+             selected_idx=0, passwd='MyPass', kbd_page=0)),
+
+        ('03h_wifi_disconnected.png',
+         build_wifi_screen(
+             [{'ssid': 'HomeWifi', 'signal': 90, 'in_use': False,
+               'has_password': True, 'ip': None}],
+             selected_idx=0, passwd='', kbd_page=0, status='disconnected')),
+
+        ('03i_wifi_result.png',
+         build_wifi_result_screen('OfficeNet',
+                                  'Error: Secrets were required, but not provided.')),
 
         ('04_difficulty.png',
          build_difficulty_screen(selected=5)),
