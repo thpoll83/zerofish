@@ -246,6 +246,7 @@ def main():
     wifi_passwd:      str        = ''
     wifi_kbd_page:    int        = 0
     wifi_scroll_off:  int        = 0
+    wifi_status:      str        = ''
     wifi_result_ssid: str        = ''
     wifi_result_msg:  str        = ''
 
@@ -996,28 +997,31 @@ def main():
                     wifi_passwd    = ''
                     wifi_kbd_page  = 0
                     wifi_scroll_off = 0
+                    wifi_status    = ''
                     _transition(epd,
                                 build_wifi_screen(wifi_nets, wifi_sel,
                                                   wifi_passwd, wifi_kbd_page,
-                                                  wifi_scroll_off),
+                                                  wifi_scroll_off,
+                                                  status=wifi_status),
                                 partial_count)
 
             # ── WiFi setup ────────────────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_WIFI):
                 action = hit_wifi(lx, ly, wifi_nets, wifi_sel,
-                                  wifi_kbd_page, wifi_scroll_off)
+                                  wifi_kbd_page, wifi_scroll_off,
+                                  status=wifi_status)
                 if action == 'back':
                     machine.transition('back')
                     _transition(epd, build_settings_screen(), partial_count)
 
                 elif action == 'back_kbd':
-                    # Cancel password entry — deselect network
                     wifi_sel    = None
                     wifi_passwd = ''
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,
-                                            wifi_scroll_off),
+                                            wifi_scroll_off,
+                                            status=wifi_status),
                           partial_count)
 
                 elif action is not None and action.startswith('select:'):
@@ -1026,10 +1030,12 @@ def main():
                         wifi_sel    = new_sel
                         wifi_passwd = ''
                         wifi_kbd_page = 0
+                    wifi_status = ''
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,
-                                            wifi_scroll_off),
+                                            wifi_scroll_off,
+                                            status=wifi_status),
                           partial_count)
 
                 elif action is not None and action.startswith('char:'):
@@ -1038,7 +1044,8 @@ def main():
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,
-                                            wifi_scroll_off),
+                                            wifi_scroll_off,
+                                            status=wifi_status),
                           partial_count)
 
                 elif action == 'del':
@@ -1046,7 +1053,8 @@ def main():
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,
-                                            wifi_scroll_off),
+                                            wifi_scroll_off,
+                                            status=wifi_status),
                           partial_count)
 
                 elif action == 'space':
@@ -1054,7 +1062,8 @@ def main():
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,
-                                            wifi_scroll_off),
+                                            wifi_scroll_off,
+                                            status=wifi_status),
                           partial_count)
 
                 elif action == 'prev_page':
@@ -1062,7 +1071,8 @@ def main():
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,
-                                            wifi_scroll_off),
+                                            wifi_scroll_off,
+                                            status=wifi_status),
                           partial_count)
 
                 elif action == 'next_page':
@@ -1070,7 +1080,8 @@ def main():
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,
-                                            wifi_scroll_off),
+                                            wifi_scroll_off,
+                                            status=wifi_status),
                           partial_count)
 
                 elif action == 'connect_open':
@@ -1081,10 +1092,12 @@ def main():
                         wifi_nets = scan_networks()
                         wifi_sel  = next((i for i, n in enumerate(wifi_nets)
                                           if n['in_use']), None)
+                        wifi_status = ''
                         _show(epd,
                               build_wifi_screen(wifi_nets, wifi_sel,
                                                 wifi_passwd, wifi_kbd_page,
-                                                wifi_scroll_off),
+                                                wifi_scroll_off,
+                                                status=wifi_status),
                               partial_count)
                     else:
                         wifi_result_msg = msg
@@ -1103,10 +1116,12 @@ def main():
                         wifi_sel  = next((i for i, n in enumerate(wifi_nets)
                                           if n['in_use']), None)
                         wifi_passwd = ''
+                        wifi_status = ''
                         _show(epd,
                               build_wifi_screen(wifi_nets, wifi_sel,
                                                 wifi_passwd, wifi_kbd_page,
-                                                wifi_scroll_off),
+                                                wifi_scroll_off,
+                                                status=wifi_status),
                               partial_count)
                     else:
                         wifi_result_msg = msg
@@ -1117,15 +1132,23 @@ def main():
                                     partial_count)
 
                 elif action == 'forget':
-                    net = wifi_nets[wifi_sel]
-                    forget_network(net['ssid'])
+                    forgotten_ssid = wifi_nets[wifi_sel]['ssid']
+                    forget_network(forgotten_ssid)
                     wifi_nets = scan_networks()
-                    wifi_sel  = next((i for i, n in enumerate(wifi_nets)
-                                      if n['in_use']), None)
+                    # Re-select the forgotten network so user can see it
+                    wifi_sel = next(
+                        (i for i, n in enumerate(wifi_nets)
+                         if n['ssid'] == forgotten_ssid),
+                        None,
+                    )
+                    wifi_status = ('' if any(n['in_use'] for n in wifi_nets)
+                                   else 'disconnected')
+                    wifi_passwd = ''
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,
-                                            wifi_scroll_off),
+                                            wifi_scroll_off,
+                                            status=wifi_status),
                           partial_count)
 
                 elif action == 'rescan':
@@ -1135,10 +1158,12 @@ def main():
                     wifi_passwd    = ''
                     wifi_kbd_page  = 0
                     wifi_scroll_off = 0
+                    wifi_status    = ''
                     _show(epd,
                           build_wifi_screen(wifi_nets, wifi_sel,
                                             wifi_passwd, wifi_kbd_page,
-                                            wifi_scroll_off),
+                                            wifi_scroll_off,
+                                            status=wifi_status),
                           partial_count)
 
             # ── WiFi result ───────────────────────────────────────────────────
@@ -1148,7 +1173,8 @@ def main():
                     _transition(epd,
                                 build_wifi_screen(wifi_nets, wifi_sel,
                                                   wifi_passwd, wifi_kbd_page,
-                                                  wifi_scroll_off),
+                                                  wifi_scroll_off,
+                                                  status=wifi_status),
                                 partial_count)
 
             if (config.IDLE_SLEEP_SECS > 0

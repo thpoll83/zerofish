@@ -4,15 +4,16 @@ Custom left/right split at x=_WIFI_SEP (100 px) — wider right panel needed
 for the 5×4 on-screen keyboard.
 
 Left panel (0..99 px):
-  • "Wifi Setup" headline
-  • Scrollable network list with signal bars (||||, |||·, ||··, |···)
+  • Compact "Wifi" title bar (left half only)
+  • Scrollable network list with signal bars (||||, ||| , ||  , |   )
   • "Rescan" button at the very bottom
 
-Right panel (102..249 px) adapts to the selected network:
+Right panel (102..249 px) has no title bar; adapts to selected network:
   • Nothing / deselected → Back only
   • Open (no password)   → "Open" label + Connect + Back
   • WPA (has password)   → Password field + 5×4 on-screen keyboard + Back
   • Connected            → "Connected" + IP address + Forget + Back
+  • Disconnected         → "Disconnected" label + Back
 
 On connection failure the caller transitions to SCREEN_WIFI_RESULT which
 shows the error message and an OK button that returns here.
@@ -27,24 +28,23 @@ _WIFI_SEP = 100            # vertical separator x-coordinate
 _RP_X0    = _WIFI_SEP + 2  # right-panel content left edge (= 102)
 _RP_W     = ui.W - _RP_X0  # right-panel content width    (= 148)
 
-# Left panel – network list
+# Left panel – network list (no sub-headline; starts just below title bar)
 _LIST_LH    = 12           # list row height in pixels
-_LIST_HDR_H = 15           # "Wifi Setup" headline height
-_LIST_Y0    = ui.TITLE_H + _LIST_HDR_H + 2  # first list row top (= 38)
+_LIST_Y0    = ui.TITLE_H + 2  # first list row top (= 23)
 
-# Left panel – Rescan button (occupies bottom of left panel)
-_RESCAN_Y0 = ui.H - 15    # = 107
+# Left panel – Rescan button (taller, occupies bottom of left panel)
+_RESCAN_Y0 = ui.H - 22    # = 100
 _RESCAN_Y1 = ui.H - 2     # = 120
 
 # Number of network rows that fit above the Rescan button
-_LIST_MAX_Y    = _RESCAN_Y0 - 1          # = 106
-_LIST_MAX_ROWS = (_LIST_MAX_Y - _LIST_Y0) // _LIST_LH  # = (106-38)//12 = 5
+_LIST_MAX_Y    = _RESCAN_Y0 - 1          # = 99
+_LIST_MAX_ROWS = (_LIST_MAX_Y - _LIST_Y0) // _LIST_LH  # = (99-23)//12 = 6
 
 _SSID_MAX_CHARS = 12      # SSID characters shown in list before truncation
 
-# Password field (keyboard mode, top of right panel)
-_PW_Y0 = ui.TITLE_H + 2   # = 23
-_PW_Y1 = _PW_Y0 + 14      # = 37
+# Right panel – password field (no title bar on right, so start at y=2)
+_PW_Y0 = 2
+_PW_Y1 = _PW_Y0 + 14      # = 16
 _PW_X0 = _RP_X0
 _PW_X1 = ui.W - 2
 
@@ -54,29 +54,29 @@ _KBD_ROWS  = 4
 _KBD_BTN_W = (_RP_W - (_KBD_COLS - 1)) // _KBD_COLS  # = (148-4)//5 = 28
 _KBD_BTN_H = 16
 _KBD_GAP   = 1
-_KBD_Y0    = _PW_Y1 + 2   # = 39
+_KBD_Y0    = _PW_Y1 + 2   # = 18
 _KBD_COL_X = [_RP_X0 + j * (_KBD_BTN_W + _KBD_GAP) for j in range(_KBD_COLS)]
 _KBD_ROW_Y = [_KBD_Y0 + i * (_KBD_BTN_H + _KBD_GAP) for i in range(_KBD_ROWS)]
 # Row 3 special keys: Del, Space, prev-page, next-page, Connect/OK
 _KBD_SPECIAL = ['Del', 'Sp', '<', '>', 'OK']
 
 # Back button below the keyboard grid (keyboard mode only)
-_KBACK_Y0 = _KBD_ROW_Y[-1] + _KBD_BTN_H + 2  # = 108
+_KBACK_Y0 = _KBD_ROW_Y[-1] + _KBD_BTN_H + 2  # = 69+16+2 = 87
 _KBACK_Y1 = ui.H - 2                           # = 120
 
-# Right panel buttons – list mode
-_RP_BTN_X0  = _RP_X0 + 2          # = 104
-_RP_BTN_X1  = ui.W - 3            # = 247
-_RP_BTN_H   = 22
-_RP_STATUS_Y = ui.TITLE_H + 7     # = 28  (status text baseline)
+# Right panel buttons – list mode (right panel has no title bar)
+_RP_BTN_X0   = _RP_X0 + 2          # = 104
+_RP_BTN_X1   = ui.W - 3            # = 247
+_RP_BTN_H    = 22
+_RP_STATUS_Y = 7                    # status text baseline (near top of right panel)
+_RP_IP_Y     = _RP_STATUS_Y + 13   # = 20 (IP address text baseline)
 # Open-network action button
-_RP_BTN1_Y0 = ui.TITLE_H + 20     # = 41
-_RP_BTN1_Y1 = _RP_BTN1_Y0 + _RP_BTN_H  # = 63
-# Connected-network: IP address row then Forget button (shifted down)
-_RP_IP_Y         = _RP_STATUS_Y + 13      # = 41  (IP text baseline)
-_RP_BTN1_CONN_Y0 = _RP_IP_Y + 10         # = 51
-_RP_BTN1_CONN_Y1 = _RP_BTN1_CONN_Y0 + _RP_BTN_H  # = 73
-# Back button (list mode) – same position as keyboard-mode Back
+_RP_BTN1_Y0  = 21
+_RP_BTN1_Y1  = _RP_BTN1_Y0 + _RP_BTN_H  # = 43
+# Connected-network: Forget button (shifted 20 px below compact position)
+_RP_BTN1_CONN_Y0 = 55
+_RP_BTN1_CONN_Y1 = _RP_BTN1_CONN_Y0 + _RP_BTN_H  # = 77
+# Back button (list mode)
 _RP_BACK_Y0 = ui.H - 14           # = 108
 _RP_BACK_Y1 = ui.H - 2            # = 120
 
@@ -225,18 +225,14 @@ def _signal_bars(signal):
 
 
 def _draw_separator(draw):
-    draw.line([(_WIFI_SEP, ui.TITLE_H), (_WIFI_SEP, ui.H - 1)], fill=0)
+    draw.line([(_WIFI_SEP, 0), (_WIFI_SEP, ui.H - 1)], fill=0)
 
 
 def _draw_network_list(draw, f, networks, selected_idx, scroll_off=0):
-    """Draw left panel: headline, network rows, rescan button."""
+    """Draw left panel: network rows and rescan button."""
     hf = f['small']
 
-    # Headline
-    draw.text((2, ui.TITLE_H + 2), 'Wifi Setup', font=hf, fill=0)
-    draw.line([(0, _LIST_Y0 - 1), (_WIFI_SEP - 1, _LIST_Y0 - 1)], fill=0)
-
-    # Network rows (limited by _LIST_MAX_ROWS)
+    # Network rows
     for slot in range(_LIST_MAX_ROWS):
         idx = scroll_off + slot
         if idx >= len(networks):
@@ -283,13 +279,14 @@ def _rp_hit(lx, ly, y0, y1):
 class WifiScreen(ui.Screen):
     name = 'wifi'
 
-    def build(self, networks, selected_idx, passwd, kbd_page, scroll_off=0):
+    def build(self, networks, selected_idx, passwd, kbd_page,
+              scroll_off=0, status=''):
         img, draw = self.new_image()
         f = self.fonts
 
-        # Title bar
-        draw.rectangle([(0, 0), (ui.W - 1, ui.TITLE_H - 1)], fill=0)
-        draw.text((4, 3), 'ZeroFish: Wifi', font=f['title'], fill=255)
+        # Title bar covers the left panel only
+        draw.rectangle([(0, 0), (_WIFI_SEP - 1, ui.TITLE_H - 1)], fill=0)
+        draw.text((4, 3), 'Wifi', font=f['title'], fill=255)
 
         _draw_separator(draw)
         _draw_network_list(draw, f, networks, selected_idx, scroll_off)
@@ -298,11 +295,17 @@ class WifiScreen(ui.Screen):
                if selected_idx is not None and selected_idx < len(networks)
                else None)
 
-        # Choose right-panel mode
-        if net is not None and net['has_password'] and not net['in_use']:
+        # Keyboard mode only when WPA network is selected, not connected,
+        # and we are not showing a post-forget disconnected state.
+        keyboard_mode = (net is not None
+                         and net['has_password']
+                         and not net['in_use']
+                         and status != 'disconnected')
+
+        if keyboard_mode:
             self._draw_keyboard_panel(draw, f, passwd, kbd_page)
         else:
-            self._draw_list_panel(draw, f, net)
+            self._draw_list_panel(draw, f, net, status)
 
         return img
 
@@ -345,29 +348,33 @@ class WifiScreen(ui.Screen):
         ui.draw_centered(draw, cx, (_KBACK_Y0 + _KBACK_Y1) // 2,
                          'Back', f['btn_diff'], 0)
 
-    def _draw_list_panel(self, draw, f, net):
+    def _draw_list_panel(self, draw, f, net, status=''):
         hf = f['small']
         if net is not None:
             if net['in_use']:
-                # Connected: show status, IP, Forget
                 draw.text((_RP_BTN_X0, _RP_STATUS_Y), 'Connected', font=hf, fill=0)
                 ip = net.get('ip')
                 if ip:
                     draw.text((_RP_BTN_X0, _RP_IP_Y), ip, font=hf, fill=0)
                 _draw_rp_btn(draw, f, _RP_BTN1_CONN_Y0, _RP_BTN1_CONN_Y1, 'Forget')
+            elif status == 'disconnected':
+                draw.text((_RP_BTN_X0, _RP_STATUS_Y), 'Disconnected', font=hf, fill=0)
             else:
-                # Open unconnected: show status, Connect
                 draw.text((_RP_BTN_X0, _RP_STATUS_Y), 'Open', font=hf, fill=0)
                 _draw_rp_btn(draw, f, _RP_BTN1_Y0, _RP_BTN1_Y1, 'Connect')
         _draw_rp_btn(draw, f, _RP_BACK_Y0, _RP_BACK_Y1, 'Back')
 
     # ── Hit detection ─────────────────────────────────────────────────────────
 
-    def hit(self, lx, ly, networks, selected_idx, kbd_page, scroll_off=0):
+    def hit(self, lx, ly, networks, selected_idx, kbd_page,
+            scroll_off=0, status=''):
         net = (networks[selected_idx]
                if selected_idx is not None and selected_idx < len(networks)
                else None)
-        keyboard_mode = (net is not None and net['has_password'] and not net['in_use'])
+        keyboard_mode = (net is not None
+                         and net['has_password']
+                         and not net['in_use']
+                         and status != 'disconnected')
 
         # Left panel
         if lx < _WIFI_SEP:
@@ -383,7 +390,7 @@ class WifiScreen(ui.Screen):
         # Right panel
         if keyboard_mode:
             return self._hit_keyboard(lx, ly, kbd_page)
-        return self._hit_list_panel(lx, ly, net)
+        return self._hit_list_panel(lx, ly, net, status)
 
     def _hit_keyboard(self, lx, ly, kbd_page):
         # Back button (below keyboard)
@@ -416,14 +423,14 @@ class WifiScreen(ui.Screen):
                 if key == 'OK':  return 'connect_wpa'
         return None
 
-    def _hit_list_panel(self, lx, ly, net):
+    def _hit_list_panel(self, lx, ly, net, status=''):
         if _rp_hit(lx, ly, _RP_BACK_Y0, _RP_BACK_Y1):
             return 'back'
         if net is not None:
             if net['in_use']:
                 if _rp_hit(lx, ly, _RP_BTN1_CONN_Y0, _RP_BTN1_CONN_Y1):
                     return 'forget'
-            else:
+            elif status != 'disconnected':
                 if _rp_hit(lx, ly, _RP_BTN1_Y0, _RP_BTN1_Y1):
                     return 'connect_open'
         return None
@@ -432,12 +439,16 @@ class WifiScreen(ui.Screen):
 _screen = WifiScreen()
 
 
-def build_wifi_screen(networks, selected_idx, passwd, kbd_page, scroll_off=0):
-    return _screen.build(networks, selected_idx, passwd, kbd_page, scroll_off)
+def build_wifi_screen(networks, selected_idx, passwd, kbd_page,
+                      scroll_off=0, status=''):
+    return _screen.build(networks, selected_idx, passwd, kbd_page,
+                         scroll_off, status)
 
 
-def hit_wifi(lx, ly, networks, selected_idx, kbd_page, scroll_off=0):
-    return _screen.hit(lx, ly, networks, selected_idx, kbd_page, scroll_off)
+def hit_wifi(lx, ly, networks, selected_idx, kbd_page,
+             scroll_off=0, status=''):
+    return _screen.hit(lx, ly, networks, selected_idx, kbd_page,
+                       scroll_off, status)
 
 
 # ── WiFi result screen (connection failure/success message) ───────────────────

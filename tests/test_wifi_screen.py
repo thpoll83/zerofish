@@ -571,9 +571,9 @@ class TestHitLeftPanel(unittest.TestCase):
         self.assertEqual(self._hit(self._LX, ly, scroll=2), 'select:2')
 
     def test_tap_beyond_available_networks_returns_none(self):
-        # Only 5 nets (indices 0-4); slot 5 falls in the gap between the list
-        # and the Rescan button (_RESCAN_Y0=107), so it must return None.
-        ly = _LIST_Y0 + 5 * _LIST_LH + _LIST_LH // 2  # = 38+60+6 = 104
+        # Only 5 nets (indices 0-4); slot 5 is within _LIST_MAX_ROWS (6) but
+        # idx=5 >= len(networks)=5, so it must return None.
+        ly = _LIST_Y0 + 5 * _LIST_LH + _LIST_LH // 2
         self.assertIsNone(self._hit(self._LX, ly))
 
     def test_tap_empty_list_returns_none(self):
@@ -581,9 +581,9 @@ class TestHitLeftPanel(unittest.TestCase):
         result = hit_wifi(self._LX, ly, [], None, 0)
         self.assertIsNone(result)
 
-    def test_tap_headline_area_returns_none(self):
-        # y is in the "Wifi Setup" headline, above the list
-        ly = ui.TITLE_H + 5
+    def test_tap_title_bar_area_returns_none(self):
+        # y is inside the left title bar (above _LIST_Y0), must return None
+        ly = ui.TITLE_H - 2
         self.assertIsNone(self._hit(self._LX, ly))
 
     def test_tap_rescan_button(self):
@@ -926,10 +926,11 @@ class TestInteractionFlows(unittest.TestCase):
         self.assertGreaterEqual(_RESCAN_Y0, last_list_bottom)
 
     def test_rp_back_does_not_overlap_keyboard(self):
-        # In list mode, RP_BACK and KBD_BACK occupy the same y band — that's OK
-        # (they are never shown simultaneously). Just confirm they coincide.
-        self.assertEqual(_RP_BACK_Y0, _KBACK_Y0)
-        self.assertEqual(_RP_BACK_Y1, _KBACK_Y1)
+        # Keyboard Back (KBD) and list-mode Back (RP) are never shown together.
+        # KBD_BACK starts higher (keyboard fills full right panel height);
+        # RP_BACK sits lower. Both reach the same bottom edge.
+        self.assertLessEqual(_KBACK_Y0, _RP_BACK_Y0)
+        self.assertEqual(_KBACK_Y1, _RP_BACK_Y1)
 
     def test_connected_forget_below_ip_row(self):
         self.assertGreater(_RP_BTN1_CONN_Y0, _RP_IP_Y)
