@@ -12,6 +12,26 @@
 
 The display attaches to the GPIO header. No additional wiring is needed beyond the HAT.
 
+## Dev machine setup
+
+One-time setup on the development machine (Linux / macOS):
+
+```bash
+# 1. Create and populate the Python venv
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+# 2. (Linux only) Install the system package that provides tkinter
+#    Required for debug_viewer.py — the rest of the venv works without it
+sudo apt install python3-tk   # Debian / Ubuntu / Raspberry Pi OS
+```
+
+`tkinter` is Python stdlib; its C extension (`_tkinter.so`) lives in Python's
+`lib-dynload` directory, so it is visible inside the venv once `python3-tk` is
+installed — no venv recreation needed.
+
+macOS ships `tkinter` out of the box with its system Python 3 / Homebrew Python.
+
 ## First-time setup
 
 1. Flash a 64-bit Raspberry Pi OS (Trixie / Debian 13) image.
@@ -143,6 +163,56 @@ Each test starts `main.main()` in a background thread, injects touch events via 
 ```bash
 pip3 install pytest --break-system-packages
 ```
+
+## Debug remote viewer
+
+`debug_viewer.py` lets you run the full application on the RPi and control it
+from your dev machine — no physical touch required. Every rendered frame is
+streamed over TCP and displayed in a scaled window; left-clicks are forwarded
+as touch events.
+
+### Start
+
+```bash
+# 1. Deploy the latest code
+bash deploy/deploy.sh
+
+# 2. On the RPi — stop the normal service and start in debug mode
+ssh zero@zerofish.local 'sudo systemctl stop zerofish && cd ~/zerofish && python3 main.py --debug-remote'
+
+# 3. On the dev machine — open the viewer (in a separate terminal)
+.venv/bin/python3 debug_viewer.py            # connects to zerofish.local:7373
+.venv/bin/python3 debug_viewer.py <host>     # custom host / IP
+```
+
+The viewer connects automatically and shows the current screen immediately
+(the server replays the last frame to any new connection). Left-click anywhere
+in the window to inject a touch event at that position.
+
+When finished, `Ctrl-C` the SSH session to stop the app; the normal service
+can be restarted with:
+
+```bash
+bash deploy/deploy.sh   # also restarts the service
+```
+
+### How it works
+
+`--debug-remote` swaps the real e-paper and touch hardware for in-process stubs
+(`DebugEPD`, `DebugGT1151` in `zerofish/debug_remote.py`):
+
+- **Display:** `DebugEPD.getbuffer()` returns the PIL image unchanged.
+  `displayPartBaseImage` / `displayPartial_Wait` encode it as PNG and broadcast
+  to all connected viewers over a length-prefixed TCP stream (port 7373).
+- **Touch:** viewer clicks are sent as `[4-byte length][8 bytes: lx, ly int32]`.
+  `DebugGT1151.digital_read()` signals the IRQ when the queue is non-empty;
+  `GT_Scan()` dequeues the event and back-transforms logical `(lx, ly)` to raw
+  device coordinates so the existing `to_landscape()` call in `main.py`
+  reconstructs the original values correctly.
+
+The rest of `main.py` — game logic, Stockfish, WiFi, all screen modules — runs
+unchanged. Multiple viewers can connect simultaneously (all receive the same
+frames; any viewer can inject touches).
 
 ## Project structure
 

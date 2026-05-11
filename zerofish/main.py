@@ -6,12 +6,14 @@ Landscape orientation: hold the device with the short edge at top/bottom
 Score sheet uses portrait orientation (USB at bottom).
 """
 
+import sys
 import time
 import random
 import logging
 import threading
 
-from TP_lib import epd2in13_V4, gt1151
+# TP_lib imports are deferred to main() — epdconfig.py claims GPIO at module
+# level, which crashes on non-Pi hardware and conflicts in --debug-remote mode.
 import chess
 import chess.engine
 
@@ -180,10 +182,19 @@ def _scan_move_buttons(lx, ly, sel_piece, sel_file, sel_rank):
 
 
 def main():
-    epd = epd2in13_V4.EPD()
-    gt  = gt1151.GT1151()
-    dev = gt1151.GT_Development()
-    old = gt1151.GT_Development()
+    if '--debug-remote' in sys.argv:
+        import debug_remote as _dr
+        _dr.start()
+        epd = _dr.DebugEPD()
+        gt  = _dr.DebugGT1151()
+        dev = _dr.GTDevelopment()
+        old = _dr.GTDevelopment()
+    else:
+        from TP_lib import epd2in13_V4, gt1151
+        epd = epd2in13_V4.EPD()
+        gt  = gt1151.GT1151()
+        dev = gt1151.GT_Development()
+        old = gt1151.GT_Development()
 
     log.info('ZeroFish v%s starting', config.VERSION)
 

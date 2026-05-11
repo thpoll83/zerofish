@@ -1,0 +1,15 @@
+# Dev-machine venv — local tests, screenshot generation, debug viewer
+# Install: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+#
+# System prerequisite for debug_viewer.py (Linux):
+#   sudo apt install python3-tk
+# (tkinter is stdlib; _tkinter.so is in lib-dynload, accessible from the venv)
+
+chess==1.11.2
+iniconfig==2.3.0
+packaging==26.2
+pillow==12.2.0
+pluggy==1.6.0
+Pygments==2.20.0
+pytest==9.0.3
+zstandard==0.25.0

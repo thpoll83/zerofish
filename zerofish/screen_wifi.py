@@ -148,10 +148,14 @@ def scan_networks():
     Sorted: connected first, then descending signal strength.
     Returns [] on any error.
     """
+    # Trigger a fresh scan; ignore failure (driver enforces a minimum scan
+    # interval, so back-to-back rescans are rate-limited — but the NM cache
+    # from the previous scan is still valid and returned below).
+    _run(['nmcli', 'device', 'wifi', 'rescan'], timeout=15)
     code, out, _ = _run(
         ['nmcli', '-t', '-f', 'IN-USE,SSID,SIGNAL,SECURITY',
-         'device', 'wifi', 'list', '--rescan', 'yes'],
-        timeout=20,
+         'device', 'wifi', 'list', '--rescan', 'no'],
+        timeout=10,
     )
     if code != 0:
         return []
