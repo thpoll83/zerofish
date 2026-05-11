@@ -6,7 +6,20 @@ A standalone chess computer built on a Raspberry Pi Zero 2 W with a WaveShare 2.
 
 ---
 
-Jump to: [English](#english) · [Deutsch](#deutsch) · [Français](#français) · [Español](#español) · [한국어](#한국어)
+Jump to: [Hardware](#hardware) · [English](#english) · [Deutsch](#deutsch) · [Français](#français) · [Español](#español) · [한국어](#한국어)
+
+---
+
+<a id="hardware"></a>
+
+## Hardware
+
+| Part | Where to buy |
+|------|-------------|
+| Raspberry Pi Zero 2 W | [Amazon](https://amzn.eu/d/0armY7FJ) |
+| WaveShare 2.13" Touch e-Paper HAT V4 | [Amazon](https://amzn.eu/d/086WPCji) |
+| Micro USB cable + USB power supply or power bank | — |
+| Standard chess board | any physical board |
 
 ---
 
