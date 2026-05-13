@@ -133,9 +133,15 @@ else
     for URL in "${BOOK_URLS[@]}"; do
         echo "Trying $URL ..."
         if sudo wget -q --timeout=30 -O "$BOOK_FILE" "$URL" 2>/dev/null; then
-            DOWNLOADED=true
-            echo "Opening book downloaded to $BOOK_FILE."
-            break
+            SIZE=$(stat -c%s "$BOOK_FILE" 2>/dev/null || echo 0)
+            if [ "$SIZE" -ge 16 ] && [ $(( SIZE % 16 )) -eq 0 ]; then
+                DOWNLOADED=true
+                echo "Opening book downloaded to $BOOK_FILE ($SIZE bytes)."
+                break
+            else
+                echo "  Invalid Polyglot file (size=$SIZE, expected ≥16 and multiple of 16) — trying next URL."
+                sudo rm -f "$BOOK_FILE"
+            fi
         fi
     done
     if [ "$DOWNLOADED" = false ]; then

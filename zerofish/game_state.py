@@ -134,11 +134,16 @@ def clear(path: str) -> None:
 
 # ── Game outcome statistics ───────────────────────────────────────────────────
 
-_OUTCOME_MAP = {
-    'You win!':  'wins',
-    'You lose':  'losses',
-    'Draw':      'draws',
-    'Resigned':  'resigned',
+OUTCOME_WIN      = 'win'
+OUTCOME_LOSS     = 'loss'
+OUTCOME_DRAW     = 'draw'
+OUTCOME_RESIGNED = 'resigned'
+
+_OUTCOME_STATS_KEYS = {
+    OUTCOME_WIN:      'wins',
+    OUTCOME_LOSS:     'losses',
+    OUTCOME_DRAW:     'draws',
+    OUTCOME_RESIGNED: 'resigned',
 }
 
 
@@ -151,9 +156,9 @@ def load_game_stats() -> dict:
         return {}
 
 
-def record_result(line1: str) -> None:
-    """Increment the counter for the outcome described by *line1*."""
-    key = _OUTCOME_MAP.get(line1)
+def record_result(code: str) -> None:
+    """Increment the counter for outcome *code* (one of the OUTCOME_* constants)."""
+    key = _OUTCOME_STATS_KEYS.get(code)
     if key is None:
         return
     stats = load_game_stats()

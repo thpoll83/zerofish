@@ -329,17 +329,20 @@ def main() -> None:
         # Start position (move 0/10)
         ('35_analyze_start.png',
          build_analyze_screen(az_start, 0, len(move_history),
-                               player_is_white=True)),
+                               player_is_white=True,
+                               played_san='', best_san='e4')),
 
         # After move 5 (e4 e5 Nf3 Nc6 Bb5) — last move highlighted
         ('36_analyze_mid.png',
          build_analyze_screen(az_mid, 5, len(move_history),
-                               last_move=az_mid_last, player_is_white=True)),
+                               last_move=az_mid_last, player_is_white=True,
+                               played_san='Bb5', best_san='a4')),
 
         # Final position (all 10 moves played) — only "End" button shown
         ('37_analyze_end.png',
          build_analyze_screen(board, len(move_history), len(move_history),
-                               player_is_white=True)),
+                               player_is_white=True,
+                               played_san='Be7', best_san='')),
     ]
 
     for name, img in screens:

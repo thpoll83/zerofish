@@ -1,5 +1,6 @@
 import chess
 from PIL import Image, ImageDraw
+import game_state
 import ui
 
 
@@ -52,3 +53,14 @@ def build_game_over_screen(line1: str, line2: str) -> Image.Image:
 
 def hit_game_over(lx: int, ly: int) -> str | None:
     return _screen.hit(lx, ly)
+
+
+def game_over_outcome(board: chess.Board, player_is_white: bool) -> str:
+    """Return a game_state.OUTCOME_* constant for the finished game."""
+    outcome = board.outcome()
+    if outcome is None:
+        return game_state.OUTCOME_LOSS
+    if outcome.termination == chess.Termination.CHECKMATE:
+        return (game_state.OUTCOME_WIN if outcome.winner == player_is_white
+                else game_state.OUTCOME_LOSS)
+    return game_state.OUTCOME_DRAW
