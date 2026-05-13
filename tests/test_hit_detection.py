@@ -123,8 +123,18 @@ def test_hit_main_menu_puzzle():
     assert hit_main_menu(_cx(r), _cy(r)) == 'puzzle'
 
 
-def test_hit_main_menu_back():
+def test_hit_main_menu_stats():
     r = _menu_rect(3)
+    assert hit_main_menu(_cx(r), _cy(r)) == 'stats'
+
+
+def test_hit_main_menu_settings():
+    r = _menu_rect(4)
+    assert hit_main_menu(_cx(r), _cy(r)) == 'settings'
+
+
+def test_hit_main_menu_back():
+    r = _menu_rect(5)
     assert hit_main_menu(_cx(r), _cy(r)) == 'back'
 
 

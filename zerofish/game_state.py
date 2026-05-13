@@ -10,7 +10,8 @@ from datetime import datetime
 import chess
 import config
 
-SAVE_DIR = config.SAVE_DIR
+SAVE_DIR       = config.SAVE_DIR
+_STATS_FILE    = os.path.join(SAVE_DIR, 'game_stats.json')
 _OLD_SAVE_PATH = os.path.expanduser('~/.zerofish_save.json')
 
 
@@ -129,3 +130,37 @@ def clear(path: str) -> None:
             os.remove(path)
         except OSError:
             pass
+
+
+# ── Game outcome statistics ───────────────────────────────────────────────────
+
+_OUTCOME_MAP = {
+    'You win!':  'wins',
+    'You lose':  'losses',
+    'Draw':      'draws',
+    'Resigned':  'resigned',
+}
+
+
+def load_game_stats() -> dict:
+    """Return the game-result counters dict (wins/losses/draws/resigned)."""
+    try:
+        with open(_STATS_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def record_result(line1: str) -> None:
+    """Increment the counter for the outcome described by *line1*."""
+    key = _OUTCOME_MAP.get(line1)
+    if key is None:
+        return
+    stats = load_game_stats()
+    stats[key] = stats.get(key, 0) + 1
+    os.makedirs(SAVE_DIR, exist_ok=True)
+    try:
+        with open(_STATS_FILE, 'w') as f:
+            json.dump(stats, f)
+    except OSError:
+        pass

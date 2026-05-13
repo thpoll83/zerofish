@@ -116,6 +116,35 @@ echo "=== 7. Verifying I2C bus (GT1151 touch controller should appear at 0x14) =
 sudo i2cdetect -y 1
 
 echo ""
+echo "=== 8. Opening book ==="
+BOOK_DIR=/usr/local/share/zerofish
+sudo mkdir -p "$BOOK_DIR"
+BOOK_FILE="$BOOK_DIR/opening_book.bin"
+# Polyglot opening book — used by ZeroFish for instant engine replies in known openings.
+# Primary source: Stockfish official books repository (performance.bin, ~300 KB).
+BOOK_URLS=(
+    "https://raw.githubusercontent.com/official-stockfish/books/master/performance.bin"
+    "https://raw.githubusercontent.com/official-stockfish/books/master/Perfect2023.bin"
+)
+if [ -f "$BOOK_FILE" ]; then
+    echo "Opening book already present at $BOOK_FILE."
+else
+    DOWNLOADED=false
+    for URL in "${BOOK_URLS[@]}"; do
+        echo "Trying $URL ..."
+        if sudo wget -q --timeout=30 -O "$BOOK_FILE" "$URL" 2>/dev/null; then
+            DOWNLOADED=true
+            echo "Opening book downloaded to $BOOK_FILE."
+            break
+        fi
+    done
+    if [ "$DOWNLOADED" = false ]; then
+        sudo rm -f "$BOOK_FILE"
+        echo "Opening book download failed — ZeroFish will run without it (engine will think for every move)."
+    fi
+fi
+
+echo ""
 echo "=== Setup complete ==="
 echo "Reboot recommended if SPI/I2C were just enabled for the first time:"
 echo "  sudo reboot"
