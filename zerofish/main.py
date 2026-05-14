@@ -841,6 +841,8 @@ def main():
                     _transition(epd, build_splash_screen(sf_info), partial_count)
 
                 elif action == 'analyze':
+                    game_state.clear(save_path)
+                    save_path            = None
                     analyze_history      = list(move_history)
                     analyze_player_white = player_is_white
                     analyze_idx          = 0
