@@ -854,7 +854,8 @@ def main():
                         try:
                             r = engine.play(analyze_board, chess.engine.Limit(time=0.1))
                             analyze_best_san = analyze_board.san(r.move)
-                        except Exception:
+                        except Exception as e:
+                            log.debug('analyze best-move query failed: %s', e)
                             analyze_best_san = ''
                     machine.transition('analyze')
                     _transition(epd,
@@ -879,7 +880,8 @@ def main():
                         try:
                             r = engine.play(analyze_board, chess.engine.Limit(time=0.1))
                             analyze_best_san = analyze_board.san(r.move)
-                        except Exception:
+                        except Exception as e:
+                            log.debug('analyze best-move query failed: %s', e)
                             analyze_best_san = ''
                     else:
                         analyze_best_san = ''
