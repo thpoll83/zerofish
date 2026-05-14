@@ -56,6 +56,8 @@ SCREEN_STATS                = 24
 SCREEN_SETTINGS             = 25
 SCREEN_WIFI                 = 26
 SCREEN_WIFI_RESULT          = 27
+SCREEN_GAME_STATS           = 28
+SCREEN_ANALYZE              = 29
 
 # ── Font cache (keyed by family name) ─────────────────────────────────────────
 _fonts_cache: dict = {}
@@ -200,7 +202,9 @@ def draw_chrome(draw, f, screen_title='', ok_active=False, sec_label=None,
         sec_y1 = NT_SEC_Y1 if no_title else SEC_Y1
         sec_cy = (sec_y0 + sec_y1) // 2
         draw_btn_bar(draw, [(OK_X0, sec_y0), (OK_X1, sec_y1)])
-        draw_centered(draw, cx, sec_cy, sec_label, f['btn'], 0)
+        # Use smaller font for longer labels so text stays within the narrow button.
+        sec_font = f['plain'] if len(sec_label) > 4 else f['btn']
+        draw_centered(draw, cx, sec_cy, sec_label, sec_font, 0)
 
 
 # ── Touch helpers ─────────────────────────────────────────────────────────────

@@ -57,8 +57,10 @@ from screen_puzzle_loading     import build_puzzle_loading_screen
 from screen_puzzle_end_confirm import build_puzzle_end_confirm_screen
 from screen_puzzle_hint        import build_puzzle_hint_screen
 from screen_stats              import build_stats_screen
+from screen_game_stats         import build_game_stats_screen
 from screen_settings           import build_settings_screen
 from screen_wifi               import build_wifi_screen, build_wifi_result_screen
+from screen_analyze            import build_analyze_screen
 
 SCALE  = 3
 OUTDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', 'screenshots')
@@ -124,6 +126,9 @@ def main() -> None:
 
         ('03b_stats.png',
          build_stats_screen()),
+
+        ('03b2_game_stats.png',
+         build_game_stats_screen()),
 
         ('03c_settings.png',
          build_settings_screen()),
@@ -306,6 +311,38 @@ def main() -> None:
                                    hint_fen=hint_fen_start,
                                    hint_moves=['e7e5', 'd2d4', 'e5d4'],
                                    hint_move_idx=2)),
+
+    ]
+
+    # ── Analyze screenshots (built after screens list, need extra boards) ────
+    az_start = chess.Board()
+
+    az_mid = chess.Board()
+    az_mid_last = None
+    for i, uci in enumerate(ruy_lopez[:5]):
+        mv = chess.Move.from_uci(uci)
+        if i == 4:
+            az_mid_last = mv
+        az_mid.push(mv)
+
+    screens += [
+        # Start position (move 0/10)
+        ('35_analyze_start.png',
+         build_analyze_screen(az_start, 0, len(move_history),
+                               player_is_white=True,
+                               played_san='', best_san='e4')),
+
+        # After move 5 (e4 e5 Nf3 Nc6 Bb5) — last move highlighted
+        ('36_analyze_mid.png',
+         build_analyze_screen(az_mid, 5, len(move_history),
+                               last_move=az_mid_last, player_is_white=True,
+                               played_san='Bb5', best_san='a4')),
+
+        # Final position (all 10 moves played) — only "End" button shown
+        ('37_analyze_end.png',
+         build_analyze_screen(board, len(move_history), len(move_history),
+                               player_is_white=True,
+                               played_san='Be7', best_san='')),
     ]
 
     for name, img in screens:
