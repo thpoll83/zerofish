@@ -1,8 +1,8 @@
 # Test photos
 
 The `board_*.jpg` files are photographs of real chess boards taken from the `test/in` folder of
-the MIT-licensed project <https://github.com/maciejczyzewski/neural-chessboard> (copyright
-2017-present Maciej A. Czyzewski and contributors), downscaled to at most 1000 px and renamed
+<https://github.com/maciejczyzewski/neural-chessboard> (GNU GPL v3, copyright 2017-present
+Maciej A. Czyzewski and contributors), downscaled to at most 1000 px and renamed
 (`board_12.jpg` was `test/in/12.jpg`, `board_cc7.jpg` was `test/in/cc7.jpg`). They are used only
 as unit-test inputs.
 

@@ -37,7 +37,9 @@ object MoveInference {
         var total = 0.0
         for (sq in 0 until 64) {
             val o = obs[sq]
-            val w = reliability(occluders, sq, nearSide)
+            // a square hidden behind a piece in either the old or the new position counts less;
+            // taking the minimum keeps a candidate from buying credibility with its own pieces
+            val w = minOf(reliability(occluders, sq, nearSide), reliability(expectedOccupancy, sq, nearSide))
             when (expectedOccupancy[sq]) {
                 0 -> total += w * o.occupied
                 1 -> total += w * ((1 - o.occupied) + o.occupied * (1 - o.white))

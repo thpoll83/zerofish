@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chesscoach.app.CameraCapture
+import com.chesscoach.app.LiveCamera
 import com.chesscoach.app.GameViewModel
 import com.chesscoach.app.Phase
 import com.chesscoach.app.Purpose
@@ -46,6 +47,7 @@ fun ChessCoachApp(vm: GameViewModel) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         when (state.phase) {
             Phase.SETUP -> SetupScreen(state, vm)
+            Phase.LIVE -> LiveScreen(state, vm)
             Phase.SCAN_START -> ScanStartScreen(state, vm)
             Phase.CONFIRM_START -> ConfirmStartScreen(state, vm)
             Phase.PICK_CORNERS -> PickCornersScreen(state, vm)
@@ -115,13 +117,15 @@ private fun SetupScreen(state: UiState, vm: GameViewModel) {
         )
     }
     Spacer(Modifier.height(16.dp))
+    Spacer(Modifier.height(8.dp))
+    Button(onClick = { vm.startLive() }, modifier = Modifier.fillMaxWidth()) { Text("Start: watch the board live") }
     Text(
-        "Set up the pieces for a new game and photograph the whole board, from above or from your seat. " +
-            "The app finds the board by itself. After each of your opponent's moves, tap Scan and take another photo; " +
-            "the phone does not need to stay in place.",
+        "Set up the starting position and point the camera at the board, or put the phone on a stand. " +
+            "The app learns your pieces from the first frames and then follows every move by itself.",
+        style = MaterialTheme.typography.bodySmall,
     )
-    Spacer(Modifier.height(16.dp))
-    Button(onClick = { vm.beginStartScan() }, modifier = Modifier.fillMaxWidth()) { Text("Scan the starting position") }
+    Spacer(Modifier.height(8.dp))
+    OutlinedButton(onClick = { vm.beginStartScan() }, modifier = Modifier.fillMaxWidth()) { Text("Photo mode (one photo per move)") }
     if (state.calibrated) {
         TextButton(onClick = { vm.newGame() }) { Text("Continue with the current game") }
     }
@@ -177,6 +181,81 @@ private fun PickCornersScreen(state: UiState, vm: GameViewModel) {
 }
 
 @Composable
+private fun SuggestionCard(state: UiState, vm: GameViewModel) {
+    val result = state.board.result()
+    if (!(state.myTurn && result == GameResult.ONGOING)) return
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp)) {
+            val sug = state.suggestion
+            if (sug == null || sug.lines.isEmpty()) {
+                Text(if (state.thinking) "Stockfish is thinking..." else if (state.engineReady) "No suggestion yet." else state.engineStatus)
+            } else {
+                Text("Play ${sug.bestSan ?: "?"}", style = MaterialTheme.typography.headlineSmall)
+                sug.lines.forEachIndexed { i, line ->
+                    val first = line.pv.firstOrNull()?.let { vm.sanOf(state.board, it) } ?: "?"
+                    Text("${i + 1}. $first  ${line.scoreText()}  depth ${line.depth ?: "?"}", style = MaterialTheme.typography.bodySmall)
+                }
+                if (!sug.done) Text("still thinking...", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LiveScreen(state: UiState, vm: GameViewModel) {
+    var showEntry by remember { mutableStateOf(false) }
+    var entry by remember { mutableStateOf("") }
+    LiveCamera(isBusy = { vm.isLiveBusy() }, onFrame = { vm.onLiveFrame(it) })
+    val result = state.board.result()
+    val headline = when {
+        !state.liveLearned -> state.liveStatus
+        result != GameResult.ONGOING -> "Game over"
+        state.myTurn -> "Your move"
+        else -> "Your son's move"
+    }
+    Text(headline, style = MaterialTheme.typography.titleMedium)
+    Text(
+        (if (state.liveLearned) state.liveStatus else "") + (state.liveCandidate?.let { "  seeing $it" } ?: "") +
+            (if (state.liveFps > 0) "  (%.1f fps)".format(state.liveFps) else ""),
+        style = MaterialTheme.typography.bodySmall,
+    )
+    Message(state)
+    state.liveFrame?.let { PhotoOverlay(it, state.liveCorners, state.liveObservations) }
+    if (state.liveLearned) {
+        BoardView(
+            board = state.board,
+            flipped = state.myColor == Color.BLACK,
+            lastMove = state.lastMove,
+            arrow = state.suggestion?.bestMove,
+            modifier = Modifier.padding(vertical = 8.dp),
+        )
+        SuggestionCard(state, vm)
+    } else {
+        Legend()
+    }
+    Spacer(Modifier.height(8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = { vm.toggleLivePause() }) { Text(if (state.livePaused) "Resume" else "Pause") }
+        OutlinedButton(onClick = { showEntry = true }, enabled = state.liveLearned && result == GameResult.ONGOING) { Text("Type move") }
+        OutlinedButton(onClick = { vm.undo() }, enabled = state.history.isNotEmpty()) { Text("Undo") }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+        TextButton(onClick = { vm.newGame() }) { Text("New game") }
+        TextButton(onClick = { vm.backToSetup() }) { Text("Settings") }
+    }
+    Text(state.moveListText(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+    if (showEntry) {
+        AlertDialog(
+            onDismissRequest = { showEntry = false },
+            title = { Text("Enter the move played") },
+            text = { OutlinedTextField(value = entry, onValueChange = { entry = it }, label = { Text("e.g. Nf3, exd5, O-O or g1f3") }, singleLine = true) },
+            confirmButton = { TextButton(onClick = { vm.enterMove(entry); entry = ""; showEntry = false }) { Text("Apply") } },
+            dismissButton = { TextButton(onClick = { showEntry = false }) { Text("Cancel") } },
+        )
+    }
+}
+
+@Composable
 private fun GameScreen(state: UiState, vm: GameViewModel) {
     var showEntry by remember { mutableStateOf(false) }
     var entry by remember { mutableStateOf("") }
@@ -195,23 +274,7 @@ private fun GameScreen(state: UiState, vm: GameViewModel) {
         arrow = state.suggestion?.bestMove,
         modifier = Modifier.padding(vertical = 8.dp),
     )
-    if (state.myTurn && result == GameResult.ONGOING) {
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(12.dp)) {
-                val sug = state.suggestion
-                if (sug == null || sug.lines.isEmpty()) {
-                    Text(if (state.thinking) "Stockfish is thinking..." else if (state.engineReady) "No suggestion yet." else state.engineStatus)
-                } else {
-                    Text("Play ${sug.bestSan ?: "?"}", style = MaterialTheme.typography.headlineSmall)
-                    sug.lines.forEachIndexed { i, line ->
-                        val first = line.pv.firstOrNull()?.let { vm.sanOf(state.board, it) } ?: "?"
-                        Text("${i + 1}. $first  ${line.scoreText()}  depth ${line.depth ?: "?"}", style = MaterialTheme.typography.bodySmall)
-                    }
-                    if (!sug.done) Text("still thinking...", style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
-    }
+    SuggestionCard(state, vm)
     Spacer(Modifier.height(8.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(onClick = { vm.startScan() }, enabled = result == GameResult.ONGOING) { Text("Scan board") }

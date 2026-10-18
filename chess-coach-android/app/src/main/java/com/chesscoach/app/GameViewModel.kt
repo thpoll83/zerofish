@@ -15,6 +15,9 @@ import com.chesscoach.core.vision.ChangeDetector
 import com.chesscoach.core.vision.GridDetector
 import com.chesscoach.core.vision.ImageLine
 import com.chesscoach.core.vision.InferenceResult
+import com.chesscoach.core.vision.LiveTracker
+import com.chesscoach.core.vision.LumaImage
+import android.graphics.Bitmap
 import com.chesscoach.core.vision.MoveInference
 import com.chesscoach.core.vision.Pt
 import com.chesscoach.core.vision.SquareObservation
@@ -26,7 +29,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class Phase { SETUP, SCAN_START, CONFIRM_START, PICK_CORNERS, PLAYING, SCANNING, CONFIRM_SCAN }
+enum class Phase { SETUP, LIVE, SCAN_START, CONFIRM_START, PICK_CORNERS, PLAYING, SCANNING, CONFIRM_SCAN }
 
 enum class Purpose { START, MOVE }
 
@@ -57,6 +60,15 @@ data class UiState(
     val thinking: Boolean = false,
     val scanResult: InferenceResult? = null,
     val message: String? = null,
+    // live mode
+    val liveStatus: String = "Starting camera...",
+    val liveFrame: Photo? = null,
+    val liveCorners: List<Pt> = emptyList(),
+    val liveObservations: List<SquareObservation>? = null,
+    val liveCandidate: String? = null,
+    val livePaused: Boolean = false,
+    val liveLearned: Boolean = false,
+    val liveFps: Float = 0f,
 ) {
     val lastMove: Move? get() = history.lastOrNull()?.move
     val myTurn: Boolean get() = board.sideToMove == myColor
@@ -85,6 +97,10 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     private var pendingPatches: Array<IntArray>? = null
     private var pendingRotation: Int? = null
 
+    private val tracker = LiveTracker(framesToConfirm = 3, framesToLearn = 3)
+    @Volatile private var liveBusy = false
+    private var lastFrameAt = 0L
+
     init {
         viewModelScope.launch {
             try {
@@ -105,6 +121,73 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     fun setElo(elo: Int?) = _state.update { it.copy(elo = elo?.coerceIn(StockfishEngine.MIN_ELO, StockfishEngine.MAX_ELO)) }
 
     fun beginStartScan() = _state.update { it.copy(phase = Phase.SCAN_START, message = null, detectionFailed = false) }
+
+    // ---- live mode ---------------------------------------------------------------------------
+
+    fun startLive() {
+        stopAnalysis()
+        tracker.restart()
+        _state.update {
+            it.copy(
+                phase = Phase.LIVE, board = Board.start(), history = emptyList(), suggestion = null, message = null,
+                liveStatus = "Point the camera at the board", liveLearned = false, livePaused = false, liveCandidate = null,
+            )
+        }
+    }
+
+    fun isLiveBusy(): Boolean = liveBusy || _state.value.livePaused
+
+    fun toggleLivePause() = _state.update { it.copy(livePaused = !it.livePaused) }
+
+    /** Called from the camera thread with an upright grayscale frame. */
+    fun onLiveFrame(frame: LumaImage) {
+        if (liveBusy || _state.value.phase != Phase.LIVE) return
+        liveBusy = true
+        val now = System.currentTimeMillis()
+        val fps = if (lastFrameAt > 0) 1000f / (now - lastFrameAt).coerceAtLeast(1) else 0f
+        lastFrameAt = now
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                val r = tracker.process(frame)
+                val thumb = thumbnail(frame, 2)
+                val scale = 0.5
+                val corners = r.geometry?.corners?.map { Pt(it.x * scale, it.y * scale) } ?: emptyList()
+                _state.update {
+                    it.copy(
+                        liveStatus = r.message, liveFrame = thumb, liveCorners = corners,
+                        liveObservations = r.observations?.toList(), liveCandidate = r.candidate?.takeIf { c -> c.moves.isNotEmpty() }?.description,
+                        liveFps = fps,
+                    )
+                }
+                if (r.status == LiveTracker.Status.LEARNED) {
+                    withContext(Dispatchers.Main) {
+                        stopAnalysis()
+                        _state.update { it.copy(board = Board.start(), history = emptyList(), suggestion = null, liveLearned = true, calibrationNotes = tracker.calibration?.notes ?: emptyList()) }
+                        maybeAnalyze()
+                    }
+                }
+                if (r.applied.isNotEmpty()) {
+                    withContext(Dispatchers.Main) { for (m in r.applied) applyMove(m) }
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(liveStatus = "Error: ${e.message}") }
+            } finally {
+                liveBusy = false
+            }
+        }
+    }
+
+    /** Grayscale bitmap of the frame at 1/[step] resolution, for the on-screen overlay. */
+    private fun thumbnail(frame: LumaImage, step: Int): Photo {
+        val w = frame.width / step
+        val h = frame.height / step
+        val px = IntArray(w * h)
+        for (y in 0 until h) for (x in 0 until w) {
+            val v = frame.luma(x * step, y * step)
+            px[y * w + x] = (0xFF shl 24) or (v shl 16) or (v shl 8) or v
+        }
+        return Photo(Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888))
+    }
 
     // ---- starting position -------------------------------------------------------------------
 
@@ -279,6 +362,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             previousPatches = null // the last photo no longer matches the position
             applyMove(m)
+            tracker.setBoard(_state.value.board)
         }
     }
 
@@ -288,12 +372,16 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         stopAnalysis()
         previousPatches = null
         _state.update { it.copy(board = last.before, history = it.history.dropLast(1), suggestion = null, message = null) }
+        tracker.setBoard(last.before)
         maybeAnalyze()
     }
 
     fun newGame() {
         stopAnalysis()
         previousPatches = null
+        if (_state.value.phase == Phase.LIVE) {
+            startLive(); return
+        }
         _state.update {
             it.copy(
                 phase = if (it.calibrated) Phase.PLAYING else Phase.SETUP,
@@ -328,7 +416,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun maybeAnalyze() {
         val s = _state.value
-        if (!s.engineReady || s.phase != Phase.PLAYING) return
+        if (!s.engineReady || (s.phase != Phase.PLAYING && s.phase != Phase.LIVE)) return
+        if (s.phase == Phase.LIVE && !s.liveLearned) return
         if (!s.myTurn || s.board.result() != GameResult.ONGOING) return
         val board = s.board
         val fen = board.toFen()

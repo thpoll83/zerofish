@@ -7,6 +7,15 @@ Standalone project. It shares no code with ZeroFish and can be moved to its own 
 
 ## What it does
 
+Live mode (default): set up the starting position, point the camera at the board (handheld or on
+a stand) and tap Start. The app finds the board in every frame, learns what your pieces look like
+from the first three frames that show the starting position, and from then on applies a move as
+soon as the same move explains three consecutive frames. Frames with a hand or a shadow over the
+board are ignored. The screen shows the annotated camera frame, the digital board and Stockfish's
+suggestion for your side. Undo, typing a move and pausing the camera are there for corrections.
+
+Photo mode (fallback): one photo per move with a confirm step, described below.
+
 1. Setup: choose your colour, how long Stockfish may think per move, and the strength of the
    advice: full strength, or a rating between 1320 and 3190 Elo (Stockfish's `UCI_LimitStrength`
    and `UCI_Elo` options), so the suggestions can be pitched at your son's level.
