@@ -61,6 +61,7 @@ val downloadNnue by tasks.registering {
 android {
     namespace = "com.chesscoach.app"
     compileSdk = 36
+    ndkVersion = "27.2.12479018"
 
     defaultConfig {
         applicationId = "com.chesscoach.app"
