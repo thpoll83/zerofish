@@ -21,7 +21,7 @@ class SquareFeatures(val occFraction: DoubleArray, val colourScore: DoubleArray)
          * them at any pixel), then measures how much of each square differs from its template and
          * whether the differing pixels are brighter or darker than the board.
          */
-        fun extract(patches: Array<IntArray>): SquareFeatures {
+        fun extract(patches: Array<IntArray>, gradients: Array<IntArray>? = null): SquareFeatures {
             val n = patches[0].size
             val templates = Array(2) { shade ->
                 val squares = (0 until 64).filter { (if (Square.isLight(it)) 1 else 0) == shade }
@@ -39,21 +39,43 @@ class SquareFeatures(val occFraction: DoubleArray, val colourScore: DoubleArray)
             val occ = DoubleArray(64)
             val col = DoubleArray(64)
             val d = DoubleArray(n)
+            val pieceLum = ArrayList<Int>(n)
             for (sq in 0 until 64) {
                 val t = templates[if (Square.isLight(sq)) 1 else 0]
-                for (p in 0 until n) d[p] = (patches[sq][p] - t[p]).toDouble()
+                val patch = patches[sq]
+                for (p in 0 until n) d[p] = (patch[p] - t[p]).toDouble()
                 // Illumination offset from the pixels that still look like board (|d| small), so a
                 // piece covering most of the window cannot pull the reference towards itself.
                 val boardLike = d.filter { kotlin.math.abs(it) < tau }
                 val offset = if (boardLike.size >= n / 5) median(boardLike.toDoubleArray()).coerceIn(-0.1 * toneDiff, 0.1 * toneDiff) else 0.0
-                var bright = 0
-                var dark = 0
+                var changed = 0
+                pieceLum.clear()
                 for (p in 0 until n) {
                     val v = d[p] - offset
-                    if (v > tau) bright++ else if (v < -tau) dark++
+                    if (kotlin.math.abs(v) > tau) changed++
+                    if (kotlin.math.abs(v) > 0.5 * tau) pieceLum.add(patch[p])
                 }
-                occ[sq] = (bright + dark).toDouble() / n
-                col[sq] = (bright - dark).toDouble() / maxOf(bright + dark, (0.05 * n).toInt().coerceAtLeast(1))
+                // Texture: a piece brings edges (outline, highlights) even when its tone matches the
+                // square, as a black piece on a dark square does. Empty squares are smooth. The
+                // gradient is measured in the image, which still works for squares a few pixels tall.
+                var edgeFraction = 0.0
+                if (gradients != null) {
+                    val g = gradients[sq]
+                    val edgeTau = 0.2 * toneDiff
+                    var edges = 0
+                    for (p in 0 until n) if (g[p] > edgeTau) edges++
+                    edgeFraction = edges.toDouble() / n
+                }
+                occ[sq] = maxOf(changed.toDouble() / n, minOf(1.0, 2.5 * edgeFraction))
+                // Colour: brightness of the piece pixels between the dark (-0.5) and light (+0.5)
+                // square tones, taken at the 70th percentile so shadows do not drag a light piece down.
+                val lum = if (pieceLum.size >= n / 20) {
+                    val sorted = pieceLum.toIntArray().sortedArray()
+                    sorted[(sorted.size * 7) / 10].toDouble()
+                } else {
+                    median(patch).toDouble()
+                }
+                col[sq] = (lum - toneDark) / toneDiff - 0.5
             }
             return SquareFeatures(occ, col)
         }
@@ -95,7 +117,7 @@ class Calibration(
     companion object {
         fun default(): Calibration = Calibration(
             doubleArrayOf(0.22, 0.22), doubleArrayOf(0.07, 0.07),
-            doubleArrayOf(0.2, -0.4), doubleArrayOf(0.25, 0.25),
+            doubleArrayOf(-0.5, -0.5), doubleArrayOf(0.25, 0.25),
             listOf("default thresholds"),
         )
 

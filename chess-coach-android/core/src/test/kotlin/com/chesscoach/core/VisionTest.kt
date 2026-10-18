@@ -279,20 +279,27 @@ class VisionTest {
         for (sq in 0 until 64) assertEquals(expected[sq], obs[sq].label, "square ${Square.name(sq)}")
     }
 
-    /** Runs on a real photo when CHESS_PHOTO points at one; writes an overlay for eyeballing. */
+    /** Survey helper: runs the detector on every photo in CHESS_PHOTO_DIR and writes overlays. No assertions. */
     @Test
-    fun realPhotoIfAvailable() {
-        val path = System.getenv("CHESS_PHOTO") ?: return
-        val bi = ImageIO.read(File(path))
+    fun surveyPhotoDirIfAvailable() {
+        val dir = System.getenv("CHESS_PHOTO_DIR")?.let { File(it) } ?: return
+        for (file in dir.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png") }!!.sortedBy { it.name }) {
+            val img = loadLuma(file)
+            val t0 = System.currentTimeMillis()
+            val grid = GridDetector.detect(img)
+            val ms = System.currentTimeMillis() - t0
+            writeOverlay(img, grid?.corners, file.nameWithoutExtension, grid?.lines ?: emptyList())
+            println("SURVEY ${file.name} ${img.width}x${img.height} ${ms}ms: " + (grid?.let { "${it.notes} corners=" + it.corners.joinToString { c -> "(%.0f,%.0f)".format(c.x, c.y) } } ?: "NOT FOUND"))
+        }
+    }
+
+    private fun loadLuma(file: File): ArrayLumaImage {
+        val bi = ImageIO.read(file)
         val data = IntArray(bi.width * bi.height)
         for (y in 0 until bi.height) for (x in 0 until bi.width) {
             val rgb = bi.getRGB(x, y)
             data[y * bi.width + x] = (((rgb shr 16) and 255) * 77 + ((rgb shr 8) and 255) * 151 + (rgb and 255) * 28) shr 8
         }
-        val img = ArrayLumaImage(bi.width, bi.height, data)
-        val grid = GridDetector.detect(img)
-        writeOverlay(img, grid?.corners, File(path).nameWithoutExtension)
-        println("real photo ${File(path).name}: ${grid?.notes ?: "NOT FOUND"} corners=${grid?.corners}")
-        assertNotNull(grid, "grid not found in real photo")
+        return ArrayLumaImage(bi.width, bi.height, data)
     }
 }

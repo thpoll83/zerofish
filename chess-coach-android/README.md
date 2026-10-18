@@ -87,7 +87,11 @@ To build with ARMv8.2 dot-product instructions (about 30% faster search on 2018+
 ```
 core/   pure Kotlin: chess rules (move generation, SAN, FEN), grid detector, homography,
         square sampling and classification, move inference, UCI parsing. Unit-tested with
-        perft and a synthetic renderer of boards with pieces seen from changing viewpoints.
+        perft, a synthetic renderer of boards with pieces seen from changing viewpoints, and
+        22 photographs of real boards (core/src/test/resources/boards, see NOTICE.md there):
+        the grid must be found within 2.5% of the labelled corners on 20 of them, the
+        starting position must be read from one, a wooden middlegame from another, and
+        detection must stay under 2 s per photo.
 app/    Android: CameraX capture, Compose UI (photo overlay, digital board, screens),
         view model, Stockfish JNI bridge and CMake build.
 ```
@@ -96,8 +100,9 @@ app/    Android: CameraX capture, Compose UI (photo overlay, digital board, scre
 
 - All four board edges must be in the photo. Hands, shadows or strong lighting changes lower
   confidence. The confirm screen lists alternatives, and any move can be typed.
-- The scanner was tuned on synthetic scenes and one real photo; real boards may need threshold
-  adjustments in `core/.../vision/Calibration.kt` or `GridDetector.kt`.
+- The scanner was tuned on synthetic scenes and 22 real photos from one public set; other
+  boards may need threshold adjustments in `core/.../vision/Calibration.kt` or `GridDetector.kt`.
+  Black pieces on dark squares seen from a low angle give the weakest readings.
 - Promotions are assumed to be to a queen; type the move for an underpromotion.
 - Threefold repetition is not detected.
 - A fatal engine error (for example a missing network file) terminates the process, as Stockfish

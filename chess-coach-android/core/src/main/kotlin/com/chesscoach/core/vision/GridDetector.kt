@@ -42,16 +42,27 @@ object GridDetector {
 
     private class Edges(val mag: FloatArray, val ang: FloatArray, val thr: Float)
 
-    fun detect(image: LumaImage, debugLines: Boolean = true, log: ((String) -> Unit)? = null): DetectedGrid? {
+    fun detect(
+        image: LumaImage,
+        debugLines: Boolean = true,
+        log: ((String) -> Unit)? = null,
+        debugOut: MutableList<ImageLine>? = null,
+    ): DetectedGrid? {
         val small = downscale(image)
         val lines = houghLines(small) ?: return null
-        val families = splitFamilies(lines) ?: return null
+        val families = splitFamilies(lines)
+        if (families == null) {
+            debugOut?.addAll(lines.map { clipLine(it, small, 2) })
+            log?.invoke("could not split ${lines.size} lines into two families")
+            return null
+        }
         val (famA, famB) = families
         val s = max(small.w, small.h) / 2.0
         log?.invoke("family A: " + famA.joinToString { "(%.0f°, %.0f, w%.2f)".format(it.theta * 180 / PI, it.rho, it.weight) })
         log?.invoke("family B: " + famB.joinToString { "(%.0f°, %.0f, w%.2f)".format(it.theta * 180 / PI, it.rho, it.weight) })
         val toImageLine = { l: Line, fam: Int -> clipLine(l, small, fam) }
         val debug = if (debugLines) famA.map { toImageLine(it, 0) } + famB.map { toImageLine(it, 1) } else emptyList()
+        debugOut?.addAll(debug)
 
         val vpsA = vanishingPoints(famA, s)
         val vpsB = vanishingPoints(famB, s)
@@ -98,7 +109,7 @@ object GridDetector {
                 continue
             }
             val checker = checkerScore(image, geometry)
-            if (checker < 0.22) continue
+            if (checker < 0.3) continue
             // Lines coinciding with the grid count for it; a strong line one square outside the
             // board counts against it (the grid would be shifted by a square).
             val aligned = alignmentScore(ordered, lines, small, 0..8)
@@ -115,14 +126,14 @@ object GridDetector {
         }
         }
         val result = best ?: return null
-        if (result.lineSupport < 10 || result.checkerScore < 0.22) return null
+        if (result.lineSupport < 10 || result.checkerScore < 0.45) return null
         val refined = refine(result.corners, lines, small, image)
         if (refined != null) {
             val checker = checkerScore(image, BoardGeometry(refined))
             val before = alignmentScore(result.corners, lines, small, 0..8)
             val after = alignmentScore(refined, lines, small, 0..8)
             log?.invoke("refined checker %.2f alignment %.1f -> %.1f corners %s".format(checker, before, after, refined.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }))
-            if (checker >= 0.22 && after >= before) {
+            if (checker >= 0.3 && after >= before) {
                 return DetectedGrid(refined, result.lineSupport, checker, debug, result.notes + ", refined")
             }
         }
@@ -393,6 +404,10 @@ object GridDetector {
             if (kept.none { lineClose(it, l, 3.0 * PI / 180, 6.0) }) kept.add(l)
         }
         if (kept.size < 8) return null
+        // Hough angles are 1 degree coarse; refine each line through its supporting edge pixels so
+        // that slightly converging grid lines keep their true vanishing point.
+        val edges0 = Edges(mag, ang, thr)
+        for (i in kept.indices) kept[i] = refineLine(kept[i], img, edges0)
         // Re-weight by supported length and by how often the edge polarity flips along the line:
         // grid lines run across the whole board and flip polarity every square, piece edges do not.
         val edges = Edges(mag, ang, thr)
@@ -411,6 +426,76 @@ object GridDetector {
             else Line(l.theta, l.rho, sn * polarity * (0.5 + 0.5 * l.weight))
         }.sortedByDescending { it.weight }
         return if (weighted.size >= 8) weighted else null
+    }
+
+    /** Least-squares line through the edge pixels that support [l] (within 1.5 px, matching orientation). */
+    private fun refineLine(l: Line, img: Small, e: Edges): Line {
+        val cx = img.w / 2.0
+        val cy = img.h / 2.0
+        val c = cos(l.theta)
+        val s = sin(l.theta)
+        val px = c * l.rho + cx
+        val py = s * l.rho + cy
+        val dx = -s
+        val dy = c
+        val len = hypot(img.w.toDouble(), img.h.toDouble())
+        var n = 0
+        var sx = 0.0; var sy = 0.0; var sxx = 0.0; var syy = 0.0; var sxy = 0.0
+        var t = -len
+        while (t <= len) {
+            val x0 = px + dx * t
+            val y0 = py + dy * t
+            t += 1.0
+            for (k in -1..1) {
+                val x = (x0 + c * k).roundToInt()
+                val y = (y0 + s * k).roundToInt()
+                if (x < 1 || y < 1 || x >= img.w - 1 || y >= img.h - 1) continue
+                val i = y * img.w + x
+                if (e.mag[i] < e.thr * 0.7f) continue
+                var a = e.ang[i].toDouble()
+                if (a < 0) a += PI
+                if (angDist(a, l.theta) >= 12 * PI / 180) continue
+                val w = e.mag[i].toDouble()
+                n++; sx += w * x; sy += w * y; sxx += w * x * x; syy += w * y * y; sxy += w * x * y
+                val wsum = w
+                // accumulate weight sum in sxy's companion: reuse n as count, weights folded below
+                if (false) println(wsum)
+            }
+        }
+        if (n < 20) return l
+        // weighted PCA: recompute with weight sum
+        var wsum = 0.0
+        t = -len
+        while (t <= len) {
+            val x0 = px + dx * t
+            val y0 = py + dy * t
+            t += 1.0
+            for (k in -1..1) {
+                val x = (x0 + c * k).roundToInt()
+                val y = (y0 + s * k).roundToInt()
+                if (x < 1 || y < 1 || x >= img.w - 1 || y >= img.h - 1) continue
+                val i = y * img.w + x
+                if (e.mag[i] < e.thr * 0.7f) continue
+                var a = e.ang[i].toDouble()
+                if (a < 0) a += PI
+                if (angDist(a, l.theta) >= 12 * PI / 180) continue
+                wsum += e.mag[i].toDouble()
+            }
+        }
+        if (wsum <= 0) return l
+        val mx = sx / wsum
+        val my = sy / wsum
+        val cxx = sxx / wsum - mx * mx
+        val cyy = syy / wsum - my * my
+        val cxy = sxy / wsum - mx * my
+        // direction = principal eigenvector of the 2x2 covariance
+        val theta = 0.5 * atan2(2 * cxy, cxx - cyy) // direction angle of the line
+        var normal = theta + PI / 2
+        if (normal < 0) normal += PI
+        if (normal >= PI) normal -= PI
+        if (angDist(normal, l.theta) > 4 * PI / 180) return l // refinement drifted, keep the Hough line
+        val rho = (mx - cx) * cos(normal) + (my - cy) * sin(normal)
+        return Line(normal, rho, l.weight)
     }
 
     /**
@@ -603,7 +688,10 @@ object GridDetector {
 
     private class Progression(val p0: Double, val s: Double, val support: Int, val weighted: Double, val score: Double)
 
-    private fun fitProgressions(r: Rectified): List<Progression> {
+    private fun fitProgressions(r0: Rectified): List<Progression> {
+        // weights relative to the family's strongest line, so a foreshortened family is not penalised
+        val wmax = r0.weights.maxOrNull() ?: return emptyList()
+        val r = Rectified(r0.nx, r0.ny, r0.positions, DoubleArray(r0.weights.size) { r0.weights[it] / wmax })
         val n = r.positions.size
         val out = ArrayList<Progression>()
         for (i in 0 until n) for (j in 0 until n) {

@@ -28,4 +28,30 @@ object SquareSampler {
             patch
         }
     }
+
+    /**
+     * Gradient magnitude at the same sample points, measured in the image itself (central
+     * differences over 2 px), so texture is seen even when a square is only a few pixels tall.
+     */
+    fun sampleGradient(image: LumaImage, geometry: BoardGeometry, side: Int = DEFAULT_SIDE): Array<IntArray> {
+        return Array(64) { sq ->
+            val file = Square.file(sq)
+            val rank = Square.rank(sq)
+            val w = geometry.sampleWindow(file, rank)
+            val patch = IntArray(side * side)
+            for (j in 0 until side) {
+                val v = w[2] + (w[3] - w[2]) * (j + 0.5) / side
+                for (i in 0 until side) {
+                    val u = w[0] + (w[1] - w[0]) * (i + 0.5) / side
+                    val p = geometry.toImage(u, v)
+                    val x = p.x.toInt().coerceIn(1, image.width - 2)
+                    val y = p.y.toInt().coerceIn(1, image.height - 2)
+                    val gx = image.luma(x + 1, y) - image.luma(x - 1, y)
+                    val gy = image.luma(x, y + 1) - image.luma(x, y - 1)
+                    patch[j * side + i] = (kotlin.math.abs(gx) + kotlin.math.abs(gy)) / 2
+                }
+            }
+            patch
+        }
+    }
 }
