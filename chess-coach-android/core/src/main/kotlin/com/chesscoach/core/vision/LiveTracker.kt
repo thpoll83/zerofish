@@ -35,6 +35,8 @@ class LiveTracker(
         val message: String,
         /** When the camera cannot decide: the most likely explanations, for the user to pick from. */
         val suggestions: List<Candidate> = emptyList(),
+        /** Every explanation this frame was scored against, best first (diagnostics). */
+        val candidates: List<Candidate> = emptyList(),
     )
 
     var board: Board = board
@@ -64,7 +66,31 @@ class LiveTracker(
     private val framesBeforeDeepSearch = 16
 
     /** Quiet frames in a row before an unexplained period is considered over. */
-    private val quietFramesToSettle = 3
+    private val quietFramesToSettle = 6
+
+    /**
+     * "No move" costs of recent quiet frames. Their median is how well a frame fits when nothing
+     * is wrong; a move is only applied when the position after it fits nearly that well, otherwise
+     * the explanation is incomplete (a second move went unnoticed) and goes to the user instead.
+     */
+    private val quietCosts = ArrayDeque<Double>()
+    private val baselineWindow = 8
+    private val baselineMinSamples = 4
+
+    /**
+     * How far above the quiet baseline the best explanation may still be applied. An unnoticed
+     * extra move leaves two squares wrong, which on a real board reads as 1 to 2 cost units, so
+     * this is tight on purpose: a doubtful move goes to the buttons rather than onto the board.
+     */
+    private val applySlack = 1.2
+
+    private fun baseline(): Double? =
+        if (quietCosts.size < baselineMinSamples) null else quietCosts.sorted()[quietCosts.size / 2]
+
+    private fun noteQuiet(noMoveCost: Double) {
+        quietCosts.addLast(noMoveCost)
+        while (quietCosts.size > baselineWindow) quietCosts.removeFirst()
+    }
 
     /**
      * How much better than "no move" the best explanation must fit before the frame counts as
@@ -104,13 +130,14 @@ class LiveTracker(
         offers.values.removeIf { it.lastSeen < unsettled - offerMemory }
     }
 
-    private fun suggestions(): List<Candidate> = offers.values.map { it.candidate }.sortedBy { it.cost }.take(5)
+    private fun suggestions(): List<Candidate> = offers.values.map { it.candidate }.sortedBy { it.cost }.take(6)
 
     /** The user picked one of the offered explanations: apply it and resynchronise on the last frame. */
     fun accept(candidate: Candidate) {
         for (m in candidate.moves) board = board.play(m)
         previousPatches = lastPatches
         lastRotation?.let { rotation = it }
+        quietCosts.clear()
         resetPending()
     }
 
@@ -118,6 +145,7 @@ class LiveTracker(
     fun setBoard(b: Board) {
         board = b
         previousPatches = null
+        quietCosts.clear()
         resetPending()
     }
 
@@ -128,6 +156,7 @@ class LiveTracker(
         calibration = null
         learnStreak = 0
         previousPatches = null
+        quietCosts.clear()
         resetPending()
     }
 
@@ -196,10 +225,12 @@ class LiveTracker(
             // The board looks like the tracked position. A few such frames in a row end any
             // unexplained period; a single one (a bad frame) keeps the offers on the screen.
             quiet++
+            // only settled frames define the baseline: a weakly seen move would otherwise raise it
+            if (unsettled == 0) noMove?.let { noteQuiet(it.cost) }
             if (quiet >= quietFramesToSettle) resetPending()
             val asking = unsettled >= framesBeforeAsking && offers.isNotEmpty()
-            return if (asking) FrameResult(Status.AMBIGUOUS, located.geometry, obs, best, pendingCount, emptyList(), "Not sure what was played. Tap the right one, or type it.", suggestions())
-            else FrameResult(Status.TRACKING, located.geometry, obs, best, 0, emptyList(), "Tracking")
+            return if (asking) FrameResult(Status.AMBIGUOUS, located.geometry, obs, best, pendingCount, emptyList(), "Not sure what was played. Tap the right one, or type it.", suggestions(), candidates = result.candidates)
+            else FrameResult(Status.TRACKING, located.geometry, obs, best, 0, emptyList(), "Tracking", candidates = result.candidates)
         }
         // The board no longer matches the tracked position. Count how long this lasts.
         quiet = 0
@@ -209,13 +240,27 @@ class LiveTracker(
             if (best.moves == pending) pendingCount++ else {
                 pending = best.moves; pendingCount = 1
             }
-            if (pendingCount >= framesToConfirm) {
+            val base = baseline()
+            val fits = base == null || best.cost <= base + applySlack
+            if (pendingCount >= framesToConfirm && fits) {
                 val applied = pending
                 for (m in applied) board = board.play(m)
                 previousPatches = located.patches
                 rotation = located.rotation
+                quietCosts.clear()
                 resetPending()
-                return FrameResult(Status.MOVE_PLAYED, located.geometry, obs, best, framesToConfirm, applied, "Played ${best.description}")
+                return FrameResult(Status.MOVE_PLAYED, located.geometry, obs, best, framesToConfirm, applied, "Played ${best.description}", candidates = result.candidates)
+            }
+            if (pendingCount >= framesToConfirm && !fits) {
+                // The move alone does not explain the board: something else changed as well.
+                // Offer it, and keep looking for the fuller explanation.
+                offer(listOf(best))
+                if (unsettled < framesBeforeAsking) {
+                    return FrameResult(
+                        Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(),
+                        "Seeing ${best.description}, but more changed (%.1f, quiet is %.1f)".format(best.cost, base), candidates = result.candidates,
+                    )
+                }
             }
         }
         if (unsettled >= framesBeforeAsking) {
@@ -224,16 +269,16 @@ class LiveTracker(
             offer(result.candidates.filter { it.moves.isNotEmpty() }.take(4))
             if (unsettled >= framesBeforeDeepSearch && (unsettled - framesBeforeDeepSearch) % 4 == 0) {
                 val deep = MoveInference.infer(board, obs, change, maxPlies = 3, nearSide = located.geometry.nearSide)
-                offer(deep.candidates.filter { it.moves.size == 3 }.take(3))
+                offer(deep.candidates.filter { it.moves.size == 3 }.take(5))
             }
             return FrameResult(
                 Status.AMBIGUOUS, located.geometry, obs, best, pendingCount, emptyList(),
-                "Not sure what was played. Tap the right one, or type it.", suggestions(),
+                "Not sure what was played. Tap the right one, or type it.", suggestions(), result.candidates,
             )
         }
         val runnerUp = result.candidates.getOrNull(1)
         val msg = if (result.margin >= 0.3) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
         else "Maybe ${best.description} (%.2f) or ${runnerUp?.description} (%.2f); unchanged %.2f".format(best.cost, runnerUp?.cost ?: 0.0, noMove?.cost ?: 0.0)
-        return FrameResult(Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(), msg)
+        return FrameResult(Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(), msg, candidates = result.candidates)
     }
 }

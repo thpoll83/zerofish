@@ -295,7 +295,7 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
         AlertDialog(
             onDismissRequest = { showEntry = false },
             title = { Text("Enter the move played") },
-            text = { OutlinedTextField(value = entry, onValueChange = { entry = it }, label = { Text("e.g. Nf3, exd5, O-O or g1f3") }, singleLine = true) },
+            text = { OutlinedTextField(value = entry, onValueChange = { entry = it }, label = { Text("e.g. Nf3, g1f3, or several: Nc6 Qg4 Bb4+") }, singleLine = true) },
             confirmButton = { TextButton(onClick = { vm.enterMove(entry); entry = ""; showEntry = false }) { Text("Apply") } },
             dismissButton = { TextButton(onClick = { showEntry = false }) { Text("Cancel") } },
         )

@@ -57,11 +57,27 @@ class VideoReplayTest {
         val fps = System.getenv("CHESS_FRAMES_FPS")?.toDoubleOrNull() ?: 4.0
         val files = dir.listFiles { f -> f.extension.lowercase() == "jpg" }!!.sortedBy { it.name }
         val tracker = LiveTracker(framesToConfirm = 3, framesToLearn = 3)
+        // Optional shortcuts for looking at one passage: CHESS_REPLAY_SKIP="a-b" skips frame numbers
+        // a..b (1-based), CHESS_REPLAY_MOVES="d4 Nf6 ..." puts the tracker on that position once it
+        // has learned, CHESS_REPLAY_DETAIL="t1-t2" prints every candidate between those seconds.
+        val skip = System.getenv("CHESS_REPLAY_SKIP")?.split("-")?.map { it.trim().toInt() }?.let { it[0]..it[1] }
+        val jump = System.getenv("CHESS_REPLAY_MOVES")?.split(" ")?.filter { it.isNotBlank() }
+        val detail = System.getenv("CHESS_REPLAY_DETAIL")?.split("-")?.map { it.trim().toDouble() }?.let { it[0]..it[1] }
         var last = ""
         val moves = ArrayList<String>()
         val counts = HashMap<String, Int>()
         for ((i, f) in files.withIndex()) {
+            if (skip != null && i + 1 in skip) continue
             val r = tracker.process(load(f))
+            if (r.status == LiveTracker.Status.LEARNED && jump != null) {
+                var b = tracker.board
+                for (san in jump) b = b.play(b.parseMove(san) ?: error("bad move $san"))
+                tracker.setBoard(b)
+            }
+            if (detail != null && i / fps in detail) {
+                println("DETAIL %6.1fs %s %s agree=%d: %s".format(i / fps, f.name, r.status, r.agreement,
+                    r.candidates.take(6).joinToString(" | ") { "${it.description} (%.2f)".format(it.cost) }))
+            }
             counts[r.status.name] = (counts[r.status.name] ?: 0) + 1
             val line = "${r.status} ${r.message}" + (if (r.suggestions.isNotEmpty()) " -> " + r.suggestions.joinToString(" | ") { "${it.description} (%.1f)".format(it.cost) } else "")
             if (r.applied.isNotEmpty()) moves += r.applied.joinToString(" ") { it.uci() } + "@%.1fs".format(i / fps)

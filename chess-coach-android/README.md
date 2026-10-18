@@ -15,7 +15,9 @@ board are ignored. When the board has not matched the tracked position for two s
 single explanation wins, the most likely explanations are shown as buttons, after four seconds
 including three-move sequences. The buttons keep the best-scoring explanations of the last three
 seconds, so they do not change from frame to frame; tapping one applies it and resynchronises the
-tracker. The screen shows the annotated camera frame, the digital board and Stockfish's
+tracker. A move is only applied on its own when the board afterwards fits about as well as a quiet
+board did before it; if it fits clearly worse, another change went unnoticed and the move is offered
+as a button instead. "Type move" accepts several moves separated by spaces, such as `Nc6 Qg4 Bb4+`. The screen shows the annotated camera frame, the digital board and Stockfish's
 suggestion for your side. Undo, typing a move and pausing the camera are there for corrections.
 
 Camera settings on the live screen: zoom from the phone's minimum (below 1x selects the wide-angle

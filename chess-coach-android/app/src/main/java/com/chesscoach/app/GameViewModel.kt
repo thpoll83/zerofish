@@ -379,15 +379,24 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         _state.value.suggestion?.bestMove?.let { applyMove(it) }
     }
 
+    /** Applies one or more typed moves ("Nf3", "g1f3", or a sequence like "Nc6 Qg4 Bb4+"). */
     fun enterMove(text: String) {
-        val m = _state.value.board.parseMove(text)
-        if (m == null) {
-            _state.update { it.copy(message = "Could not read \"$text\". Use SAN like Nf3 or UCI like g1f3.") }
-        } else {
-            previousPatches = null // the last photo no longer matches the position
-            applyMove(m)
-            synchronized(tracker) { tracker.setBoard(_state.value.board) }
+        val tokens = text.trim().split(Regex("\\s+")).filter { it.isNotBlank() && !it.matches(Regex("\\d+\\.+")) }
+        val moves = ArrayList<Move>()
+        var b = _state.value.board
+        for (t in tokens) {
+            val m = b.parseMove(t)
+            if (m == null) {
+                _state.update { it.copy(message = "Could not read \"$t\". Use SAN like Nf3 or UCI like g1f3; several moves may be separated by spaces.") }
+                return
+            }
+            moves += m
+            b = b.play(m)
         }
+        if (moves.isEmpty()) return
+        previousPatches = null // the last photo no longer matches the position
+        for (m in moves) applyMove(m)
+        synchronized(tracker) { tracker.setBoard(_state.value.board) }
     }
 
     fun undo() {
