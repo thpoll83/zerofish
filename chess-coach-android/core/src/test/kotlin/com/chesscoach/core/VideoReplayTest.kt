@@ -63,7 +63,7 @@ class VideoReplayTest {
         for ((i, f) in files.withIndex()) {
             val r = tracker.process(load(f))
             counts[r.status.name] = (counts[r.status.name] ?: 0) + 1
-            val line = "${r.status} ${r.message}"
+            val line = "${r.status} ${r.message}" + (if (r.suggestions.isNotEmpty()) " -> " + r.suggestions.joinToString(" | ") { "${it.description} (%.1f)".format(it.cost) } else "")
             if (r.applied.isNotEmpty()) moves += r.applied.joinToString(" ") { it.uci() } + "@%.1fs".format(i / fps)
             if (line != last || r.applied.isNotEmpty()) println("REPLAY %6.1fs %s %s".format(i / fps, f.name, line))
             last = line

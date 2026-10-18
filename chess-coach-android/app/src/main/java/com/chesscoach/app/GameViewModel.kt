@@ -69,6 +69,8 @@ data class UiState(
     val livePaused: Boolean = false,
     val liveLearned: Boolean = false,
     val liveFps: Float = 0f,
+    /** Offered when the camera cannot decide which move was played. */
+    val liveSuggestions: List<Candidate> = emptyList(),
     val camera: CameraSettings = CameraSettings(),
     val cameras: List<CameraOption> = emptyList(),
     val zoomMin: Float = 1f,
@@ -102,6 +104,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     private var pendingPatches: Array<IntArray>? = null
     private var pendingRotation: Int? = null
 
+    /** Not thread-safe: the camera thread and the UI thread both touch it under `synchronized(tracker)`. */
     private val tracker = LiveTracker(framesToConfirm = 3, framesToLearn = 3)
     @Volatile private var liveBusy = false
     private var lastFrameAt = 0L
@@ -134,7 +137,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     fun startLive() {
         stopAnalysis()
-        tracker.restart()
+        synchronized(tracker) { tracker.restart() }
         _state.update {
             it.copy(
                 phase = Phase.LIVE, board = Board.start(), history = emptyList(), suggestion = null, message = null,
@@ -144,6 +147,13 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun isLiveBusy(): Boolean = liveBusy || _state.value.livePaused
+
+    /** The user tapped one of the offered explanations. */
+    fun acceptLiveCandidate(c: Candidate) {
+        synchronized(tracker) { tracker.accept(c) }
+        _state.update { it.copy(liveSuggestions = emptyList(), liveCandidate = null) }
+        for (m in c.moves) applyMove(m)
+    }
 
     fun toggleLivePause() = _state.update { it.copy(livePaused = !it.livePaused) }
 
@@ -156,13 +166,15 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         lastFrameAt = now
         viewModelScope.launch(Dispatchers.Default) {
             try {
-                val r = tracker.process(frame)
+                val r = synchronized(tracker) { tracker.process(frame) }
                 val corners = r.geometry?.corners ?: emptyList()
                 _state.update {
                     it.copy(
                         liveStatus = r.message, liveFrameWidth = frame.width, liveFrameHeight = frame.height, liveCorners = corners,
                         liveObservations = r.observations?.toList(), liveCandidate = r.candidate?.takeIf { c -> c.moves.isNotEmpty() }?.description,
                         liveFps = fps,
+                        // a hand over the board or a lost grid must not take the offered moves away
+                        liveSuggestions = if (r.status == LiveTracker.Status.UNSTABLE || r.status == LiveTracker.Status.NO_BOARD) it.liveSuggestions else r.suggestions,
                     )
                 }
                 if (r.status == LiveTracker.Status.LEARNED) {
@@ -374,7 +386,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             previousPatches = null // the last photo no longer matches the position
             applyMove(m)
-            tracker.setBoard(_state.value.board)
+            synchronized(tracker) { tracker.setBoard(_state.value.board) }
         }
     }
 
@@ -384,7 +396,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         stopAnalysis()
         previousPatches = null
         _state.update { it.copy(board = last.before, history = it.history.dropLast(1), suggestion = null, message = null) }
-        tracker.setBoard(last.before)
+        synchronized(tracker) { tracker.setBoard(last.before) }
         maybeAnalyze()
     }
 

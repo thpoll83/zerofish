@@ -11,7 +11,11 @@ Live mode (default): set up the starting position, point the camera at the board
 a stand) and tap Start. The app finds the board in every frame, learns what your pieces look like
 from the first three frames that show the starting position, and from then on applies a move as
 soon as the same move explains three consecutive frames. Frames with a hand or a shadow over the
-board are ignored. The screen shows the annotated camera frame, the digital board and Stockfish's
+board are ignored. When the board has not matched the tracked position for two seconds and no
+single explanation wins, the most likely explanations are shown as buttons, after four seconds
+including three-move sequences. The buttons keep the best-scoring explanations of the last three
+seconds, so they do not change from frame to frame; tapping one applies it and resynchronises the
+tracker. The screen shows the annotated camera frame, the digital board and Stockfish's
 suggestion for your side. Undo, typing a move and pausing the camera are there for corrections.
 
 Camera settings on the live screen: zoom from the phone's minimum (below 1x selects the wide-angle

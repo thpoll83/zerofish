@@ -255,6 +255,19 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
         style = MaterialTheme.typography.bodySmall,
     )
     Message(state)
+    if (state.liveSuggestions.isNotEmpty()) {
+        Card(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            Column(Modifier.padding(12.dp)) {
+                Text("Not sure what was played. Tap the right one:", fontWeight = FontWeight.Bold)
+                for (c in state.liveSuggestions) {
+                    OutlinedButton(onClick = { vm.acceptLiveCandidate(c) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(c.description)
+                    }
+                }
+                TextButton(onClick = { showEntry = true }) { Text("None of these, type it") }
+            }
+        }
+    }
     if (state.liveLearned) {
         BoardView(
             board = state.board,

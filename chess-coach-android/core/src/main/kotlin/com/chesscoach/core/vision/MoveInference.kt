@@ -101,18 +101,17 @@ object MoveInference {
         fun total(after: IntArray, plies: Int): Double =
             cost(after, obs, nearSide, base) + plies * PLY_PENALTY + (if (change != null) changeCost(base, after, change) else 0.0)
         out.add(Candidate(emptyList(), total(base, 0), emptyList()))
-        if (maxPlies >= 1) {
-            for (m1 in board.legalMoves()) {
-                val b1 = board.play(m1)
-                out.add(Candidate(listOf(m1), total(b1.occupancy(), 1), listOf(board.san(m1))))
-                if (maxPlies >= 2) {
-                    for (m2 in b1.legalMoves()) {
-                        val b2 = b1.play(m2)
-                        out.add(Candidate(listOf(m1, m2), total(b2.occupancy(), 2), listOf(board.san(m1), b1.san(m2))))
-                    }
-                }
+        fun expand(b: Board, moves: List<Move>, sans: List<String>, depth: Int) {
+            if (depth >= maxPlies) return
+            for (m in b.legalMoves()) {
+                val next = b.play(m)
+                val ms = moves + m
+                val ss = sans + b.san(m)
+                out.add(Candidate(ms, total(next.occupancy(), ms.size), ss))
+                expand(next, ms, ss, depth + 1)
             }
         }
+        expand(board, emptyList(), emptyList(), 0)
         // Promotions to different pieces look identical to the camera; keep the queen and drop the rest.
         val dedup = out.filter { c -> c.moves.all { it.promotion == 0 || it.promotion == 5 } }
         return InferenceResult(dedup.sortedBy { it.cost })

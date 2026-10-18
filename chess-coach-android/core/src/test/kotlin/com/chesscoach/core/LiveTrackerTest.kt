@@ -61,6 +61,33 @@ class LiveTrackerTest {
     }
 
     @Test
+    fun offersSuggestionsWhenItCannotDecideAndAcceptsThePick() {
+        val t = LiveTracker(framesToConfirm = 3, framesToLearn = 2)
+        val b0 = Board.start()
+        repeat(2) { t.process(frame(b0, it)) }
+        assertEquals(LiveTracker.Phase.TRACKING, t.phase)
+        // Three plies happen before the camera gets a clean look (Nf3 Nf6 Ng5): no two-move
+        // explanation fits, so after a couple of seconds suggestions must appear, and after a
+        // little longer the three-move search must find the truth among them.
+        var b = b0
+        for (san in listOf("Nf3", "Nf6", "Ng5")) b = b.play(b.parseMove(san)!!)
+        var suggestions: List<com.chesscoach.core.vision.Candidate> = emptyList()
+        var sawAmbiguous = false
+        for (i in 0 until 24) {
+            val r = t.process(frame(b, 200 + i, jitter = 2.0))
+            if (r.status == LiveTracker.Status.AMBIGUOUS) { sawAmbiguous = true; suggestions = r.suggestions }
+            if (r.suggestions.any { it.description == "Nf3 Nf6 Ng5" }) { suggestions = r.suggestions; break }
+        }
+        assertTrue(sawAmbiguous, "never asked the user")
+        val truth = suggestions.firstOrNull { it.description == "Nf3 Nf6 Ng5" }
+        assertTrue(truth != null, "truth not offered; offered: ${suggestions.map { it.description }}")
+        t.accept(truth!!)
+        assertEquals(b, t.board)
+        // after accepting, a quiet board is quiet again
+        repeat(3) { assertEquals(LiveTracker.Status.TRACKING, t.process(frame(b, 300 + it, jitter = 2.0)).status) }
+    }
+
+    @Test
     fun needsAgreementBeforeApplying() {
         val t = LiveTracker(framesToConfirm = 3, framesToLearn = 2)
         val b0 = Board.start()
