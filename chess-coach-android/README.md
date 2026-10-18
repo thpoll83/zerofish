@@ -88,10 +88,11 @@ To build with ARMv8.2 dot-product instructions (about 30% faster search on 2018+
 core/   pure Kotlin: chess rules (move generation, SAN, FEN), grid detector, homography,
         square sampling and classification, move inference, UCI parsing. Unit-tested with
         perft, a synthetic renderer of boards with pieces seen from changing viewpoints, and
-        22 photographs of real boards (core/src/test/resources/boards, see NOTICE.md there):
-        the grid must be found within 2.5% of the labelled corners on 20 of them, the
-        starting position must be read from one, a wooden middlegame from another, and
-        detection must stay under 2 s per photo.
+        27 photographs of real boards (core/src/test/resources/boards, see NOTICE.md there),
+        five of them of the owner's own board from every side: the grid must be found within
+        2.5% of the labelled corners on 25 of them, the starting position must be read with the
+        right orientation from six, a wooden middlegame from one more, and detection must stay
+        under 2 s per photo.
 app/    Android: CameraX capture, Compose UI (photo overlay, digital board, screens),
         view model, Stockfish JNI bridge and CMake build.
 ```

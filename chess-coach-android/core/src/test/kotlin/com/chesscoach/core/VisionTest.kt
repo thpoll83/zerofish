@@ -286,10 +286,20 @@ class VisionTest {
         for (file in dir.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png") }!!.sortedBy { it.name }) {
             val img = loadLuma(file)
             val t0 = System.currentTimeMillis()
-            val grid = GridDetector.detect(img)
+            val verbose = System.getenv("CHESS_SURVEY_LOG")?.let { file.name.startsWith(it) } ?: false
+            val grid = GridDetector.detect(img, log = if (verbose) { m -> println("LOG ${file.name} $m") } else null)
             val ms = System.currentTimeMillis() - t0
             writeOverlay(img, grid?.corners, file.nameWithoutExtension, grid?.lines ?: emptyList())
             println("SURVEY ${file.name} ${img.width}x${img.height} ${ms}ms: " + (grid?.let { "${it.notes} corners=" + it.corners.joinToString { c -> "(%.0f,%.0f)".format(c.x, c.y) } } ?: "NOT FOUND"))
+            if (grid != null && System.getenv("CHESS_SURVEY_START") != null) {
+                val located = BoardLocator.locate(img, grid.corners, Calibration.default(), Board.start().occupancy(), null)
+                val cal = Calibration.learn(located.features)
+                val obs = cal.observe(located.features)
+                val expected = Board.start().occupancy()
+                val wrong = (0 until 64).filter { obs[it].label != expected[it] }
+                val wrongDefault = (0 until 64).filter { located.observations[it].label != expected[it] }
+                println("SURVEY-START ${file.name} a1=(%.0f,%.0f) wrong after learning: ${wrong.size} [${wrong.joinToString { Square.name(it) }}], with defaults: ${wrongDefault.size}; ${cal.notes.joinToString(" | ")}".format(located.geometry.corners[0].x, located.geometry.corners[0].y))
+            }
         }
     }
 

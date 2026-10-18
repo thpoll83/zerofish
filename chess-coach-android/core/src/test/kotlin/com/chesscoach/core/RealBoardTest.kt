@@ -175,6 +175,42 @@ class RealBoardTest {
     }
 
     /**
+     * The owner's board, five views of the starting position. Besides reading the squares, the
+     * orientation must come out right: a1 is White's left corner, which lands in a different
+     * image corner in every photo (White far, from a corner, White on the right, White near).
+     */
+    @Test
+    fun readsTheOwnersBoardFromEveryAngle() {
+        val cases = listOf(
+            // name, expected a1 corner (x, y), max squares misread after learning
+            Triple("own_1", Pt(501.0, 234.0), 2),
+            Triple("own_2", Pt(316.0, 290.0), 2),
+            Triple("own_3", Pt(380.0, 640.0), 8), // low side view: pieces hide much of the middle
+            Triple("own_4", Pt(27.0, 648.0), 2),
+            Triple("own_5", Pt(77.0, 624.0), 2),
+        )
+        val problems = ArrayList<String>()
+        for ((name, a1, maxWrong) in cases) {
+            val img = load(name)
+            val grid = GridDetector.detect(img)
+            if (grid == null) {
+                problems += "$name: board not found"; continue
+            }
+            val located = BoardLocator.locate(img, grid.corners, Calibration.default(), Board.start().occupancy(), null)
+            val foundA1 = located.geometry.corners[0]
+            val a1Err = hypot(foundA1.x - a1.x, foundA1.y - a1.y)
+            if (a1Err > 0.05 * maxOf(img.width, img.height)) problems += "$name: a1 found at (%.0f,%.0f), expected (%.0f,%.0f)".format(foundA1.x, foundA1.y, a1.x, a1.y)
+            val cal = Calibration.learn(located.features)
+            val obs = cal.observe(located.features)
+            val expected = Board.start().occupancy()
+            val wrong = (0 until 64).filter { obs[it].label != expected[it] }
+            println("$name: a1 error %.0f px, ${wrong.size} squares misread [${wrong.joinToString { Square.name(it) }}]".format(a1Err))
+            if (wrong.size > maxWrong) problems += "$name: ${wrong.size} squares misread (allowed $maxWrong): " + wrong.joinToString { Square.name(it) }
+        }
+        if (problems.isNotEmpty()) fail(problems.joinToString("\n"))
+    }
+
+    /**
      * board_6 (wooden set, overhead) shows 1.e4 e5 2.f3 f6 with the bishop c1 unclear. Labelled by
      * eye; the light wooden pieces are only a little brighter than the dark squares, which is the
      * hard case for the colour cue. Uses default thresholds, as no starting-position photo exists

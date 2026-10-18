@@ -117,7 +117,7 @@ class Calibration(
     companion object {
         fun default(): Calibration = Calibration(
             doubleArrayOf(0.22, 0.22), doubleArrayOf(0.07, 0.07),
-            doubleArrayOf(-0.5, -0.5), doubleArrayOf(0.25, 0.25),
+            doubleArrayOf(-0.35, -0.35), doubleArrayOf(0.25, 0.25),
             listOf("default thresholds"),
         )
 

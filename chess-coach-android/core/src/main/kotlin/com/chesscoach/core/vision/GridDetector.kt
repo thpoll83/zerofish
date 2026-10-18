@@ -115,7 +115,10 @@ object GridDetector {
             val aligned = alignmentScore(ordered, lines, small, 0..8)
             val outside = alignmentScore(ordered, lines, small, listOf(-1, 9))
             log?.invoke("  cand A(p0 %.3f s %.3f) B(p0 %.3f s %.3f): checker %.2f aligned %.1f outside %.1f corners %s".format(a.p0, a.s, b.p0, b.s, checker, aligned, outside, ordered.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }))
-            val total = aligned + 20.0 * checker - 6.0 * outside
+            // Boards with a frame about one square wide have a strong edge one square outside the
+            // playing area, so a line there is only weak evidence; the ring part of the checker
+            // score is what separates a grid shifted by a whole square from the right one.
+            val total = aligned + 28.0 * checker - 1.5 * outside
             if (total > bestTotal) {
                 bestTotal = total
                 best = DetectedGrid(

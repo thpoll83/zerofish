@@ -45,7 +45,15 @@ object BoardLocator {
             }
             val shadeOk = light > dark
             var cost = if (shadeOk) 0.0 else 12.0
-            if (expectedOccupancy != null) cost += MoveInference.cost(expectedOccupancy, obs)
+            if (expectedOccupancy != null) {
+                cost += MoveInference.cost(expectedOccupancy, obs)
+                // Raw brightness of the pieces: squares expected to hold white pieces must be
+                // brighter than those expected to hold black ones. Independent of thresholds, so
+                // it settles the 180-degree ambiguity before anything has been learned.
+                val whites = (0 until 64).filter { expectedOccupancy[it] == 1 }.map { features.colourScore[it] }
+                val blacks = (0 until 64).filter { expectedOccupancy[it] == 2 }.map { features.colourScore[it] }
+                if (whites.isNotEmpty() && blacks.isNotEmpty()) cost -= 16.0 * (whites.average() - blacks.average())
+            }
             if (previousRotation != null && rot == previousRotation) cost -= 1.0
             Located(g, patches, features, obs, rot) to cost
         }
