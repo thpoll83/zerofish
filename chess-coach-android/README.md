@@ -14,6 +14,10 @@ soon as the same move explains three consecutive frames. Frames with a hand or a
 board are ignored. The screen shows the annotated camera frame, the digital board and Stockfish's
 suggestion for your side. Undo, typing a move and pausing the camera are there for corrections.
 
+Camera settings on the live screen: zoom from the phone's minimum (below 1x selects the wide-angle
+lens on phones that expose it through zoom), a lens picker when the phone lists several back
+cameras, and a torch toggle. Zoom and lens are remembered.
+
 Photo mode (fallback): one photo per move with a confirm step, described below.
 
 1. Setup: choose your colour, how long Stockfish may think per move, and the strength of the

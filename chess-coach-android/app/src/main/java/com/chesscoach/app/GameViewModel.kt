@@ -17,7 +17,6 @@ import com.chesscoach.core.vision.ImageLine
 import com.chesscoach.core.vision.InferenceResult
 import com.chesscoach.core.vision.LiveTracker
 import com.chesscoach.core.vision.LumaImage
-import android.graphics.Bitmap
 import com.chesscoach.core.vision.MoveInference
 import com.chesscoach.core.vision.Pt
 import com.chesscoach.core.vision.SquareObservation
@@ -62,13 +61,18 @@ data class UiState(
     val message: String? = null,
     // live mode
     val liveStatus: String = "Starting camera...",
-    val liveFrame: Photo? = null,
+    val liveFrameWidth: Int = 0,
+    val liveFrameHeight: Int = 0,
     val liveCorners: List<Pt> = emptyList(),
     val liveObservations: List<SquareObservation>? = null,
     val liveCandidate: String? = null,
     val livePaused: Boolean = false,
     val liveLearned: Boolean = false,
     val liveFps: Float = 0f,
+    val camera: CameraSettings = CameraSettings(),
+    val cameras: List<CameraOption> = emptyList(),
+    val zoomMin: Float = 1f,
+    val zoomMax: Float = 1f,
 ) {
     val lastMove: Move? get() = history.lastOrNull()?.move
     val myTurn: Boolean get() = board.sideToMove == myColor
@@ -85,6 +89,7 @@ data class UiState(
 }
 
 class GameViewModel(app: Application) : AndroidViewModel(app) {
+    private val prefs = app.getSharedPreferences("chesscoach", android.content.Context.MODE_PRIVATE)
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state
 
@@ -102,6 +107,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     private var lastFrameAt = 0L
 
     init {
+        _state.update {
+            it.copy(camera = CameraSettings(cameraId = prefs.getString("cameraId", null), zoom = prefs.getFloat("zoom", 1f)))
+        }
         viewModelScope.launch {
             try {
                 val threads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
@@ -149,12 +157,10 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.Default) {
             try {
                 val r = tracker.process(frame)
-                val thumb = thumbnail(frame, 2)
-                val scale = 0.5
-                val corners = r.geometry?.corners?.map { Pt(it.x * scale, it.y * scale) } ?: emptyList()
+                val corners = r.geometry?.corners ?: emptyList()
                 _state.update {
                     it.copy(
-                        liveStatus = r.message, liveFrame = thumb, liveCorners = corners,
+                        liveStatus = r.message, liveFrameWidth = frame.width, liveFrameHeight = frame.height, liveCorners = corners,
                         liveObservations = r.observations?.toList(), liveCandidate = r.candidate?.takeIf { c -> c.moves.isNotEmpty() }?.description,
                         liveFps = fps,
                     )
@@ -177,17 +183,23 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Grayscale bitmap of the frame at 1/[step] resolution, for the on-screen overlay. */
-    private fun thumbnail(frame: LumaImage, step: Int): Photo {
-        val w = frame.width / step
-        val h = frame.height / step
-        val px = IntArray(w * h)
-        for (y in 0 until h) for (x in 0 until w) {
-            val v = frame.luma(x * step, y * step)
-            px[y * w + x] = (0xFF shl 24) or (v shl 16) or (v shl 8) or v
-        }
-        return Photo(Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888))
+    // ---- camera settings ---------------------------------------------------------------------
+
+    fun onCamerasAvailable(options: List<CameraOption>, zoomMin: Float, zoomMax: Float) {
+        _state.update { it.copy(cameras = options, zoomMin = zoomMin, zoomMax = zoomMax) }
     }
+
+    fun setZoom(z: Float) {
+        _state.update { it.copy(camera = it.camera.copy(zoom = z)) }
+        prefs.edit().putFloat("zoom", z).apply()
+    }
+
+    fun setCameraId(id: String?) {
+        _state.update { it.copy(camera = it.camera.copy(cameraId = id)) }
+        prefs.edit().putString("cameraId", id).apply()
+    }
+
+    fun setTorch(on: Boolean) = _state.update { it.copy(camera = it.camera.copy(torch = on)) }
 
     // ---- starting position -------------------------------------------------------------------
 

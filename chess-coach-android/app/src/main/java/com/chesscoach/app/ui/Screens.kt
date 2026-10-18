@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chesscoach.app.CameraCapture
-import com.chesscoach.app.LiveCamera
+import com.chesscoach.app.LiveCameraView
 import com.chesscoach.app.GameViewModel
 import com.chesscoach.app.Phase
 import com.chesscoach.app.Purpose
@@ -205,7 +205,42 @@ private fun SuggestionCard(state: UiState, vm: GameViewModel) {
 private fun LiveScreen(state: UiState, vm: GameViewModel) {
     var showEntry by remember { mutableStateOf(false) }
     var entry by remember { mutableStateOf("") }
-    LiveCamera(isBusy = { vm.isLiveBusy() }, onFrame = { vm.onLiveFrame(it) })
+    var showCamera by remember { mutableStateOf(false) }
+    LiveCameraView(
+        settings = state.camera,
+        corners = state.liveCorners,
+        observations = state.liveObservations,
+        frameWidth = state.liveFrameWidth,
+        frameHeight = state.liveFrameHeight,
+        isBusy = { vm.isLiveBusy() },
+        onCameras = { options, zMin, zMax -> vm.onCamerasAvailable(options, zMin, zMax) },
+        onFrame = { vm.onLiveFrame(it) },
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        TextButton(onClick = { showCamera = !showCamera }) { Text(if (showCamera) "Hide camera settings" else "Camera settings") }
+        Text("%.1fx".format(state.camera.zoom), style = MaterialTheme.typography.bodySmall)
+    }
+    if (showCamera) {
+        Text("Zoom (below 1x switches to the wide-angle lens on phones that have one)", style = MaterialTheme.typography.bodySmall)
+        Slider(
+            value = state.camera.zoom.coerceIn(state.zoomMin, maxOf(state.zoomMax, state.zoomMin + 0.01f)),
+            onValueChange = { vm.setZoom(it) },
+            valueRange = state.zoomMin..maxOf(minOf(state.zoomMax, 4f), state.zoomMin + 0.01f),
+        )
+        if (state.cameras.size > 1) {
+            Text("Lens", style = MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = state.camera.cameraId == null, onClick = { vm.setCameraId(null) }, label = { Text("Default") })
+                state.cameras.forEachIndexed { i, c ->
+                    val name = if (i == 0) "Widest (%.1f mm)".format(c.focalMm) else c.label
+                    FilterChip(selected = state.camera.cameraId == c.id, onClick = { vm.setCameraId(c.id) }, label = { Text(name) })
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = state.camera.torch, onClick = { vm.setTorch(!state.camera.torch) }, label = { Text("Torch") })
+        }
+    }
     val result = state.board.result()
     val headline = when {
         !state.liveLearned -> state.liveStatus
@@ -220,7 +255,6 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
         style = MaterialTheme.typography.bodySmall,
     )
     Message(state)
-    state.liveFrame?.let { PhotoOverlay(it, state.liveCorners, state.liveObservations) }
     if (state.liveLearned) {
         BoardView(
             board = state.board,
