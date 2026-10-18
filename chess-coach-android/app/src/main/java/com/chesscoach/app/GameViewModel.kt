@@ -38,6 +38,8 @@ data class UiState(
     val phase: Phase = Phase.SETUP,
     val myColor: Color = Color.WHITE,
     val thinkSeconds: Float = 2f,
+    /** Playing strength for the advice, or null for full strength. */
+    val elo: Int? = null,
     val engineStatus: String = "Starting Stockfish...",
     val engineReady: Boolean = false,
     val photo: Photo? = null,
@@ -100,6 +102,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setMyColor(c: Color) = _state.update { it.copy(myColor = c) }
     fun setThinkSeconds(s: Float) = _state.update { it.copy(thinkSeconds = s) }
+    fun setElo(elo: Int?) = _state.update { it.copy(elo = elo?.coerceIn(StockfishEngine.MIN_ELO, StockfishEngine.MAX_ELO)) }
 
     fun beginStartScan() = _state.update { it.copy(phase = Phase.SCAN_START, message = null, detectionFailed = false) }
 
@@ -332,7 +335,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(thinking = true, suggestion = null) }
         analysisJob = viewModelScope.launch {
             try {
-                val result = engine.analyze(fen, (s.thinkSeconds * 1000).toInt()) { lines ->
+                val result = engine.analyze(fen, (s.thinkSeconds * 1000).toInt(), s.elo) { lines ->
                     _state.update { it.copy(suggestion = toSuggestion(board, lines, done = false)) }
                 }
                 val best = result.bestMove?.let { Move.fromUci(it) }

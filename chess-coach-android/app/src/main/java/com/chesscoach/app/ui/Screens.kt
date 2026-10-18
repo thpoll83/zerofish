@@ -35,6 +35,7 @@ import com.chesscoach.app.CameraCapture
 import com.chesscoach.app.GameViewModel
 import com.chesscoach.app.Phase
 import com.chesscoach.app.Purpose
+import com.chesscoach.app.StockfishEngine
 import com.chesscoach.app.UiState
 import com.chesscoach.core.chess.Color
 import com.chesscoach.core.chess.GameResult
@@ -99,6 +100,20 @@ private fun SetupScreen(state: UiState, vm: GameViewModel) {
     Spacer(Modifier.height(16.dp))
     Text("Thinking time: %.1f s per move".format(state.thinkSeconds), fontWeight = FontWeight.Bold)
     Slider(value = state.thinkSeconds, onValueChange = { vm.setThinkSeconds(it) }, valueRange = 0.5f..10f)
+    Spacer(Modifier.height(16.dp))
+    Text("Strength of the advice", fontWeight = FontWeight.Bold)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterChip(selected = state.elo == null, onClick = { vm.setElo(null) }, label = { Text("Full strength") })
+        FilterChip(selected = state.elo != null, onClick = { vm.setElo(state.elo ?: 1800) }, label = { Text("Limited Elo") })
+    }
+    state.elo?.let { elo ->
+        Text("About $elo Elo. Stockfish then plays like a player of that rating, mistakes included.", style = MaterialTheme.typography.bodySmall)
+        Slider(
+            value = elo.toFloat(),
+            onValueChange = { vm.setElo((it / 10).toInt() * 10) },
+            valueRange = StockfishEngine.MIN_ELO.toFloat()..StockfishEngine.MAX_ELO.toFloat(),
+        )
+    }
     Spacer(Modifier.height(16.dp))
     Text(
         "Set up the pieces for a new game and photograph the whole board, from above or from your seat. " +

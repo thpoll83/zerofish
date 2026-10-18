@@ -23,6 +23,10 @@ class StockfishEngine(private val context: Context) {
 
         const val NET_BIG = "nn-1c0000000000.nnue"
         const val NET_SMALL = "nn-37f18f62d772.nnue"
+
+        /** UCI_Elo range of Stockfish 17.1. */
+        const val MIN_ELO = 1320
+        const val MAX_ELO = 3190
     }
 
     private external fun nativeStart(): Boolean
@@ -74,11 +78,18 @@ class StockfishEngine(private val context: Context) {
      * Searches [fen] for [moveTimeMs]. [onProgress] receives the current best lines (index 0 = best)
      * as the engine reports them. Returns when the engine says "bestmove".
      */
-    suspend fun analyze(fen: String, moveTimeMs: Int, onProgress: (List<EngineInfo>) -> Unit = {}): Analysis =
+    suspend fun analyze(fen: String, moveTimeMs: Int, elo: Int? = null, onProgress: (List<EngineInfo>) -> Unit = {}): Analysis =
         commandLock.withLock {
             withContext(Dispatchers.IO) {
                 check(started) { "Engine not started" }
                 drain()
+                // Playing strength: Stockfish picks weaker moves on purpose when limited.
+                if (elo != null) {
+                    send("setoption name UCI_LimitStrength value true")
+                    send("setoption name UCI_Elo value ${elo.coerceIn(MIN_ELO, MAX_ELO)}")
+                } else {
+                    send("setoption name UCI_LimitStrength value false")
+                }
                 send("ucinewgame")
                 send("isready")
                 waitFor { it == "readyok" }

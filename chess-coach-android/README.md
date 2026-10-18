@@ -7,7 +7,9 @@ Standalone project. It shares no code with ZeroFish and can be moved to its own 
 
 ## What it does
 
-1. Setup: choose your colour and how long Stockfish may think per move.
+1. Setup: choose your colour, how long Stockfish may think per move, and the strength of the
+   advice: full strength, or a rating between 1320 and 3190 Elo (Stockfish's `UCI_LimitStrength`
+   and `UCI_Elo` options), so the suggestions can be pitched at your son's level.
 2. Photograph the board with all 32 pieces on their starting squares, from above or from your
    seat. The app finds the board by itself and learns, per square shade, how an empty square, a
    white piece and a black piece look in your light. A check screen shows the grid it found and a
