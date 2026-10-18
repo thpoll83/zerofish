@@ -4,7 +4,7 @@ import com.chesscoach.core.chess.Square
 import kotlin.math.exp
 
 /** What the scanner believes about one square. Probabilities are in 0..1. */
-data class SquareObservation(val occupied: Double, val white: Double, val absDiff: Double, val signedDiff: Double) {
+data class SquareObservation(val occupied: Double, val white: Double, val occFraction: Double, val colourScore: Double) {
     /** 0 = empty, 1 = white, 2 = black, by the most likely reading. */
     val label: Int get() = if (occupied < 0.5) 0 else if (white >= 0.5) 1 else 2
 
@@ -12,81 +12,148 @@ data class SquareObservation(val occupied: Double, val white: Double, val absDif
     val unsure: Boolean get() = occupied in 0.3..0.7 || (occupied >= 0.5 && white in 0.3..0.7)
 }
 
+/** Per-square features that do not depend on a fixed camera: see [SquareFeatures.extract]. */
+class SquareFeatures(val occFraction: DoubleArray, val colourScore: DoubleArray) {
+    companion object {
+        /**
+         * Builds, for each square shade, an "empty square" template as the per-pixel median over
+         * the 32 squares of that shade in this very photo (pieces never cover more than half of
+         * them at any pixel), then measures how much of each square differs from its template and
+         * whether the differing pixels are brighter or darker than the board.
+         */
+        fun extract(patches: Array<IntArray>): SquareFeatures {
+            val n = patches[0].size
+            val templates = Array(2) { shade ->
+                val squares = (0 until 64).filter { (if (Square.isLight(it)) 1 else 0) == shade }
+                val tmp = IntArray(squares.size)
+                IntArray(n) { p ->
+                    for ((k, sq) in squares.withIndex()) tmp[k] = patches[sq][p]
+                    tmp.sort()
+                    (tmp[tmp.size / 2 - 1] + tmp[tmp.size / 2]) / 2
+                }
+            }
+            val toneDark = median(templates[0])
+            val toneLight = median(templates[1])
+            val toneDiff = maxOf(toneLight - toneDark, 10.0)
+            val tau = 0.25 * toneDiff
+            val occ = DoubleArray(64)
+            val col = DoubleArray(64)
+            val d = DoubleArray(n)
+            for (sq in 0 until 64) {
+                val t = templates[if (Square.isLight(sq)) 1 else 0]
+                for (p in 0 until n) d[p] = (patches[sq][p] - t[p]).toDouble()
+                // Illumination offset from the pixels that still look like board (|d| small), so a
+                // piece covering most of the window cannot pull the reference towards itself.
+                val boardLike = d.filter { kotlin.math.abs(it) < tau }
+                val offset = if (boardLike.size >= n / 5) median(boardLike.toDoubleArray()).coerceIn(-0.1 * toneDiff, 0.1 * toneDiff) else 0.0
+                var bright = 0
+                var dark = 0
+                for (p in 0 until n) {
+                    val v = d[p] - offset
+                    if (v > tau) bright++ else if (v < -tau) dark++
+                }
+                occ[sq] = (bright + dark).toDouble() / n
+                col[sq] = (bright - dark).toDouble() / maxOf(bright + dark, (0.05 * n).toInt().coerceAtLeast(1))
+            }
+            return SquareFeatures(occ, col)
+        }
+
+        private fun median(a: IntArray): Double {
+            val s = a.sortedArray()
+            return s[s.size / 2].toDouble()
+        }
+
+        private fun median(a: DoubleArray): Double {
+            val s = a.sortedArray()
+            return s[s.size / 2]
+        }
+    }
+}
+
 /**
- * Per-shade thresholds learned from the empty board and the starting position.
- * Index 0 = dark squares, 1 = light squares.
+ * Decision thresholds on [SquareFeatures], per square shade (index 0 = dark, 1 = light).
+ * [default] works for typical boards; [learn] tunes them from a photo of the starting position.
  */
 class Calibration(
-    val baseline: Array<IntArray>,
     val occThreshold: DoubleArray,
     val occScale: DoubleArray,
-    val colorThreshold: DoubleArray,
-    val colorScale: DoubleArray,
+    val colourThreshold: DoubleArray,
+    val colourScale: DoubleArray,
     val notes: List<String>,
 ) {
     val isUsable: Boolean get() = notes.none { it.startsWith("FAIL") }
 
-    fun observe(samples: Array<IntArray>): Array<SquareObservation> {
-        val gain = Features.gain(baseline, samples)
-        return Array(64) { sq ->
-            val shade = if (Square.isLight(sq)) 1 else 0
-            val f = Features.compare(baseline[sq], samples[sq], gain)
-            val occ = sigmoid((f.absDiff - occThreshold[shade]) / occScale[shade])
-            val white = sigmoid((f.signedDiff - colorThreshold[shade]) / colorScale[shade])
-            SquareObservation(occ, white, f.absDiff, f.signedDiff)
-        }
+    fun observe(f: SquareFeatures): Array<SquareObservation> = Array(64) { sq ->
+        val shade = if (Square.isLight(sq)) 1 else 0
+        val occ = sigmoid((f.occFraction[sq] - occThreshold[shade]) / occScale[shade])
+        val white = sigmoid((f.colourScore[sq] - colourThreshold[shade]) / colourScale[shade])
+        SquareObservation(occ, white, f.occFraction[sq], f.colourScore[sq])
     }
 
     private fun sigmoid(z: Double) = 1.0 / (1.0 + exp(-z))
 
     companion object {
-        /**
-         * Learns thresholds from [emptySamples] (no pieces) and [startSamples] (all 32 pieces on
-         * their starting squares, White on ranks 1-2).
-         */
-        fun learn(emptySamples: Array<IntArray>, startSamples: Array<IntArray>): Calibration {
+        fun default(): Calibration = Calibration(
+            doubleArrayOf(0.22, 0.22), doubleArrayOf(0.07, 0.07),
+            doubleArrayOf(0.2, -0.4), doubleArrayOf(0.25, 0.25),
+            listOf("default thresholds"),
+        )
+
+        /** Learns thresholds from the features of a photo showing all 32 pieces on their starting squares. */
+        fun learn(f: SquareFeatures): Calibration {
             val notes = ArrayList<String>()
-            val gain = Features.gain(emptySamples, startSamples)
-            val feats = Array(64) { Features.compare(emptySamples[it], startSamples[it], gain) }
             val occThreshold = DoubleArray(2)
             val occScale = DoubleArray(2)
-            val colorThreshold = DoubleArray(2)
-            val colorScale = DoubleArray(2)
+            val colourThreshold = DoubleArray(2)
+            val colourScale = DoubleArray(2)
             for (shade in 0..1) {
+                val shadeName = if (shade == 0) "dark" else "light"
                 val squares = (0 until 64).filter { (if (Square.isLight(it)) 1 else 0) == shade }
-                val empty = squares.filter { Square.rank(it) in 2..5 }.map { feats[it].absDiff }
-                val occupied = squares.filter { Square.rank(it) !in 2..5 }.map { feats[it].absDiff }
+                val empty = squares.filter { Square.rank(it) in 2..5 }.map { f.occFraction[it] }
+                val occupied = squares.filter { Square.rank(it) !in 2..5 }.map { f.occFraction[it] }
                 val maxEmpty = empty.max()
                 val minOcc = occupied.min()
-                val shadeName = if (shade == 0) "dark" else "light"
                 if (minOcc > maxEmpty) {
                     occThreshold[shade] = (maxEmpty + minOcc) / 2
-                    occScale[shade] = maxOf((minOcc - maxEmpty) / 4, 0.5)
-                    notes.add("OK occupancy on $shadeName squares: empty <= %.1f, pieces >= %.1f".format(maxEmpty, minOcc))
+                    occScale[shade] = maxOf((minOcc - maxEmpty) / 4, 0.02)
+                    notes.add("OK occupancy on $shadeName squares: empty <= %.2f, pieces >= %.2f".format(maxEmpty, minOcc))
                 } else {
                     val meanEmpty = empty.average()
                     val meanOcc = occupied.average()
                     occThreshold[shade] = (meanEmpty + meanOcc) / 2
-                    occScale[shade] = maxOf((meanOcc - meanEmpty) / 4, 0.5)
-                    val tag = if (meanOcc > meanEmpty * 1.3) "WARN" else "FAIL"
-                    notes.add("$tag occupancy on $shadeName squares overlaps: empty up to %.1f, pieces from %.1f".format(maxEmpty, minOcc))
+                    occScale[shade] = maxOf((meanOcc - meanEmpty) / 4, 0.02)
+                    val tag = if (meanOcc > meanEmpty + 0.15) "WARN" else "FAIL"
+                    notes.add("$tag occupancy on $shadeName squares overlaps: empty up to %.2f, pieces from %.2f".format(maxEmpty, minOcc))
                 }
-                val whites = squares.filter { Square.rank(it) <= 1 }.map { feats[it].signedDiff }
-                val blacks = squares.filter { Square.rank(it) >= 6 }.map { feats[it].signedDiff }
+                val whites = squares.filter { Square.rank(it) <= 1 }.map { f.colourScore[it] }
+                val blacks = squares.filter { Square.rank(it) >= 6 }.map { f.colourScore[it] }
                 val meanWhite = whites.average()
                 val meanBlack = blacks.average()
-                colorThreshold[shade] = (meanWhite + meanBlack) / 2
-                colorScale[shade] = maxOf((meanWhite - meanBlack) / 4, 0.5)
-                val minWhite = whites.min()
-                val maxBlack = blacks.max()
+                colourThreshold[shade] = (meanWhite + meanBlack) / 2
+                colourScale[shade] = maxOf((meanWhite - meanBlack) / 4, 0.08)
                 when {
-                    minWhite > maxBlack -> notes.add("OK piece colour on $shadeName squares: white >= %.1f, black <= %.1f".format(minWhite, maxBlack))
-                    meanWhite > meanBlack + 4 -> notes.add("WARN piece colour on $shadeName squares overlaps slightly")
-                    else -> notes.add("FAIL cannot tell white from black pieces on $shadeName squares (white %.1f vs black %.1f)".format(meanWhite, meanBlack))
+                    whites.min() > blacks.max() -> notes.add("OK piece colour on $shadeName squares: white >= %.2f, black <= %.2f".format(whites.min(), blacks.max()))
+                    meanWhite > meanBlack + 0.2 -> notes.add("WARN piece colour on $shadeName squares overlaps slightly")
+                    else -> notes.add("FAIL cannot tell white from black pieces on $shadeName squares (white %.2f vs black %.2f)".format(meanWhite, meanBlack))
                 }
             }
-            return Calibration(emptySamples, occThreshold, occScale, colorThreshold, colorScale, notes)
+            return Calibration(occThreshold, occScale, colourThreshold, colourScale, notes)
         }
+    }
+}
+
+/** Compares the square patches of two scans; squares a move touched should stand out. */
+object ChangeDetector {
+    /** Returns a 0..1 score per square; 0 means "looks like last time". */
+    fun scores(previous: Array<IntArray>, current: Array<IntArray>): DoubleArray {
+        val gain = Features.gain(previous, current)
+        val diff = DoubleArray(64) { sq -> Features.compare(previous[sq], current[sq], gain).absDiff }
+        val sorted = diff.sortedArray()
+        val med = sorted[32]
+        // A move touches 2 to 4 squares; anything within the typical spread of the other
+        // squares (viewpoint and exposure changes affect them all) does not count.
+        val spread = maxOf(sorted[48] - med, 3.0)
+        return DoubleArray(64) { ((diff[it] - med - 2.0 * spread) / (3.0 * spread)).coerceIn(0.0, 1.0) }
     }
 }
 

@@ -8,31 +8,53 @@ Standalone project. It shares no code with ZeroFish and can be moved to its own 
 ## What it does
 
 1. Setup: choose your colour and how long Stockfish may think per move.
-2. Calibration (once per session, phone fixed on a stand):
-   - photograph the empty board and tap its four corners (a1, h1, h8, a8),
-   - photograph the starting position with all 32 pieces.
-   The app learns, per square shade, how an empty square, a white piece and a black piece look.
-3. Game: after your opponent moves, tap "Scan board". The app classifies every square as empty,
-   white or black, then finds the legal move (or two-move sequence, in case you forgot to scan
-   once) whose result matches best. You confirm with one tap, Stockfish analyses, and the
-   digital board shows the suggested move with an arrow. Tap "I played Nf3" once you have moved
-   it on the real board, or scan again.
+2. Photograph the board with all 32 pieces on their starting squares, from above or from your
+   seat. The app finds the board by itself and learns, per square shade, how an empty square, a
+   white piece and a black piece look in your light. A check screen shows the grid it found and a
+   marker per square so you can see that everything was recognised.
+3. Game: after your opponent moves, tap "Scan board" and take a photo. The phone does not need to
+   stay in place. The app finds the board again, classifies every square as empty, white or black,
+   and picks the legal move (or two-move sequence, in case you forgot to scan once) whose result
+   matches best. You confirm with one tap, Stockfish analyses, and the digital board shows the
+   suggested move with an arrow. Tap "I played Nf3" once you have moved it on the real board.
 
 No piece classifier is needed because the game always starts from the known position and only
 occupancy and piece colour change. Castling, en passant, captures and promotions are matched
-through the move generator. Any scan can be corrected by typing the move (SAN or UCI).
+through the move generator. Any scan can be corrected by choosing an alternative or typing the
+move (SAN or UCI). If the board is not found in a photo, you can tap its four corners instead.
 
-## Side angles
+## How the board is found
 
-The four tapped corners define a full perspective transform, so the board may be photographed
-from above or from the side. The app detects which board edge is nearest the camera (the one
-that appears longest) and reads each square on the half facing away from the camera, where the
-piece in front hides the least. The scan screen draws the warped grid, the patch read per square
-and a marker per square (white, black, green dot for empty, yellow ring for unsure) over the photo
-so you can see what was recognised, and the digital board shows the inferred position.
+Pure Kotlin, no OpenCV:
 
-Tips: even light without hard shadows, a matte board, and an angle of 45 degrees or steeper.
-Low angles make tall pieces hide the squares behind them.
+1. Downscale to 640 px, Sobel edges, weighted Hough transform, peak lines.
+2. Each line is walked in the image; lines are weighted by how long they are supported by edges
+   and by how often the edge polarity flips along them. A grid line flips light/dark every
+   square, a piece silhouette or a table edge does not, so piece edges count for little.
+3. Lines split into two families by direction. Each family proposes vanishing points by pairwise
+   voting. A projective transform sends the vanishing line to infinity, after which the grid lines
+   of a family are parallel and equally spaced again, and nine equally spaced lines are fitted.
+4. Candidate grids are scored by how many detected lines they coincide with, penalised for a
+   strong line one square outside the board (a shifted grid), and verified by the light/dark
+   alternation of the squares measured on each square's border ring (where piece bases rarely
+   reach) including the ring of squares outside the board, which must not alternate.
+5. The best grid is refined by snapping its 18 lines to detected lines and refitting the
+   homography by least squares.
+
+Orientation comes from the dark a1 rule plus the known position (and the rotation used last time).
+
+## Reading the squares
+
+Each square is sampled through the homography on the half facing away from the camera, where
+the piece in front hides least. An "empty square" template per shade is built from the photo
+itself as the per-pixel median over the 32 squares of that shade (pieces never cover more than
+half of them at any pixel). The fraction of pixels that differ from the template gives occupancy;
+whether they are brighter or darker gives the piece colour. Squares with a piece standing between
+them and the camera are weighted down, and squares that changed since the last scan support the
+candidate move that touches them.
+
+Tips: even light without hard shadows, a matte board, and an angle of 40 degrees or steeper.
+At low angles tall pieces hide the squares behind them; the confirm screen then lists alternatives.
 
 ## Stockfish
 
@@ -61,18 +83,19 @@ To build with ARMv8.2 dot-product instructions (about 30% faster search on 2018+
 ## Layout
 
 ```
-core/   pure Kotlin: chess rules (move generation, SAN, FEN), homography, square sampling,
-        calibration, move inference, UCI parsing. Unit-tested with perft and a synthetic
-        side-view board renderer.
+core/   pure Kotlin: chess rules (move generation, SAN, FEN), grid detector, homography,
+        square sampling and classification, move inference, UCI parsing. Unit-tested with
+        perft and a synthetic renderer of boards with pieces seen from changing viewpoints.
 app/    Android: CameraX capture, Compose UI (photo overlay, digital board, screens),
         view model, Stockfish JNI bridge and CMake build.
 ```
 
 ## Limits
 
-- The phone must not move between calibration and scans. If it does, use "Re-calibrate camera".
-- Hands, shadows or strong lighting changes during a scan lower confidence. The confirm screen
-  lists alternatives, and any move can be typed.
+- All four board edges must be in the photo. Hands, shadows or strong lighting changes lower
+  confidence. The confirm screen lists alternatives, and any move can be typed.
+- The scanner was tuned on synthetic scenes and one real photo; real boards may need threshold
+  adjustments in `core/.../vision/Calibration.kt` or `GridDetector.kt`.
 - Promotions are assumed to be to a queen; type the move for an underpromotion.
 - Threefold repetition is not detected.
 - A fatal engine error (for example a missing network file) terminates the process, as Stockfish

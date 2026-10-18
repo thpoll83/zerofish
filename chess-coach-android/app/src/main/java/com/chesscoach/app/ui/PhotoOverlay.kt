@@ -23,6 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import com.chesscoach.app.Photo
 import com.chesscoach.core.chess.Square
 import com.chesscoach.core.vision.BoardGeometry
+import com.chesscoach.core.vision.ImageLine
 import com.chesscoach.core.vision.Pt
 import com.chesscoach.core.vision.SquareObservation
 
@@ -35,6 +36,7 @@ fun PhotoOverlay(
     photo: Photo,
     corners: List<Pt>,
     observations: List<SquareObservation>? = null,
+    debugLines: List<ImageLine> = emptyList(),
     onTap: ((Pt) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -59,6 +61,10 @@ fun PhotoOverlay(
                 isAntiAlias = true
                 textAlign = Paint.Align.CENTER
                 setShadowLayer(3f, 0f, 0f, android.graphics.Color.BLACK)
+            }
+            for (dl in debugLines) {
+                val color = if (dl.family == 0) Color(0x80FF5252) else Color(0x80FFAB40)
+                drawLine(color, Offset((dl.x1 * scale).toFloat(), (dl.y1 * scale).toFloat()), Offset((dl.x2 * scale).toFloat(), (dl.y2 * scale).toFloat()), strokeWidth = 1.5f * scale)
             }
             val cornerNames = listOf("a1", "h1", "h8", "a8")
             corners.forEachIndexed { i, c ->

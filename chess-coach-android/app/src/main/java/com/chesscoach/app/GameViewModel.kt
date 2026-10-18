@@ -8,14 +8,16 @@ import com.chesscoach.core.chess.Color
 import com.chesscoach.core.chess.GameResult
 import com.chesscoach.core.chess.Move
 import com.chesscoach.core.engine.EngineInfo
-import com.chesscoach.core.vision.BoardGeometry
+import com.chesscoach.core.vision.BoardLocator
 import com.chesscoach.core.vision.Calibration
 import com.chesscoach.core.vision.Candidate
+import com.chesscoach.core.vision.ChangeDetector
+import com.chesscoach.core.vision.GridDetector
+import com.chesscoach.core.vision.ImageLine
 import com.chesscoach.core.vision.InferenceResult
 import com.chesscoach.core.vision.MoveInference
 import com.chesscoach.core.vision.Pt
 import com.chesscoach.core.vision.SquareObservation
-import com.chesscoach.core.vision.SquareSampler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +26,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class Phase { SETUP, CAPTURE_EMPTY, PICK_CORNERS, CAPTURE_START, CALIBRATION_RESULT, PLAYING, SCANNING, CONFIRM_SCAN }
+enum class Phase { SETUP, SCAN_START, CONFIRM_START, PICK_CORNERS, PLAYING, SCANNING, CONFIRM_SCAN }
+
+enum class Purpose { START, MOVE }
 
 data class HistoryEntry(val before: Board, val move: Move, val san: String)
 
@@ -39,8 +43,12 @@ data class UiState(
     val photo: Photo? = null,
     val corners: List<Pt> = emptyList(),
     val observations: List<SquareObservation>? = null,
+    val debugLines: List<ImageLine> = emptyList(),
+    val detectionFailed: Boolean = false,
+    val cornerPurpose: Purpose = Purpose.START,
     val calibrationNotes: List<String> = emptyList(),
     val calibrationUsable: Boolean = false,
+    val busy: Boolean = false,
     val board: Board = Board.start(),
     val history: List<HistoryEntry> = emptyList(),
     val suggestion: Suggestion? = null,
@@ -69,9 +77,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     private val engine = StockfishEngine(app)
     private var analysisJob: Job? = null
 
-    private var emptySamples: Array<IntArray>? = null
-    private var geometry: BoardGeometry? = null
-    private var calibration: Calibration? = null
+    private var calibration: Calibration = Calibration.default()
+    private var rotation: Int? = null
+    private var previousPatches: Array<IntArray>? = null
+    private var pendingPatches: Array<IntArray>? = null
+    private var pendingRotation: Int? = null
 
     init {
         viewModelScope.launch {
@@ -91,20 +101,69 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     fun setMyColor(c: Color) = _state.update { it.copy(myColor = c) }
     fun setThinkSeconds(s: Float) = _state.update { it.copy(thinkSeconds = s) }
 
-    fun beginCalibration() = _state.update { it.copy(phase = Phase.CAPTURE_EMPTY, message = null) }
+    fun beginStartScan() = _state.update { it.copy(phase = Phase.SCAN_START, message = null, detectionFailed = false) }
 
-    fun clearCorners() = _state.update { it.copy(corners = emptyList()) }
+    // ---- starting position -------------------------------------------------------------------
 
-    // ---- calibration -------------------------------------------------------------------------
+    fun onStartPhoto(photo: Photo) = processStart(photo, null)
 
-    fun onEmptyPhoto(photo: Photo) {
-        val s = _state.value
-        if (s.corners.size == 4) {
-            _state.update { it.copy(photo = photo) }
-            cornersDone()
-        } else {
-            _state.update { it.copy(photo = photo, corners = emptyList(), observations = null, phase = Phase.PICK_CORNERS) }
+    private fun processStart(photo: Photo, manualCorners: List<Pt>?) {
+        _state.update { it.copy(busy = true, photo = photo) }
+        viewModelScope.launch {
+            val outcome = withContext(Dispatchers.Default) {
+                runCatching {
+                    val grid = if (manualCorners == null) GridDetector.detect(photo.luma) else null
+                    val corners = manualCorners ?: grid?.corners
+                    if (corners == null) return@runCatching null to (grid?.lines ?: emptyList())
+                    val located = BoardLocator.locate(
+                        photo.luma, corners, Calibration.default(), Board.start().occupancy(), rotation,
+                        allowRotation = manualCorners == null,
+                    )
+                    val cal = Calibration.learn(located.features)
+                    Triple(located, cal, cal.observe(located.features)) to (grid?.lines ?: emptyList())
+                }
+            }
+            val (found, lines) = outcome.getOrElse { null to emptyList() }
+            if (found == null) {
+                _state.update {
+                    it.copy(
+                        phase = Phase.CONFIRM_START, busy = false, corners = emptyList(), observations = null,
+                        debugLines = lines, detectionFailed = true, calibrationNotes = emptyList(),
+                        message = outcome.exceptionOrNull()?.let { e -> "Error: ${e.message}" }
+                            ?: "Could not find the board. Make sure all four edges are in the picture and try again, or tap the corners yourself.",
+                    )
+                }
+                return@launch
+            }
+            val (located, cal, obs) = found
+            calibration = cal
+            pendingPatches = located.patches
+            pendingRotation = located.rotation
+            _state.update {
+                it.copy(
+                    phase = Phase.CONFIRM_START, busy = false, corners = located.geometry.corners,
+                    observations = obs.toList(), debugLines = emptyList(), detectionFailed = false,
+                    calibrationNotes = cal.notes, calibrationUsable = cal.isUsable,
+                    message = if (cal.isUsable) null else "Recognition is weak in this light or angle. You can still try.",
+                )
+            }
         }
+    }
+
+    fun acceptStart() {
+        previousPatches = pendingPatches
+        rotation = pendingRotation
+        _state.update {
+            it.copy(phase = Phase.PLAYING, board = Board.start(), history = emptyList(), suggestion = null, scanResult = null, message = null)
+        }
+        maybeAnalyze()
+    }
+
+    // ---- manual corners (fallback) -----------------------------------------------------------
+
+    fun pickCornersManually() {
+        val purpose = if (_state.value.phase == Phase.CONFIRM_SCAN) Purpose.MOVE else Purpose.START
+        _state.update { it.copy(phase = Phase.PICK_CORNERS, corners = emptyList(), observations = null, cornerPurpose = purpose, message = null) }
     }
 
     fun addCorner(p: Pt) = _state.update { if (it.corners.size < 4) it.copy(corners = it.corners + p) else it }
@@ -114,73 +173,57 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         val s = _state.value
         val photo = s.photo ?: return
         if (s.corners.size != 4) return
-        viewModelScope.launch {
-            val ok = withContext(Dispatchers.Default) {
-                try {
-                    val g = BoardGeometry(s.corners)
-                    emptySamples = SquareSampler.sample(photo.luma, g)
-                    geometry = g
-                    true
-                } catch (e: IllegalArgumentException) {
-                    false
-                }
-            }
-            if (ok) {
-                _state.update { it.copy(phase = Phase.CAPTURE_START, message = "Camera side: ${geometry?.nearSide}") }
-            } else {
-                _state.update { it.copy(corners = emptyList(), message = "Those corners do not form a board. Tap them again.") }
-            }
+        when (s.cornerPurpose) {
+            Purpose.START -> processStart(photo, s.corners)
+            Purpose.MOVE -> processScan(photo, s.corners)
         }
     }
 
-    fun onStartPhoto(photo: Photo) {
-        val g = geometry ?: return
-        val empty = emptySamples ?: return
-        viewModelScope.launch {
-            val (cal, obs) = withContext(Dispatchers.Default) {
-                val start = SquareSampler.sample(photo.luma, g)
-                val cal = Calibration.learn(empty, start)
-                cal to cal.observe(start).toList()
-            }
-            calibration = cal
-            _state.update {
-                it.copy(
-                    phase = Phase.CALIBRATION_RESULT,
-                    photo = photo,
-                    observations = obs,
-                    calibrationNotes = cal.notes,
-                    calibrationUsable = cal.isUsable,
-                )
-            }
-        }
+    fun cancelCorners() {
+        val target = if (_state.value.cornerPurpose == Purpose.MOVE) Phase.SCANNING else Phase.SCAN_START
+        _state.update { it.copy(phase = target, corners = emptyList()) }
     }
 
-    fun retakeStart() = _state.update { it.copy(phase = Phase.CAPTURE_START) }
+    // ---- scanning a move ---------------------------------------------------------------------
 
-    fun acceptCalibration() {
-        _state.update { it.copy(phase = Phase.PLAYING, board = Board.start(), history = emptyList(), suggestion = null, scanResult = null, message = null) }
-        maybeAnalyze()
-    }
-
-    fun recalibrate() {
-        stopAnalysis()
-        _state.update { it.copy(phase = Phase.CAPTURE_EMPTY, message = "Keep the phone where it is if only the lighting changed; pick corners again if it moved.") }
-    }
-
-    // ---- scanning ----------------------------------------------------------------------------
-
-    fun startScan() = _state.update { it.copy(phase = Phase.SCANNING, message = null) }
+    fun startScan() = _state.update { it.copy(phase = Phase.SCANNING, message = null, detectionFailed = false) }
     fun cancelScan() = _state.update { it.copy(phase = Phase.PLAYING, scanResult = null) }
 
-    fun onScanPhoto(photo: Photo) {
-        val g = geometry ?: return
-        val cal = calibration ?: return
+    fun onScanPhoto(photo: Photo) = processScan(photo, null)
+
+    private fun processScan(photo: Photo, manualCorners: List<Pt>?) {
         val board = _state.value.board
+        _state.update { it.copy(busy = true, photo = photo) }
         viewModelScope.launch {
-            val (obs, result) = withContext(Dispatchers.Default) {
-                val obs = cal.observe(SquareSampler.sample(photo.luma, g))
-                obs.toList() to MoveInference.infer(board, obs, maxPlies = 2)
+            val outcome = withContext(Dispatchers.Default) {
+                runCatching {
+                    val grid = if (manualCorners == null) GridDetector.detect(photo.luma) else null
+                    val corners = manualCorners ?: grid?.corners
+                    if (corners == null) return@runCatching null to (grid?.lines ?: emptyList())
+                    val located = BoardLocator.locate(
+                        photo.luma, corners, calibration, board.occupancy(), rotation,
+                        allowRotation = manualCorners == null,
+                    )
+                    val change = previousPatches?.let { ChangeDetector.scores(it, located.patches) }
+                    val result = MoveInference.infer(board, located.observations, change, maxPlies = 2, nearSide = located.geometry.nearSide)
+                    Pair(located, result) to (grid?.lines ?: emptyList())
+                }
             }
+            val (found, lines) = outcome.getOrElse { null to emptyList() }
+            if (found == null) {
+                _state.update {
+                    it.copy(
+                        phase = Phase.CONFIRM_SCAN, busy = false, corners = emptyList(), observations = null,
+                        debugLines = lines, detectionFailed = true, scanResult = null,
+                        message = outcome.exceptionOrNull()?.let { e -> "Error: ${e.message}" }
+                            ?: "Could not find the board in this photo. Rescan with all four edges visible, or tap the corners.",
+                    )
+                }
+                return@launch
+            }
+            val (located, result) = found
+            pendingPatches = located.patches
+            pendingRotation = located.rotation
             val best = result.best
             val msg = when {
                 best == null -> "No legal explanation found."
@@ -188,11 +231,19 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 result.margin >= 1.0 -> "Detected ${best.description}."
                 else -> "Probably ${best.description}, but not sure. Check the alternatives."
             }
-            _state.update { it.copy(phase = Phase.CONFIRM_SCAN, photo = photo, observations = obs, scanResult = result, message = msg) }
+            _state.update {
+                it.copy(
+                    phase = Phase.CONFIRM_SCAN, busy = false, corners = located.geometry.corners,
+                    observations = located.observations.toList(), debugLines = emptyList(), detectionFailed = false,
+                    scanResult = result, message = msg,
+                )
+            }
         }
     }
 
     fun acceptCandidate(c: Candidate) {
+        previousPatches = pendingPatches
+        rotation = pendingRotation
         _state.update { it.copy(phase = Phase.PLAYING, scanResult = null, message = null) }
         for (m in c.moves) applyMove(m)
     }
@@ -223,6 +274,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         if (m == null) {
             _state.update { it.copy(message = "Could not read \"$text\". Use SAN like Nf3 or UCI like g1f3.") }
         } else {
+            previousPatches = null // the last photo no longer matches the position
             applyMove(m)
         }
     }
@@ -231,12 +283,14 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         val s = _state.value
         val last = s.history.lastOrNull() ?: return
         stopAnalysis()
+        previousPatches = null
         _state.update { it.copy(board = last.before, history = it.history.dropLast(1), suggestion = null, message = null) }
         maybeAnalyze()
     }
 
     fun newGame() {
         stopAnalysis()
+        previousPatches = null
         _state.update {
             it.copy(
                 phase = if (it.calibrated) Phase.PLAYING else Phase.SETUP,
@@ -244,6 +298,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             )
         }
         maybeAnalyze()
+    }
+
+    fun backToSetup() {
+        stopAnalysis()
+        _state.update { it.copy(phase = Phase.SETUP, message = null) }
     }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
@@ -266,7 +325,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun maybeAnalyze() {
         val s = _state.value
-        if (!s.engineReady || s.phase != Phase.PLAYING && s.phase != Phase.CONFIRM_SCAN) return
+        if (!s.engineReady || s.phase != Phase.PLAYING) return
         if (!s.myTurn || s.board.result() != GameResult.ONGOING) return
         val board = s.board
         val fen = board.toFen()
@@ -276,9 +335,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 val result = engine.analyze(fen, (s.thinkSeconds * 1000).toInt()) { lines ->
                     _state.update { it.copy(suggestion = toSuggestion(board, lines, done = false)) }
                 }
-                val lines = result.lines
                 val best = result.bestMove?.let { Move.fromUci(it) }
-                val suggestion = toSuggestion(board, lines, done = true).let { sug ->
+                val suggestion = toSuggestion(board, result.lines, done = true).let { sug ->
                     if (best != null && board.isLegal(best)) sug.copy(bestMove = best, bestSan = board.san(best)) else sug
                 }
                 _state.update { if (it.board == board) it.copy(suggestion = suggestion, thinking = false) else it }

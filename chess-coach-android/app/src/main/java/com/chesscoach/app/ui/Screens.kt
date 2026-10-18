@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -26,11 +27,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chesscoach.app.CameraCapture
 import com.chesscoach.app.GameViewModel
 import com.chesscoach.app.Phase
+import com.chesscoach.app.Purpose
 import com.chesscoach.app.UiState
 import com.chesscoach.core.chess.Color
 import com.chesscoach.core.chess.GameResult
@@ -41,12 +45,11 @@ fun ChessCoachApp(vm: GameViewModel) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         when (state.phase) {
             Phase.SETUP -> SetupScreen(state, vm)
-            Phase.CAPTURE_EMPTY -> CaptureEmptyScreen(state, vm)
+            Phase.SCAN_START -> ScanStartScreen(state, vm)
+            Phase.CONFIRM_START -> ConfirmStartScreen(state, vm)
             Phase.PICK_CORNERS -> PickCornersScreen(state, vm)
-            Phase.CAPTURE_START -> CaptureStartScreen(state, vm)
-            Phase.CALIBRATION_RESULT -> CalibrationResultScreen(state, vm)
             Phase.PLAYING -> GameScreen(state, vm)
-            Phase.SCANNING -> ScanningScreen(vm)
+            Phase.SCANNING -> ScanningScreen(state, vm)
             Phase.CONFIRM_SCAN -> ConfirmScanScreen(state, vm)
         }
     }
@@ -65,6 +68,25 @@ private fun Message(state: UiState) {
 }
 
 @Composable
+private fun Busy(state: UiState) {
+    if (state.busy) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+            CircularProgressIndicator(Modifier.padding(end = 12.dp))
+            Text("Looking for the board...")
+        }
+    }
+}
+
+@Composable
+private fun Legend() {
+    Text(
+        "Green grid: where the board was found. White and black dots: squares read as white or black pieces. " +
+            "Small green dots: empty. Yellow rings: unsure.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+}
+
+@Composable
 private fun SetupScreen(state: UiState, vm: GameViewModel) {
     Title("Chess Coach")
     Text(state.engineStatus, style = MaterialTheme.typography.bodySmall)
@@ -79,67 +101,63 @@ private fun SetupScreen(state: UiState, vm: GameViewModel) {
     Slider(value = state.thinkSeconds, onValueChange = { vm.setThinkSeconds(it) }, valueRange = 0.5f..10f)
     Spacer(Modifier.height(16.dp))
     Text(
-        "How it works: put the phone on a stand so it sees the whole board, from above or from the side. " +
-            "You take one photo of the empty board and tap its four corners, then one photo with all pieces set up. " +
-            "After that, tap Scan after every move your opponent makes and the app works out the move and asks Stockfish for yours.",
+        "Set up the pieces for a new game and photograph the whole board, from above or from your seat. " +
+            "The app finds the board by itself. After each of your opponent's moves, tap Scan and take another photo; " +
+            "the phone does not need to stay in place.",
     )
     Spacer(Modifier.height(16.dp))
-    Button(onClick = { vm.beginCalibration() }, modifier = Modifier.fillMaxWidth()) { Text("Set up the camera") }
+    Button(onClick = { vm.beginStartScan() }, modifier = Modifier.fillMaxWidth()) { Text("Scan the starting position") }
+    if (state.calibrated) {
+        TextButton(onClick = { vm.newGame() }) { Text("Continue with the current game") }
+    }
     Message(state)
 }
 
 @Composable
-private fun CaptureEmptyScreen(state: UiState, vm: GameViewModel) {
-    Title("1. Empty board")
-    Text("Clear all pieces off the board. Fix the phone in place, it must not move afterwards. Then take the photo.")
-    if (state.corners.size == 4) {
-        Text("The corners from last time will be reused.", style = MaterialTheme.typography.bodySmall)
-        TextButton(onClick = { vm.clearCorners() }) { Text("Phone moved, pick corners again") }
-    }
+private fun ScanStartScreen(state: UiState, vm: GameViewModel) {
+    Title("Starting position")
+    Text("All 32 pieces on their starting squares. Keep all four edges of the board in the picture and avoid hands or shadows over it.")
+    Busy(state)
+    CameraCapture(buttonLabel = "Photograph the board", enabled = !state.busy, onPhoto = { vm.onStartPhoto(it) })
+    TextButton(onClick = { vm.backToSetup() }) { Text("Back") }
+}
+
+@Composable
+private fun ConfirmStartScreen(state: UiState, vm: GameViewModel) {
+    Title(if (state.detectionFailed) "Board not found" else "Check recognition")
     Message(state)
-    com.chesscoach.app.CameraCapture(buttonLabel = "Photograph empty board", onPhoto = { vm.onEmptyPhoto(it) })
-    TextButton(onClick = { vm.newGame() }) { Text("Back") }
+    if (!state.detectionFailed) Legend()
+    state.photo?.let { PhotoOverlay(it, state.corners, state.observations, debugLines = state.debugLines) }
+    Spacer(Modifier.height(8.dp))
+    for (note in state.calibrationNotes) Text(note, style = MaterialTheme.typography.bodySmall)
+    Spacer(Modifier.height(8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (!state.detectionFailed) {
+            Button(onClick = { vm.acceptStart() }) { Text(if (state.calibrationUsable) "Start game" else "Use anyway") }
+        }
+        OutlinedButton(onClick = { vm.beginStartScan() }) { Text("Rescan") }
+        TextButton(onClick = { vm.pickCornersManually() }) { Text("Tap corners") }
+    }
+    if (state.detectionFailed) {
+        Text("The red and orange lines show what the detector saw. If the board is in the picture, tap its four corners by hand.", style = MaterialTheme.typography.bodySmall)
+    }
 }
 
 @Composable
 private fun PickCornersScreen(state: UiState, vm: GameViewModel) {
     val names = listOf("a1 (White's left corner)", "h1 (White's right corner)", "h8 (Black's left corner)", "a8 (Black's right corner)")
-    Title("2. Tap the corners")
+    Title("Tap the corners")
     val n = state.corners.size
     Text(if (n < 4) "Tap corner ${n + 1} of 4: ${names[n]}" else "Check that the green grid sits on the squares.")
     Message(state)
+    Busy(state)
     state.photo?.let { PhotoOverlay(it, state.corners, onTap = { p -> vm.addCorner(p) }) }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
         OutlinedButton(onClick = { vm.undoCorner() }, enabled = n > 0) { Text("Undo") }
-        Button(onClick = { vm.cornersDone() }, enabled = n == 4) { Text("Grid looks right") }
-        TextButton(onClick = { vm.beginCalibration() }) { Text("Retake") }
-    }
-}
-
-@Composable
-private fun CaptureStartScreen(state: UiState, vm: GameViewModel) {
-    Title("3. Starting position")
-    Text("Set up all 32 pieces for a new game, White on ranks 1 and 2. Do not move the phone. Then take the photo.")
-    Message(state)
-    com.chesscoach.app.CameraCapture(buttonLabel = "Photograph starting position", onPhoto = { vm.onStartPhoto(it) })
-    TextButton(onClick = { vm.beginCalibration() }) { Text("Back to empty board") }
-}
-
-@Composable
-private fun CalibrationResultScreen(state: UiState, vm: GameViewModel) {
-    Title("4. Check recognition")
-    Text("White dots are squares read as white pieces, black dots as black pieces, small green dots as empty. Yellow rings mean unsure.")
-    state.photo?.let { PhotoOverlay(it, state.corners, state.observations) }
-    Spacer(Modifier.height(8.dp))
-    for (note in state.calibrationNotes) Text(note, style = MaterialTheme.typography.bodySmall)
-    Spacer(Modifier.height(8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = { vm.acceptCalibration() }) { Text(if (state.calibrationUsable) "Start game" else "Use anyway") }
-        OutlinedButton(onClick = { vm.retakeStart() }) { Text("Retake") }
-        TextButton(onClick = { vm.beginCalibration() }) { Text("Restart") }
-    }
-    if (!state.calibrationUsable) {
-        Text("Recognition is weak. Try more even light, a less reflective board, or a camera angle where pieces hide fewer squares.")
+        Button(onClick = { vm.cornersDone() }, enabled = n == 4 && !state.busy) {
+            Text(if (state.cornerPurpose == Purpose.START) "Learn pieces" else "Read move")
+        }
+        TextButton(onClick = { vm.cancelCorners() }) { Text("Retake photo") }
     }
 }
 
@@ -191,7 +209,7 @@ private fun GameScreen(state: UiState, vm: GameViewModel) {
         OutlinedButton(onClick = { vm.undo() }, enabled = state.history.isNotEmpty()) { Text("Undo") }
         TextButton(onClick = { vm.newGame() }) { Text("New game") }
     }
-    TextButton(onClick = { vm.recalibrate() }) { Text("Re-calibrate camera") }
+    TextButton(onClick = { vm.backToSetup() }) { Text("Settings") }
     Text(state.moveListText(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
 
     if (showEntry) {
@@ -214,37 +232,40 @@ private fun GameScreen(state: UiState, vm: GameViewModel) {
 }
 
 @Composable
-private fun ScanningScreen(vm: GameViewModel) {
+private fun ScanningScreen(state: UiState, vm: GameViewModel) {
     Title("Scan the board")
-    Text("Make sure no hand is over the board, then take the photo.")
-    com.chesscoach.app.CameraCapture(buttonLabel = "Scan", onPhoto = { vm.onScanPhoto(it) })
+    Text("Whole board in the picture, no hands over it. Any angle is fine.")
+    Busy(state)
+    CameraCapture(buttonLabel = "Scan", enabled = !state.busy, onPhoto = { vm.onScanPhoto(it) })
     TextButton(onClick = { vm.cancelScan() }) { Text("Cancel") }
 }
 
 @Composable
 private fun ConfirmScanScreen(state: UiState, vm: GameViewModel) {
     val result = state.scanResult
-    Title("What was played?")
+    Title(if (state.detectionFailed) "Board not found" else "What was played?")
     Message(state)
-    state.photo?.let { PhotoOverlay(it, state.corners, state.observations) }
+    if (!state.detectionFailed) Legend()
+    state.photo?.let { PhotoOverlay(it, state.corners, state.observations, debugLines = state.debugLines) }
     Spacer(Modifier.height(8.dp))
     val candidates = result?.candidates?.take(5).orEmpty()
     val best = candidates.firstOrNull()
     if (best != null && best.moves.isNotEmpty()) {
         var b = state.board
         for (m in best.moves) b = b.play(m)
-        Text("Board after ${best.description}:", style = MaterialTheme.typography.bodySmall)
+        Text("Board after ${best.description}, with what the camera saw on each square:", style = MaterialTheme.typography.bodySmall)
         BoardView(board = b, flipped = state.myColor == Color.BLACK, lastMove = best.moves.last(), marks = state.observations)
     }
     Spacer(Modifier.height(8.dp))
     for ((i, c) in candidates.withIndex()) {
         val label = if (c.moves.isEmpty()) "Nothing was played" else c.description
-        val btn: @Composable () -> Unit = { Text("$label   (mismatch %.1f)".format(c.cost)) }
-        if (i == 0) Button(onClick = { vm.acceptCandidate(c) }, modifier = Modifier.fillMaxWidth()) { btn() }
-        else OutlinedButton(onClick = { vm.acceptCandidate(c) }, modifier = Modifier.fillMaxWidth()) { btn() }
+        val content: @Composable () -> Unit = { Text("$label   (mismatch %.1f)".format(c.cost)) }
+        if (i == 0) Button(onClick = { vm.acceptCandidate(c) }, modifier = Modifier.fillMaxWidth()) { content() }
+        else OutlinedButton(onClick = { vm.acceptCandidate(c) }, modifier = Modifier.fillMaxWidth()) { content() }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
         OutlinedButton(onClick = { vm.startScan() }) { Text("Rescan") }
-        TextButton(onClick = { vm.cancelScan() }) { Text("Cancel, I'll type it") }
+        TextButton(onClick = { vm.pickCornersManually() }) { Text("Tap corners") }
+        TextButton(onClick = { vm.cancelScan() }) { Text("Cancel") }
     }
 }
