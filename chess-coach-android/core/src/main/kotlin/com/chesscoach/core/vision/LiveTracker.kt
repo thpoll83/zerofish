@@ -87,13 +87,14 @@ class LiveTracker(
         // empty ones and white pieces must be brighter than black ones, before any thresholds exist.
         val empties = (0 until 64).filter { Square.rank(it) in 2..5 }.map { f.occFraction[it] }.sorted()
         val pieces = (0 until 64).filter { Square.rank(it) !in 2..5 }.map { f.occFraction[it] }.sorted()
-        val split = (empties[empties.size / 2] + pieces[pieces.size / 2]) / 2
-        val piecesSeen = pieces.count { it > split + 0.03 }
-        val emptiesSeen = empties.count { it < split - 0.03 }
+        // The weakest pieces (black on dark squares at the far rank) read low on real boards, so
+        // allow three weak pieces and two phantom pieces: the fourth-weakest piece must still read
+        // clearly above the third-strongest empty square. White must be brighter than black.
+        val emptyHigh = empties[empties.size - 3]
+        val pieceLow = pieces[3]
         val whites = (0 until 64).filter { Square.rank(it) <= 1 }.map { f.colourScore[it] }.average()
         val blacks = (0 until 64).filter { Square.rank(it) >= 6 }.map { f.colourScore[it] }.average()
-        // at most two pieces missing or two phantom pieces, and white clearly brighter than black
-        val looksLikeStart = piecesSeen >= 30 && emptiesSeen >= 30 && whites > blacks + 0.2
+        val looksLikeStart = pieceLow > emptyHigh + 0.08 && whites > blacks + 0.2
         if (!looksLikeStart) {
             learnStreak = 0
             return FrameResult(

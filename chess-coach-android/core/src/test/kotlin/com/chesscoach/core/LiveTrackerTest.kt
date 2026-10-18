@@ -20,8 +20,8 @@ class LiveTrackerTest {
     fun learnsFromStartThenFollowsMoves() {
         val t = LiveTracker(framesToConfirm = 3, framesToLearn = 3)
         var b = Board.start()
-        // a few frames with the board being set up (one rank missing) must not count as the start
-        val halfSetUp = Board.fromFen("rnbqkbnr/pppppppp/8/8/8/8/8/RNBQKBNR w KQkq - 0 1")
+        // a few frames with the board being set up (the far pawns missing) must not count as the start
+        val halfSetUp = Board.fromFen("rnbqkbnr/8/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
         repeat(2) { assertEquals(LiveTracker.Status.WAITING_FOR_START, t.process(frame(halfSetUp, it)).status) }
         // starting position, handheld jitter: learned after three frames
         var learned = false
