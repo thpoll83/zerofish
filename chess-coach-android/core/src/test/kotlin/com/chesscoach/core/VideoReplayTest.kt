@@ -63,12 +63,49 @@ class VideoReplayTest {
         val skip = System.getenv("CHESS_REPLAY_SKIP")?.split("-")?.map { it.trim().toInt() }?.let { it[0]..it[1] }
         val jump = System.getenv("CHESS_REPLAY_MOVES")?.split(" ")?.filter { it.isNotBlank() }
         val detail = System.getenv("CHESS_REPLAY_DETAIL")?.split("-")?.map { it.trim().toDouble() }?.let { it[0]..it[1] }
+        val until = System.getenv("CHESS_REPLAY_UNTIL")?.toDoubleOrNull() ?: Double.MAX_VALUE
+        // CHESS_REPLAY_TRUTH="e4 c5 c4 ..." simulates the user: when the offered buttons contain the
+        // next moves of the game, the longest matching one is tapped; a wrongly applied move is
+        // counted and corrected the way a user would (undo and type).
+        val truth = System.getenv("CHESS_REPLAY_TRUTH")?.split(" ")?.filter { it.isNotBlank() }?.map { it.trimEnd('+', '#') }
+        var truthIdx = 0
+        var taps = 0
+        var wrong = 0
+        var autoFollowed = 0
+        fun truthBoard(): com.chesscoach.core.chess.Board {
+            var b = com.chesscoach.core.chess.Board.start()
+            for (san in truth!!.take(truthIdx)) b = b.play(b.parseMove(san) ?: error("bad truth move $san"))
+            return b
+        }
         var last = ""
         val moves = ArrayList<String>()
         val counts = HashMap<String, Int>()
         for ((i, f) in files.withIndex()) {
             if (skip != null && i + 1 in skip) continue
+            if (i / fps > until) break
             val r = tracker.process(load(f))
+            if (truth != null && tracker.phase == LiveTracker.Phase.TRACKING) {
+                if (r.applied.isNotEmpty()) {
+                    val sans = r.candidate!!.sans.map { it.trimEnd('+', '#') }
+                    if (sans == truth.drop(truthIdx).take(sans.size)) { truthIdx += sans.size; autoFollowed += sans.size }
+                    else {
+                        wrong++
+                        println("REPLAY %6.1fs %s WRONG applied %s, expected %s".format(i / fps, f.name, sans, truth.drop(truthIdx).take(2)))
+                        tracker.setBoard(truthBoard())
+                    }
+                }
+                if (r.status == LiveTracker.Status.AMBIGUOUS && truthIdx < truth.size) {
+                    val pick = r.suggestions
+                        .filter { c -> c.sans.map { it.trimEnd('+', '#') } == truth.drop(truthIdx).take(c.sans.size) }
+                        .maxByOrNull { it.moves.size }
+                    if (pick != null) {
+                        tracker.accept(pick)
+                        truthIdx += pick.moves.size
+                        taps++
+                        println("REPLAY %6.1fs %s TAP %s".format(i / fps, f.name, pick.description))
+                    }
+                }
+            }
             if (r.status == LiveTracker.Status.LEARNED && jump != null) {
                 var b = tracker.board
                 for (san in jump) b = b.play(b.parseMove(san) ?: error("bad move $san"))
@@ -87,5 +124,6 @@ class VideoReplayTest {
         println("REPLAY statuses: $counts")
         println("REPLAY moves: $moves")
         println("REPLAY final: ${tracker.board.toFen()}")
+        if (truth != null) println("REPLAY truth: ${truth.size} plies, followed by itself $autoFollowed, by tap $taps taps, wrong $wrong, reached ply $truthIdx")
     }
 }

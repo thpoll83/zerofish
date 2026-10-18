@@ -84,6 +84,9 @@ class LiveTracker(
      */
     private val applySlack = 1.2
 
+    /** A frame whose best explanation still costs more than this (about twenty squares wrong) is a misread. */
+    private val badFrameCost = 20.0
+
     private fun baseline(): Double? =
         if (quietCosts.size < baselineMinSamples) null else quietCosts.sorted()[quietCosts.size / 2]
 
@@ -219,6 +222,11 @@ class LiveTracker(
         val change = previousPatches?.let { ChangeDetector.scores(it, located.patches) }
         val result = MoveInference.infer(board, obs, change, maxPlies = 2, nearSide = located.geometry.nearSide)
         val best = result.best ?: return FrameResult(Status.TRACKING, located.geometry, obs, null, 0, emptyList(), "Tracking")
+        if (best.cost > badFrameCost) {
+            // even the best explanation leaves a third of the board wrong: the grid was misread
+            // (or a body covers it). Like a hand over the board, the frame counts for nothing.
+            return FrameResult(Status.UNSTABLE, located.geometry, obs, null, pendingCount, emptyList(), "Hold still, cannot read the board", candidates = result.candidates)
+        }
         val noMove = result.candidates.firstOrNull { it.moves.isEmpty() }
         val evidence = (noMove?.cost ?: Double.POSITIVE_INFINITY) - best.cost
         if (best.moves.isEmpty() || evidence < minEvidence) {
