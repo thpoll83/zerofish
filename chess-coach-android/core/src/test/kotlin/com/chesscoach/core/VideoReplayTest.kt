@@ -84,7 +84,13 @@ class VideoReplayTest {
             if (skip != null && i + 1 in skip) continue
             if (i / fps > until) break
             val r = tracker.process(load(f))
-            if (truth != null && tracker.phase == LiveTracker.Phase.TRACKING) {
+            if (truth != null && truthIdx >= truth.size && tracker.phase == LiveTracker.Phase.TRACKING) {
+                if (r.applied.isNotEmpty() || r.status == LiveTracker.Status.AMBIGUOUS) {
+                    println("REPLAY %6.1fs %s truth exhausted; no longer checking".format(i / fps, f.name))
+                    truthIdx = Int.MAX_VALUE
+                }
+            }
+            if (truth != null && truthIdx < truth.size && tracker.phase == LiveTracker.Phase.TRACKING) {
                 if (r.applied.isNotEmpty()) {
                     val sans = r.candidate!!.sans.map { it.trimEnd('+', '#') }
                     if (sans == truth.drop(truthIdx).take(sans.size)) { truthIdx += sans.size; autoFollowed += sans.size }
@@ -94,7 +100,7 @@ class VideoReplayTest {
                         tracker.setBoard(truthBoard())
                     }
                 }
-                if (r.status == LiveTracker.Status.AMBIGUOUS && truthIdx < truth.size) {
+                if (r.status == LiveTracker.Status.AMBIGUOUS) {
                     val pick = r.suggestions
                         .filter { c -> c.sans.map { it.trimEnd('+', '#') } == truth.drop(truthIdx).take(c.sans.size) }
                         .maxByOrNull { it.moves.size }
@@ -110,6 +116,8 @@ class VideoReplayTest {
                 var b = tracker.board
                 for (san in jump) b = b.play(b.parseMove(san) ?: error("bad move $san"))
                 tracker.setBoard(b)
+                // the truth list starts from the starting position and must begin with the jumped moves
+                if (truth != null) truthIdx = jump.size
             }
             if (detail != null && i / fps in detail) {
                 println("DETAIL %6.1fs %s %s agree=%d: %s".format(i / fps, f.name, r.status, r.agreement,
@@ -124,6 +132,6 @@ class VideoReplayTest {
         println("REPLAY statuses: $counts")
         println("REPLAY moves: $moves")
         println("REPLAY final: ${tracker.board.toFen()}")
-        if (truth != null) println("REPLAY truth: ${truth.size} plies, followed by itself $autoFollowed, by tap $taps taps, wrong $wrong, reached ply $truthIdx")
+        if (truth != null) println("REPLAY truth: ${truth.size} plies, followed by itself $autoFollowed, by tap $taps taps, wrong $wrong, reached ply ${minOf(truthIdx, truth.size)}")
     }
 }
