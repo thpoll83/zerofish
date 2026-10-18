@@ -19,4 +19,5 @@ board_cc7  223 122  227 669  786 710   781 73
 board_cc8  259 79   197 524  744 515   682 71
 board_cc9  212 39   145 548  734 528   667 33
 board_cc10 231 90   185 635  812 635   765 90
-# known failures: board_17 (near edge of the board outside the frame) board_cc6 (low side view, unverified)
+# board_17: the near edge of the board is outside the frame. board_cc6: low side view, result unverified.
+# known failures: board_17 board_cc6
