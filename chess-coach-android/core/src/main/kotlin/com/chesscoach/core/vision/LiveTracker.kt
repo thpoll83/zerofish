@@ -67,6 +67,32 @@ class LiveTracker(
     private var learnStreak = 0
 
     /**
+     * The square readings of the last stable frame, blended into each new frame's readings: a
+     * piece does not change between two frames unless a hand came in between, so a square that
+     * reads as a piece in one frame and empty in the next is noise, not a move. A hand over the
+     * board (an unstable frame) resets the blend, so the first clean frame after it counts in
+     * full.
+     */
+    private var smoothed: Array<SquareObservation>? = null
+
+    /** Weight of the current frame in the blend; the rest is the blend so far. */
+    private val smoothingWeight = 0.6
+
+    private fun smooth(obs: Array<SquareObservation>): Array<SquareObservation> {
+        val prev = smoothed ?: return obs.also { smoothed = it }
+        val w = smoothingWeight
+        val out = Array(64) { i ->
+            val a = obs[i]; val b = prev[i]
+            SquareObservation(
+                w * a.occupied + (1 - w) * b.occupied, w * a.white + (1 - w) * b.white,
+                w * a.occFraction + (1 - w) * b.occFraction, w * a.colourScore + (1 - w) * b.colourScore,
+            )
+        }
+        smoothed = out
+        return out
+    }
+
+    /**
      * The user said the starting position is set up: learn from the next frames even when the
      * pieces cannot be told from empty squares well enough to recognise it (black pieces on
      * dark squares of a glossy board). Where every piece stands is then known regardless.
@@ -280,6 +306,7 @@ class LiveTracker(
         board = Board.start()
         phase = Phase.TRACKING
         startConfirmed = false
+        smoothed = null
         resetPending()
         return FrameResult(Status.LEARNED, located.geometry, cal.observe(f), null, 0, emptyList(), "Ready. Play on the board.", quality = q)
     }
@@ -287,12 +314,13 @@ class LiveTracker(
     private fun track(image: LumaImage, grid: DetectedGrid): FrameResult {
         val cal = calibration ?: return FrameResult(Status.NO_BOARD, null, null, null, 0, emptyList(), "No calibration")
         val located = BoardLocator.locate(image, grid.corners, cal, board.occupancy(), rotation)
-        val obs = located.observations
-        val unsure = obs.count { it.unsure }
-        if (unsure > 14) {
+        val raw = located.observations
+        if (raw.count { it.unsure } > 14) {
             // a hand or a shadow over the board: do not count this frame for or against anything
-            return FrameResult(Status.UNSTABLE, located.geometry, obs, null, pendingCount, emptyList(), "Hold still, hand or shadow over the board")
+            smoothed = null
+            return FrameResult(Status.UNSTABLE, located.geometry, raw, null, pendingCount, emptyList(), "Hold still, hand or shadow over the board")
         }
+        val obs = smooth(raw)
         lastPatches = located.patches
         lastRotation = located.rotation
         val change = previousPatches?.let { ChangeDetector.scores(it, located.patches) }

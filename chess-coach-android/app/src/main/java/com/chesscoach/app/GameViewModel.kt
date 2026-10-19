@@ -48,6 +48,8 @@ data class UiState(
     val thinking: Boolean = false,
     val message: String? = null,
     val viewMode: ViewMode = ViewMode.CAMERA,
+    /** Draw what the camera read on every square (dots and rings) during the game too. */
+    val showDebugOverlay: Boolean = false,
     // live mode
     val liveStatus: String = "Point the camera at the board",
     val liveFrameWidth: Int = 0,
@@ -112,7 +114,10 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         _state.update {
-            it.copy(camera = CameraSettings(cameraId = prefs.getString("cameraId", null), zoom = prefs.getFloat("zoom", 1f)))
+            it.copy(
+                camera = CameraSettings(cameraId = prefs.getString("cameraId", null), zoom = prefs.getFloat("zoom", 1f)),
+                showDebugOverlay = prefs.getBoolean("debugOverlay", false),
+            )
         }
         viewModelScope.launch {
             try {
@@ -155,6 +160,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setViewMode(mode: ViewMode) = _state.update { it.copy(viewMode = mode) }
+
+    fun setDebugOverlay(on: Boolean) {
+        _state.update { it.copy(showDebugOverlay = on) }
+        prefs.edit().putBoolean("debugOverlay", on).apply()
+    }
 
     /** The user says all pieces stand on their starting squares: learn from the next frames regardless. */
     fun confirmStart() {

@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -94,6 +95,15 @@ private fun SetupScreen(state: UiState, vm: GameViewModel) {
             valueRange = StockfishEngine.MIN_ELO.toFloat()..StockfishEngine.MAX_ELO.toFloat(),
         )
     }
+    Spacer(Modifier.height(16.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Switch(checked = state.showDebugOverlay, onCheckedChange = { vm.setDebugOverlay(it) })
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text("Show recognition markers during the game", fontWeight = FontWeight.Bold)
+            Text("A dot per square with what the camera read (white, black, empty) and a yellow ring where it is unsure. Always shown until the pieces are learned.", style = MaterialTheme.typography.bodySmall)
+        }
+    }
     Spacer(Modifier.height(24.dp))
     Button(onClick = { vm.resumeLive() }, modifier = Modifier.fillMaxWidth()) { Text("Back to the board") }
     Spacer(Modifier.height(8.dp))
@@ -132,14 +142,17 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
     val choiceArrows = choices.mapIndexedNotNull { i, c ->
         c.moves.getOrNull(nextPly)?.let { m -> MoveArrow(m.from, m.to, ArrowColors.choice(i), "${i + 1}") }
     }.distinctBy { it.from to it.to }
+    // Otherwise the move just played stays on the picture as confirmation, with the engine's
+    // suggestion next to it when it is the user's turn.
     val arrows = if (choiceArrows.isNotEmpty()) choiceArrows else listOfNotNull(
+        state.lastMove?.let { MoveArrow(it.from, it.to, ArrowColors.lastMove) },
         state.suggestion?.bestMove?.takeIf { state.myTurn && result == GameResult.ONGOING }?.let { MoveArrow(it.from, it.to, ArrowColors.suggestion) },
     )
     val headline = when {
         !state.liveLearned -> state.liveStatus
         result != GameResult.ONGOING -> "Game over"
-        state.myTurn -> "Your move"
-        else -> "Opponent's move"
+        state.myTurn -> "Your move: ${sideName(state)}"
+        else -> "Opponent's move: ${sideName(state)}"
     }
     AppHeader(headline)
     Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 6.dp)) {
@@ -165,7 +178,8 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
             LiveCameraView(
                 settings = state.camera,
                 corners = state.liveCorners,
-                observations = state.liveObservations,
+                // the per-square markers are for setting up; during the game they only distract
+                observations = state.liveObservations?.takeIf { !state.liveLearned || state.showDebugOverlay },
                 frameWidth = state.liveFrameWidth,
                 frameHeight = state.liveFrameHeight,
                 isBusy = { vm.isLiveBusy() },
@@ -220,7 +234,7 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(
-                    status + (state.liveCandidate?.let { "  seeing $it" } ?: "") + (if (state.liveFps > 0) "  (%.1f fps)".format(state.liveFps) else ""),
+                    status + (state.liveCandidate?.let { "  seeing $it" } ?: "") + (if (state.showDebugOverlay && state.liveFps > 0) "  (%.1f fps)".format(state.liveFps) else ""),
                     style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -269,6 +283,8 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
         )
     }
 }
+
+private fun sideName(state: UiState) = if (state.board.sideToMove == Color.WHITE) "White" else "Black"
 
 /** The engine's advice in two lines: the move to play, and the alternatives it considered. */
 @Composable

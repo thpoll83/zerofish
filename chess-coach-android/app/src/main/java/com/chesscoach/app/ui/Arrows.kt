@@ -21,6 +21,9 @@ data class MoveArrow(val from: Int, val to: Int, val color: Color, val label: St
 object ArrowColors {
     val suggestion = Color(0xCC1565C0)
 
+    /** The move just played, shown as confirmation until the next one. */
+    val lastMove = Color(0xCC16A34A)
+
     /** One colour per offered move, in the order they are listed. */
     private val choices = listOf(
         Color(0xDDFF6D00), Color(0xDDAA00FF), Color(0xDD00B8D4), Color(0xDDD50000), Color(0xDD64DD17), Color(0xDDFFD600),

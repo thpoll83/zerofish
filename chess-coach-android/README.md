@@ -46,8 +46,12 @@ black (light, torch). Each part is a ramp between a failing and a comfortable va
 tracker measures anyway; the score is half the weakest part, half the average.
 
 The playing screen is built around one square viewport, so nothing needs scrolling: it shows
-the camera picture with the recognition overlay, or, by a toggle, the digital board with the last
-move and the engine's arrow. The camera keeps running behind the digital board. When the tracker
+the camera picture with the board's grid, or, by a toggle, the digital board. On both, the move
+just played stays drawn as a green arrow until the next one, and the engine's suggestion as a
+blue one; the headline says whose move it is, "Your move: White" or "Opponent's move: Black".
+The per-square markers (a dot for what the camera read, a yellow ring where it is unsure) are
+shown while the pieces are learned and hidden during the game, unless the switch "Show
+recognition markers" in the settings is on. The camera keeps running behind the digital board. When the tracker
 cannot tell which move was played, the possible moves are drawn on the viewport as numbered
 arrows in distinct colours (on the camera picture they follow the board as found), and tapping the
 square the piece went to picks that move; when two offered sequences start with the same move,
@@ -71,6 +75,11 @@ preview of the mark under the circle, squircle and square launcher masks.
 Settings: choose your colour, how long Stockfish may think per move, and the strength of the advice:
 full strength, or a rating between 1320 and 3190 Elo (Stockfish's `UCI_LimitStrength` and
 `UCI_Elo` options), so the suggestions can be pitched at the player's level.
+
+The square readings of each frame are blended with the readings so far (60% the new frame, 40%
+the blend), since a piece cannot change between two frames unless a hand came in between; a
+square that reads as a piece in one frame and empty in the next is noise, not a move. A hand
+over the board resets the blend.
 
 No piece classifier is needed because the game always starts from the known position and only
 occupancy and piece colour change. Castling, en passant, captures and promotions are matched
