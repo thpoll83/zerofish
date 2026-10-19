@@ -156,6 +156,12 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setViewMode(mode: ViewMode) = _state.update { it.copy(viewMode = mode) }
 
+    /** The user says all pieces stand on their starting squares: learn from the next frames regardless. */
+    fun confirmStart() {
+        synchronized(tracker) { tracker.confirmStart() }
+        _state.update { it.copy(liveStatus = "Learning your pieces from the starting position...") }
+    }
+
     fun isLiveBusy(): Boolean = liveBusy || _state.value.livePaused
 
     /** The user tapped one of the offered explanations. */

@@ -65,6 +65,13 @@ class LiveTracker(
         private set
 
     private var learnStreak = 0
+
+    /**
+     * The user said the starting position is set up: learn from the next frames even when the
+     * pieces cannot be told from empty squares well enough to recognise it (black pieces on
+     * dark squares of a glossy board). Where every piece stands is then known regardless.
+     */
+    private var startConfirmed = false
     private var previousPatches: Array<IntArray>? = null
     private var lastPatches: Array<IntArray>? = null
     private var lastRotation: Int? = null
@@ -206,12 +213,18 @@ class LiveTracker(
         resetPending()
     }
 
+    /** The user confirms that all pieces stand on their starting squares. */
+    fun confirmStart() {
+        if (phase == Phase.LEARNING) startConfirmed = true
+    }
+
     /** Start over: wait for the starting position again and relearn thresholds. */
     fun restart() {
         board = Board.start()
         phase = Phase.LEARNING
         calibration = null
         learnStreak = 0
+        startConfirmed = false
         previousPatches = null
         quietCosts.clear()
         resetPending()
@@ -248,7 +261,7 @@ class LiveTracker(
                 ramp(whites - blacks, 0.1, 0.6) to "White and black pieces look alike: more light, or turn the torch on",
             ),
         )
-        if (!looksLikeStart) {
+        if (!looksLikeStart && !startConfirmed) {
             learnStreak = 0
             return FrameResult(
                 Status.WAITING_FOR_START, located.geometry, located.observations, null, 0, emptyList(),
@@ -266,6 +279,7 @@ class LiveTracker(
         previousPatches = located.patches
         board = Board.start()
         phase = Phase.TRACKING
+        startConfirmed = false
         resetPending()
         return FrameResult(Status.LEARNED, located.geometry, cal.observe(f), null, 0, emptyList(), "Ready. Play on the board.", quality = q)
     }

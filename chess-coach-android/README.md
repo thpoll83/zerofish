@@ -55,6 +55,11 @@ the tap narrows them down and the next tap picks between their second moves. The
 listed as buttons under the viewport, with "Other" for typing a move (SAN or UCI, several at
 once).
 
+The app recognises the starting position by itself when the
+pieces read clearly. When they do not (black pieces on the dark squares of a glossy board), the
+button "Pieces are set up" tells it that every piece stands on its starting square, and it learns
+how the pieces look from the next frames regardless; "New game" starts over.
+
 The app opens straight on the camera. One dark look on every phone: a black headline with the
 logo, the app name and the state of the game ("Your move", "Learning your pieces"), drawn by the
 screen rather than by the system title bar, which some phones colour as they like; the app draws

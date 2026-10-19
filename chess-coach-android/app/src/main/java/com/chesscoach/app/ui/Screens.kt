@@ -241,6 +241,12 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
                     TextButton(onClick = { showEntry = true }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Other") }
                 }
             }
+            if (!state.liveLearned && state.liveCorners.size == 4) {
+                // The app recognises the starting position by itself when the pieces read clearly.
+                // When they do not (black pieces on dark squares of a glossy board), the user says
+                // so, and the pieces are learned from where they are known to stand.
+                Button(onClick = { vm.confirmStart() }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) { Text("Pieces are set up (starting position)") }
+            }
             Advice(state, vm)
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
                 TextButton(onClick = { showEntry = true }, enabled = state.liveLearned && result == GameResult.ONGOING, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Type move") }

@@ -60,6 +60,22 @@ class LiveTrackerTest {
         }
     }
 
+    /**
+     * The glossy travel set seen from White's far side: its black pieces on dark squares read
+     * as empty, so the starting position is not recognised by itself. Once the user confirms
+     * that the pieces are set up, the tracker learns from the frames anyway.
+     */
+    @Test
+    fun learnsFromAConfirmedStartWhenThePiecesReadPoorly() {
+        val photo = ReplayHarness.load(javaClass.getResourceAsStream("/boards/travel_1.jpg")!!)
+        val tracker = LiveTracker(framesToConfirm = 3, framesToLearn = 3)
+        repeat(3) { assertEquals(LiveTracker.Status.WAITING_FOR_START, tracker.process(photo).status) }
+        tracker.confirmStart()
+        val statuses = (1..3).map { tracker.process(photo).status }
+        assertEquals(listOf(LiveTracker.Status.LEARNING, LiveTracker.Status.LEARNING, LiveTracker.Status.LEARNED), statuses)
+        assertEquals(Board.start(), tracker.board)
+    }
+
     @Test
     fun offersSuggestionsWhenItCannotDecideAndAcceptsThePick() {
         val t = LiveTracker(framesToConfirm = 3, framesToLearn = 2)
