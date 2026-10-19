@@ -48,8 +48,45 @@ object GridDetector {
         log: ((String) -> Unit)? = null,
         debugOut: MutableList<ImageLine>? = null,
     ): DetectedGrid? {
+        detectFrame(image, debugLines, log, debugOut)?.let { return it }
+        // A small board in a cluttered room: find where squares are and look only there, which
+        // also gives the board the full resolution of the photo. Several places may look like
+        // squares (a second board, a checkered bag); the board closest to the centre of the
+        // picture wins, as that is the one the user is pointing the camera at.
+        val found = ArrayList<DetectedGrid>()
+        for (region in BoardFinder.proposeAll(image, log)) {
+            val crop = CropLumaImage(image, region.x0, region.y0, region.width, region.height)
+            val g = detectFrame(crop, debugLines, log, null) ?: continue
+            val dx = region.x0.toDouble()
+            val dy = region.y0.toDouble()
+            val corners = g.corners.map { Pt(it.x + dx, it.y + dy) }
+            log?.invoke("region (%d,%d) %dx%d: %s, corners %s".format(region.x0, region.y0, region.width, region.height, g.notes, corners.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }))
+            found.add(DetectedGrid(
+                corners, g.lineSupport, g.checkerScore,
+                g.lines.map { ImageLine(it.x1 + dx, it.y1 + dy, it.x2 + dx, it.y2 + dy, it.family) },
+                g.notes + ", in region",
+            ))
+        }
+        if (found.isEmpty()) return null
+        // Two regions that overlap may yield two readings of the same board: keep the better one.
+        fun centre(g: DetectedGrid) = Pt(g.corners.sumOf { it.x } / 4, g.corners.sumOf { it.y } / 4)
+        fun size(g: DetectedGrid) = g.corners.indices.maxOf { i -> val p = g.corners[i]; val q = g.corners[(i + 1) % 4]; hypot(p.x - q.x, p.y - q.y) }
+        val distinct = ArrayList<DetectedGrid>()
+        for (g in found.sortedByDescending { it.checkerScore }) {
+            val c = centre(g)
+            if (distinct.none { d -> val e = centre(d); hypot(c.x - e.x, c.y - e.y) < 0.5 * size(d) }) distinct.add(g)
+        }
+        return distinct.minByOrNull { val c = centre(it); hypot(c.x - image.width / 2.0, c.y - image.height / 2.0) }
+    }
+
+    private fun detectFrame(
+        image: LumaImage,
+        debugLines: Boolean,
+        log: ((String) -> Unit)?,
+        debugOut: MutableList<ImageLine>?,
+    ): DetectedGrid? {
         val small = downscale(image)
-        val lines = houghLines(small) ?: return null
+        val lines = houghLines(small, log) ?: return null
         val families = splitFamilies(lines)
         if (families == null) {
             debugOut?.addAll(lines.map { clipLine(it, small, 2) })
@@ -313,7 +350,7 @@ object GridDetector {
         return Small(w, h, px, stride)
     }
 
-    private fun houghLines(img: Small): List<Line>? {
+    private fun houghLines(img: Small, log: ((String) -> Unit)? = null): List<Line>? {
         val w = img.w
         val h = img.h
         val p = img.px
@@ -406,6 +443,7 @@ object GridDetector {
             if (kept.size >= MAX_LINES) break
             if (kept.none { lineClose(it, l, 3.0 * PI / 180, 6.0) }) kept.add(l)
         }
+        log?.invoke("hough %dx%d: %d peaks, %d kept".format(w, h, peaks.size, kept.size))
         if (kept.size < 8) return null
         // Hough angles are 1 degree coarse; refine each line through its supporting edge pixels so
         // that slightly converging grid lines keep their true vanishing point.
@@ -416,6 +454,7 @@ object GridDetector {
         val edges = Edges(mag, ang, thr)
         val stats = kept.map { lineStats(it, img, edges) }
         val maxSupport = stats.maxOf { it.first }
+        log?.invoke("line support: max %.0f; ".format(maxSupport) + kept.indices.sortedByDescending { stats[it].first }.take(24).joinToString { i -> "(%.0f°, %.0f, len %.0f, runs %d)".format(kept[i].theta * 180 / PI, kept[i].rho, stats[i].first, stats[i].second) })
         if (maxSupport < 20.0) return null
         val weighted = kept.mapIndexedNotNull { i, l ->
             val (len, runs) = stats[i]

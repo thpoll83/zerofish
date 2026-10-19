@@ -10,6 +10,7 @@ import com.chesscoach.core.vision.Calibration
 import com.chesscoach.core.vision.ChangeDetector
 import com.chesscoach.core.vision.GridDetector
 import com.chesscoach.core.vision.Homography
+import com.chesscoach.core.vision.ImageLine
 import com.chesscoach.core.vision.LumaImage
 import com.chesscoach.core.vision.MoveInference
 import com.chesscoach.core.vision.NearSide
@@ -145,7 +146,7 @@ class VisionTest {
         run {
             val g = out.createGraphics()
             for (l in lines) {
-                g.color = if (l.family == 0) Color.RED else Color.ORANGE
+                g.color = when (l.family) { 0 -> Color.RED; 1 -> Color.ORANGE; else -> Color.CYAN }
                 g.drawLine(l.x1.toInt(), l.y1.toInt(), l.x2.toInt(), l.y2.toInt())
             }
             g.dispose()
@@ -289,7 +290,16 @@ class VisionTest {
             val verbose = System.getenv("CHESS_SURVEY_LOG")?.let { file.name.startsWith(it) } ?: false
             val grid = GridDetector.detect(img, log = if (verbose) { m -> println("LOG ${file.name} $m") } else null)
             val ms = System.currentTimeMillis() - t0
-            writeOverlay(img, grid?.corners, file.nameWithoutExtension, grid?.lines ?: emptyList())
+            val extra = ArrayList<ImageLine>()
+            if (System.getenv("CHESS_SURVEY_REGION") != null) {
+                for (region in com.chesscoach.core.vision.BoardFinder.proposeAll(img)) {
+                    val x0 = region.x0.toDouble(); val y0 = region.y0.toDouble(); val x1 = x0 + region.width; val y1 = y0 + region.height
+                    extra += listOf(ImageLine(x0, y0, x1, y0, 2), ImageLine(x1, y0, x1, y1, 2), ImageLine(x1, y1, x0, y1, 2), ImageLine(x0, y1, x0, y0, 2))
+                    for (p in region.points) extra += ImageLine(p.x - 4, p.y - 4, p.x + 4, p.y + 4, 2)
+                    println("SURVEY-REGION ${file.name} ${region.saddles} saddles in (${region.x0},${region.y0}) ${region.width}x${region.height}")
+                }
+            }
+            writeOverlay(img, grid?.corners, file.nameWithoutExtension, (grid?.lines ?: emptyList()) + extra)
             println("SURVEY ${file.name} ${img.width}x${img.height} ${ms}ms: " + (grid?.let { "${it.notes} corners=" + it.corners.joinToString { c -> "(%.0f,%.0f)".format(c.x, c.y) } } ?: "NOT FOUND"))
             if (grid != null && System.getenv("CHESS_SURVEY_START") != null) {
                 val located = BoardLocator.locate(img, grid.corners, Calibration.default(), Board.start().occupancy(), null)

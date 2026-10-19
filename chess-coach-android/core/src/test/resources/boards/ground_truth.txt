@@ -24,5 +24,9 @@ own_2      17 386   176 647  544 464   316 290
 own_3      546 337  236 205  18 438    380 640
 own_4      38 301   27 648   564 562   410 265
 own_5      118 347  77 624   512 561   382 329
+club_1     170 171  380 391  795 243   511 81
+club_3     190 131  179 378  729 348   599 114
 # board_17: the near edge of the board is outside the frame. board_cc6: low side view, result unverified.
-# known failures: board_17 board_cc6
+# club_2, club_5: low side views of boards with a dark printed frame, the grid lands a square off.
+# club_4: the same board seen almost edge-on; not found.
+# known failures: board_17 board_cc6 club_2 club_4 club_5

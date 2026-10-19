@@ -20,6 +20,11 @@ board did before it; if it fits clearly worse, another change went unnoticed and
 as a button instead. "Type move" accepts several moves separated by spaces, such as `Nc6 Qg4 Bb4+`. The screen shows the annotated camera frame, the digital board and Stockfish's
 suggestion for your side. Undo, typing a move and pausing the camera are there for corrections.
 
+When the board is small in the picture (a tournament photo from across the table), the detector
+first looks for places where many saddle points of brightness sit close together, which is what
+the corners between four squares look like, and runs again on each such region at full
+resolution. If several boards are found, the one nearest the centre of the picture is used.
+
 Camera settings on the live screen: zoom from the phone's minimum (below 1x selects the wide-angle
 lens on phones that expose it through zoom), a lens picker when the phone lists several back
 cameras, and a torch toggle. Zoom and lens are remembered.
@@ -107,11 +112,11 @@ To build with ARMv8.2 dot-product instructions (about 30% faster search on 2018+
 core/   pure Kotlin: chess rules (move generation, SAN, FEN), grid detector, homography,
         square sampling and classification, move inference, UCI parsing. Unit-tested with
         perft, a synthetic renderer of boards with pieces seen from changing viewpoints, and
-        27 photographs of real boards (core/src/test/resources/boards, see NOTICE.md there),
-        five of them of the owner's own board from every side: the grid must be found within
-        2.5% of the labelled corners on 25 of them, the starting position must be read with the
-        right orientation from six, a wooden middlegame from one more, and detection must stay
-        under 2 s per photo. A 30 s passage of a real game video (124 frames at 360x640,
+        32 photographs of real boards (core/src/test/resources/boards, see NOTICE.md there),
+        five of them of the owner's own board from every side and five crops of tournament
+        boards mid-game: the grid must be found within 2.5% of the labelled corners on 27 of
+        them, the starting position must be read with the right orientation from six, a wooden
+        middlegame from one more, and detection must stay under 2 s per photo. A 30 s passage of a real game video (124 frames at 360x640,
         core/src/test/resources/video) is replayed through the live tracker with a simulated
         user: no move may be applied that was not played, and every move played must be followed
         or offered as a button. Set CHESS_FRAMES_DIR to a folder of frames (ffmpeg -vf fps=4) to
