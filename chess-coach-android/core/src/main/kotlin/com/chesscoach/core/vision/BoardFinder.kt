@@ -87,18 +87,23 @@ object BoardFinder {
         val resp = FloatArray(w * h)
         var maxR = 0f
         val m = radius + 1
+        val ring = DoubleArray(n)
         for (y in m until h - m) for (x in m until w - m) {
             var a1 = 0.0; var b1 = 0.0; var a2 = 0.0; var b2 = 0.0; var a4 = 0.0; var b4 = 0.0; var sum = 0.0
             for (k in 0 until n) {
                 val v = b[(y + dys[k]) * w + x + dxs[k]].toDouble()
+                ring[k] = v
                 sum += v
                 a1 += v * c1[k]; b1 += v * s1[k]; a2 += v * c2[k]; b2 += v * s2[k]; a4 += v * c4[k]; b4 += v * s4[k]
             }
             // A thin line through the centre also gives two bright spots opposite each other, but
             // as narrow spikes (strong fourth harmonic) with a bright centre; four square sectors
-            // have neither.
+            // have neither. Where a frame edge meets two squares (a T), opposite points on the
+            // ring differ, while at a corner between four squares they match.
             val centreOff = kotlin.math.abs(b[y * w + x] - sum / n) * n / 2
-            val r = (hypot(a2, b2) - 1.5 * hypot(a1, b1) - 1.5 * hypot(a4, b4) - centreOff).toFloat()
+            var opposite = 0.0
+            for (k in 0 until n / 2) opposite += kotlin.math.abs(ring[k] - ring[k + n / 2])
+            val r = (hypot(a2, b2) - 1.5 * hypot(a1, b1) - 1.5 * hypot(a4, b4) - centreOff - opposite).toFloat()
             if (r > 0f) {
                 resp[y * w + x] = r
                 if (r > maxR) maxR = r

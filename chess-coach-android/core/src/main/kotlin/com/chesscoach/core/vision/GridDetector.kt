@@ -72,7 +72,7 @@ object GridDetector {
         var found = first != null
         // A confident first reading is kept as it is; the second look is for weak ones.
         if (first != null && first.checkerScore >= 0.65 && first.cornerSupport >= 0.3) return first
-        for (round in 0 until 2) {
+        for (round in 0 until 3) {
             val again = rectifyAndRedetect(image, current, log) ?: break
             log?.invoke("rectified round $round: ${again.notes} corners ${again.corners.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }}")
             current = again
@@ -142,7 +142,7 @@ object GridDetector {
         val warped = ArrayLumaImage(WARP_SIZE, WARP_SIZE, data)
         warpSink?.invoke(warped)
         log?.invoke("rectified view: looking again")
-        val g = detectFrame(warped, false, log, null) ?: detectFrame(warped, false, log, null, peakFraction = 0.05f) ?: return null
+        val g = axisAlignedGrid(warped, scale, log) ?: detectFrame(warped, false, log, null) ?: detectFrame(warped, false, log, null, peakFraction = 0.05f) ?: return null
         // The new reading must beat the seed on the same picture, where the seed's board sits at
         // the expected place; otherwise the seed stands (a wrong new reading is worse than none).
         val expected = listOf(Pt(0.0, 0.0), Pt(8.0, 0.0), Pt(8.0, 8.0), Pt(0.0, 8.0)).map { Pt((it.x + WARP_MARGIN) * scale, (it.y + WARP_MARGIN) * scale) }
@@ -159,6 +159,139 @@ object GridDetector {
         fun back(c: Pt) = geo.toImage(c.x / scale - WARP_MARGIN, c.y / scale - WARP_MARGIN)
         val backCorners = orderCorners(foundCorners.map { back(it) }) ?: return null
         return DetectedGrid(backCorners, g.lineSupport, g.checkerScore, seed.lines, g.notes + ", rectified", g.cornerSupport, moved)
+    }
+
+    /**
+     * The grid in a rectified picture: nearly axis-aligned, nine equally spaced lines per axis at
+     * about [nominal] pixels apart. Gradient profiles along x and y peak at the grid lines and the
+     * x-corners lie on the seven inner ones; offset and spacing are searched exhaustively per
+     * axis, the result is snapped to the picture's lines, and it must verify like any other grid.
+     */
+    private fun axisAlignedGrid(image: ArrayLumaImage, nominal: Double, log: ((String) -> Unit)?): DetectedGrid? {
+        val w = image.width
+        val h = image.height
+        val px = image.data
+        val colProfile = DoubleArray(w)
+        val rowProfile = DoubleArray(h)
+        for (y in 1 until h - 1) for (x in 1 until w - 1) {
+            val i = y * w + x
+            colProfile[x] += abs(px[i + 1] - px[i - 1]).toDouble()
+            rowProfile[y] += abs(px[i + w] - px[i - w]).toDouble()
+        }
+        fun smooth(a: DoubleArray): DoubleArray {
+            val out = DoubleArray(a.size)
+            for (i in 1 until a.size - 1) out[i] = 0.25 * a[i - 1] + 0.5 * a[i] + 0.25 * a[i + 1]
+            val m = out.max().takeIf { it > 0 } ?: return out
+            for (i in out.indices) out[i] /= m
+            return out
+        }
+        val cols = smooth(colProfile)
+        val rows = smooth(rowProfile)
+        val saddles = BoardFinder.saddlePoints(image, 300)
+        val sx = saddles.map { it.x }
+        val sy = saddles.map { it.y }
+        fun scoreAt(profile: DoubleArray, pts: List<Double>, o: Double, spacing: Double, parts: DoubleArray? = null): Double {
+            // each line counts up to a cap, so one strong edge (the frame) cannot outweigh the
+            // regular pattern; the x-corners on the inner lines decide
+            var lines = 0.0
+            for (k in 0..8) {
+                val c = (o + k * spacing).roundToInt()
+                var m = 0.0
+                for (d in -2..2) { val i = c + d; if (i in profile.indices) m = max(m, profile[i]) }
+                lines += min(m, 0.5) / 0.5
+            }
+            var hits = 0
+            for (v in pts) {
+                val k = ((v - o) / spacing).roundToInt()
+                if (k in 1..7 && abs(v - (o + k * spacing)) <= 3.0) hits++
+            }
+            // A board's frame is as wide on one side as on the other: the strong edge beyond
+            // line 0 and the one beyond line 8 should be equally far away. A grid shifted by a
+            // cell onto the frame breaks that symmetry.
+            val low = outerEdge(profile, o, -1, spacing)
+            val high = outerEdge(profile, o + 8 * spacing, 1, spacing)
+            val symmetry = if (low != null && high != null) {
+                val wl = o - low
+                val wh = high - (o + 8 * spacing)
+                2.0 * (1 - abs(wl - wh) / max(max(wl, wh), 0.3 * spacing))
+            } else 1.0
+            parts?.let { it[0] = lines; it[1] = 0.3 * hits; it[2] = symmetry }
+            return lines + 0.3 * hits + symmetry
+        }
+        fun fit(profile: DoubleArray, pts: List<Double>, size: Int): List<Pair<Double, Double>> {
+            class Hit(val o: Double, val s: Double, val score: Double)
+            val all = ArrayList<Hit>()
+            var spacing = nominal * 0.7
+            while (spacing <= nominal * 1.3) {
+                var o = 0.0
+                while (o < spacing) {
+                    if (o + 8 * spacing < size) all.add(Hit(o, spacing, scoreAt(profile, pts, o, spacing)))
+                    o += 1.0
+                }
+                spacing += 0.5
+            }
+            all.sortByDescending { it.score }
+            val distinct = ArrayList<Hit>()
+            for (h in all) {
+                if (distinct.size >= 3) break
+                if (distinct.none { abs(it.o - h.o) < 0.2 * h.s && abs(it.s - h.s) < 0.1 * h.s }) distinct.add(h)
+            }
+            return distinct.map { it.o to it.s }
+        }
+        val fitsX = fit(cols, sx, w)
+        val fitsY = fit(rows, sy, h)
+        if (fitsX.isEmpty() || fitsY.isEmpty()) return null
+        // The seed's own lattice is always a candidate; every candidate is snapped to the
+        // picture's lines and judged by alternation and x-corner support, as any grid is.
+        val seedO = WARP_MARGIN * nominal
+        val lattices = (listOf(seedO to nominal) + fitsX).flatMap { x -> (listOf(seedO to nominal) + fitsY).map { y -> x to y } }.distinct()
+        val small = downscale(image)
+        val lines = houghLines(small, null) ?: emptyList()
+        var best: DetectedGrid? = null
+        var bestScore = Double.NEGATIVE_INFINITY
+        for ((fx, fy) in lattices) {
+            val (ox, sxp) = fx
+            val (oy, syp) = fy
+            val corners = listOf(Pt(ox, oy), Pt(ox + 8 * sxp, oy), Pt(ox + 8 * sxp, oy + 8 * syp), Pt(ox, oy + 8 * syp))
+            val ordered = orderCorners(corners) ?: continue
+            val refined = if (lines.isNotEmpty()) refine(ordered, lines, small, image) else null
+            val finalCorners = refined ?: ordered
+            val geometry = try { BoardGeometry(finalCorners) } catch (e: IllegalArgumentException) { continue }
+            val details = checkerDetails(image, geometry)
+            val checker = details.score
+            val support = latticeSupport(geometry, saddles)
+            // a row or column of cells all of one tone is a frame band, not part of the board
+            val edgeLines = listOf(details.lineAlternation[0], details.lineAlternation[7], details.lineAlternation[8], details.lineAlternation[15])
+            val uniformEdges = edgeLines.count { it < 0.15 }
+            val score = 28.0 * checker + 20.0 * support - 8.0 * uniformEdges
+            log?.invoke("axis-aligned fit: x %.1f + k*%.1f, y %.1f + k*%.1f -> checker %.2f corners %.2f edge lines %s score %.1f%s".format(ox, sxp, oy, syp, checker, support, edgeLines.joinToString { "%.2f".format(it) }, score, if (refined != null) ", refined" else ""))
+            if (score > bestScore) {
+                bestScore = score
+                best = DetectedGrid(finalCorners, 18, checker, emptyList(), "axis fit, checker %.2f, corners %.2f".format(checker, support), support)
+            }
+        }
+        val result = best ?: return null
+        // In this view a right grid has most of its inner corners on x-corners; one that has
+        // not is a wrong seed badly warped, and the general detector gets its turn.
+        if (result.cornerSupport < 0.3) return null
+        if (result.checkerScore < 0.45 && !(result.cornerSupport >= 0.5 && result.checkerScore >= 0.2)) return null
+        return result
+    }
+
+    /**
+     * Position of the nearest strong edge in [profile] beyond [from] in direction [dir] (within
+     * 1.5 squares, at least a tenth of a square away, and clear of the picture's own border), or
+     * null when there is none.
+     */
+    private fun outerEdge(profile: DoubleArray, from: Double, dir: Int, spacing: Double): Double? {
+        var d = 0.1 * spacing
+        while (d <= 1.5 * spacing) {
+            val i = (from + dir * d).roundToInt()
+            if (i < 10 || i >= profile.size - 10) return null
+            if (profile[i] >= 0.35 && profile[i] >= profile[i - 1] && profile[i] >= profile[i + 1]) return i.toDouble()
+            d += 1.0
+        }
+        return null
     }
 
     private fun bilinear(image: LumaImage, x: Double, y: Double): Int {
@@ -983,7 +1116,12 @@ object GridDetector {
      * alternate light/dark; the ring of squares just outside it must not (otherwise the grid is
      * shifted by a whole square and the frame or table would be inside it).
      */
-    fun checkerScore(image: LumaImage, geometry: BoardGeometry): Double {
+    /** Alternation along each of the 16 inner lines (8 rows then 8 columns), 0..1 each. */
+    class CheckerDetails(val score: Double, val lineAlternation: DoubleArray)
+
+    fun checkerScore(image: LumaImage, geometry: BoardGeometry): Double = checkerDetails(image, geometry).score
+
+    fun checkerDetails(image: LumaImage, geometry: BoardGeometry): CheckerDetails {
         // means of a 10x10 grid, index -1..8 in both axes
         val means = Array(10) { DoubleArray(10) }
         for (fi in 0 until 10) for (ri in 0 until 10) {
@@ -1024,17 +1162,18 @@ object GridDetector {
         }
         var inner = 0.0
         var ring = 0.0
+        val perLine = DoubleArray(16)
         for (r in 0 until 10) { // rows r-1, over inner files 0..7
             val a = alternation((1..8).map { fi -> (fi - 1 + (r - 1) + 200) to means[fi][r] })
-            if (r in 1..8) inner += a else ring += a
+            if (r in 1..8) { inner += a; perLine[r - 1] = a } else ring += a
         }
         for (f in 0 until 10) {
             val a = alternation((1..8).map { ri -> (f - 1 + (ri - 1) + 200) to means[f][ri] })
-            if (f in 1..8) inner += a else ring += a
+            if (f in 1..8) { inner += a; perLine[8 + f - 1] = a } else ring += a
         }
         // inner: 16 lines, ring: 4 lines
         val score = inner / 16 - ring / 4
-        return score.coerceIn(0.0, 1.0)
+        return CheckerDetails(score.coerceIn(0.0, 1.0), perLine)
     }
 
     private fun clipLine(l: Line, img: Small, fam: Int): ImageLine {
