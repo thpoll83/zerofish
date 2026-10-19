@@ -132,7 +132,7 @@ core/   pure Kotlin: chess rules (move generation, SAN, FEN), grid detector, hom
         five of them of the owner's own board from every side and ten crops of club, tournament
         and event boards, most mid-game and seen across the table: the grid must be found within 2.5% of the
         labelled corners on every one of them, the starting position must be read with the right orientation from six, a wooden
-        middlegame from one more, and detection must stay under 2 s per photo. A 30 s passage of a real game video (124 frames at 360x640,
+        middlegame from one more, and detection must stay under 2 s per photo. A 33 s passage of a real game video (136 frames at 360x640,
         core/src/test/resources/video) is replayed through the live tracker with a simulated
         user: no move may be applied that was not played, and every move played must be followed
         or offered as a button. Set CHESS_FRAMES_DIR to a folder of frames (ffmpeg -vf fps=4) to

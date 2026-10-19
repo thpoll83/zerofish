@@ -1,5 +1,5 @@
 # Frames of the repository owner's game video (see ../NOTICE.md), 4 frames per second, 360x640.
-# f0001-f0003 show the starting position (the tracker learns the pieces from them); f0170-f0290 are seconds 42 to 72.
+# f0001-f0003 show the starting position (the tracker learns the pieces from them); f0170-f0302 are seconds 42 to 75.
 fps 4
 jump d4 Nf6 e3 d5 b3 c5 c4 dxc4 bxc4 cxd4 exd4 e6
 truth d4 Nf6 e3 d5 b3 c5 c4 dxc4 bxc4 cxd4 exd4 e6 Be3 Nc6 Qg4 Bb4+ Bd2 Qxd4
@@ -127,3 +127,15 @@ f0287.jpg
 f0288.jpg
 f0289.jpg
 f0290.jpg
+f0291.jpg
+f0292.jpg
+f0293.jpg
+f0294.jpg
+f0295.jpg
+f0296.jpg
+f0297.jpg
+f0298.jpg
+f0299.jpg
+f0300.jpg
+f0301.jpg
+f0302.jpg

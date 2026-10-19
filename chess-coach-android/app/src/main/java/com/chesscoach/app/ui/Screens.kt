@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -29,6 +30,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -112,6 +115,12 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
     var showEntry by remember { mutableStateOf(false) }
     var entry by remember { mutableStateOf("") }
     var showCamera by remember { mutableStateOf(false) }
+    // The phone watches the game for minutes without a touch: the screen must not go dark.
+    val view = LocalView.current
+    DisposableEffect(view) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
     val result = state.board.result()
     val flipped = state.myColor == Color.BLACK
     val choices = state.openChoices
@@ -166,10 +175,17 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 6.dp)) {
             val status = if (state.liveLearned) state.liveStatus else
                 "Green grid: the board as found. White and black dots: pieces as read. Yellow ring: unsure square."
-            Text(
-                status + (state.liveCandidate?.let { "  seeing $it" } ?: "") + (if (state.liveFps > 0) "  (%.1f fps)".format(state.liveFps) else ""),
-                style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (state.liveReading && choices.isEmpty()) {
+                    // a move is being read: a spinner instead of buttons that would vanish again
+                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(
+                    status + (state.liveCandidate?.let { "  seeing $it" } ?: "") + (if (state.liveFps > 0) "  (%.1f fps)".format(state.liveFps) else ""),
+                    style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                )
+            }
             state.message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
             if (choices.isNotEmpty()) {
                 Text(

@@ -37,6 +37,11 @@ class LiveTracker(
         val suggestions: List<Candidate> = emptyList(),
         /** Every explanation this frame was scored against, best first (diagnostics). */
         val candidates: List<Candidate> = emptyList(),
+        /**
+         * The board no longer matches the tracked position and the tracker is still working out
+         * why: a move is being read, and the user is not asked yet.
+         */
+        val reading: Boolean = false,
     )
 
     var board: Board = board
@@ -59,11 +64,16 @@ class LiveTracker(
     /** Frames in a row that looked like the tracked position. */
     private var quiet = 0
 
-    /** Frames of an unexplained board before the best explanations are offered to the user. */
-    private val framesBeforeAsking = 8
+    /**
+     * Frames of an unexplained board before the best explanations are offered to the user. Most
+     * moves resolve by themselves within a second or two (the hand leaves, the piece settles, the
+     * confirming frames arrive), so asking earlier only shows buttons that vanish before they can
+     * be tapped; until then the screen shows that a move is being read.
+     */
+    private val framesBeforeAsking = 14
 
     /** Frames of an unexplained board before three-move explanations are searched as well. */
-    private val framesBeforeDeepSearch = 16
+    private val framesBeforeDeepSearch = 22
 
     /** Quiet frames in a row before an unexplained period is considered over. */
     private val quietFramesToSettle = 6
@@ -103,15 +113,22 @@ class LiveTracker(
     private val minEvidence = 0.6
 
     /**
-     * Explanations offered to the user, by description, with the best cost seen for each and the
-     * unsettled-frame index when it was last among the best. Kept across frames so the buttons do
-     * not change every frame.
+     * Explanations offered to the user, by description, with the cost each had on the latest frame
+     * that scored it and the unsettled-frame index when it was last among the best. Kept across
+     * frames so the buttons do not change every frame.
      */
     private class Offer(var candidate: Candidate, var lastSeen: Int)
     private val offers = HashMap<String, Offer>()
 
     /** An explanation stays on offer this many unexplained frames after it last ranked among the best. */
     private val offerMemory = 12
+
+    /**
+     * An offer that now fits this much worse than the best offer is dropped: a single move that
+     * was offered before the reply to it was played fits two squares worse than the pair once
+     * the reply is on the board, and would otherwise stay on the buttons as a move already made.
+     */
+    private val offerSlack = 2.5
 
     /** Forget the pending move evidence, for example after the user corrected the position by hand. */
     fun resetPending() {
@@ -126,14 +143,24 @@ class LiveTracker(
             val o = offers[c.description]
             if (o == null) offers[c.description] = Offer(c, unsettled)
             else {
-                if (c.cost < o.candidate.cost) o.candidate = c
+                o.candidate = c
                 o.lastSeen = unsettled
             }
         }
         offers.values.removeIf { it.lastSeen < unsettled - offerMemory }
     }
 
-    private fun suggestions(): List<Candidate> = offers.values.map { it.candidate }.sortedBy { it.cost }.take(6)
+    /** The latest frame's cost for every offer it scored, so stale offers are judged on the board as it is now. */
+    private fun rescore(all: List<Candidate>) {
+        if (offers.isEmpty()) return
+        for (c in all) offers[c.description]?.let { it.candidate = c }
+    }
+
+    private fun suggestions(): List<Candidate> {
+        val sorted = offers.values.map { it.candidate }.sortedBy { it.cost }
+        val best = sorted.firstOrNull()?.cost ?: return emptyList()
+        return sorted.filter { it.cost <= best + offerSlack }.take(6)
+    }
 
     /** The user picked one of the offered explanations: apply it and resynchronise on the last frame. */
     fun accept(candidate: Candidate) {
@@ -236,13 +263,15 @@ class LiveTracker(
             // only settled frames define the baseline: a weakly seen move would otherwise raise it
             if (unsettled == 0) noMove?.let { noteQuiet(it.cost) }
             if (quiet >= quietFramesToSettle) resetPending()
+            rescore(result.candidates)
             val asking = unsettled >= framesBeforeAsking && offers.isNotEmpty()
             return if (asking) FrameResult(Status.AMBIGUOUS, located.geometry, obs, best, pendingCount, emptyList(), "Not sure what was played. Tap the right one, or type it.", suggestions(), candidates = result.candidates)
-            else FrameResult(Status.TRACKING, located.geometry, obs, best, 0, emptyList(), "Tracking", candidates = result.candidates)
+            else FrameResult(Status.TRACKING, located.geometry, obs, best, 0, emptyList(), if (unsettled > 0) "Reading the move..." else "Tracking", candidates = result.candidates, reading = unsettled > 0)
         }
         // The board no longer matches the tracked position. Count how long this lasts.
         quiet = 0
         unsettled++
+        rescore(result.candidates)
         // three agreeing frames are required anyway, so a modest per-frame margin is enough
         if (result.margin >= 0.3) {
             if (best.moves == pending) pendingCount++ else {
@@ -267,6 +296,7 @@ class LiveTracker(
                     return FrameResult(
                         Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(),
                         "Seeing ${best.description}, but more changed (%.1f, quiet is %.1f)".format(best.cost, base), candidates = result.candidates,
+                        reading = true,
                     )
                 }
             }
@@ -287,6 +317,6 @@ class LiveTracker(
         val runnerUp = result.candidates.getOrNull(1)
         val msg = if (result.margin >= 0.3) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
         else "Maybe ${best.description} (%.2f) or ${runnerUp?.description} (%.2f); unchanged %.2f".format(best.cost, runnerUp?.cost ?: 0.0, noMove?.cost ?: 0.0)
-        return FrameResult(Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(), msg, candidates = result.candidates)
+        return FrameResult(Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(), msg, candidates = result.candidates, reading = true)
     }
 }

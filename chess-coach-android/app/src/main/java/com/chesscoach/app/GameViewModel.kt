@@ -16,11 +16,13 @@ import com.chesscoach.core.vision.SquareObservation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.Executors
 
 enum class Phase { SETUP, LIVE }
 
@@ -56,6 +58,8 @@ data class UiState(
     val livePaused: Boolean = false,
     val liveLearned: Boolean = false,
     val liveFps: Float = 0f,
+    /** The board changed and the tracker is still working out which move was played. */
+    val liveReading: Boolean = false,
     /** Offered when the camera cannot decide which move was played. */
     val liveSuggestions: List<Candidate> = emptyList(),
     /** Destination squares tapped so far to pick one of [liveSuggestions]. */
@@ -95,13 +99,23 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     @Volatile private var liveBusy = false
     private var lastFrameAt = 0L
 
+    /**
+     * The tracker runs one frame at a time on its own thread, below normal priority: the camera
+     * preview and the screen come first, and a frame read a little later costs nothing.
+     */
+    private val trackerDispatcher = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "tracker").apply { priority = Thread.NORM_PRIORITY - 2; isDaemon = true }
+    }.asCoroutineDispatcher()
+
     init {
         _state.update {
             it.copy(camera = CameraSettings(cameraId = prefs.getString("cameraId", null), zoom = prefs.getFloat("zoom", 1f)))
         }
         viewModelScope.launch {
             try {
-                val threads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
+                // Leave two cores to the camera, the tracker and the screen: Stockfish on every core made the
+                // preview stutter while it was thinking.
+                val threads = (Runtime.getRuntime().availableProcessors() - 2).coerceIn(1, 4)
                 engine.start(threads)
                 _state.update { it.copy(engineReady = true, engineStatus = engine.version.ifBlank { "Stockfish ready" }) }
                 maybeAnalyze()
@@ -143,7 +157,17 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The user tapped one of the offered explanations. */
     fun acceptLiveCandidate(c: Candidate) {
-        synchronized(tracker) { tracker.accept(c) }
+        // The offer may be older than the position (the tracker applied a move in between): a
+        // sequence that is not playable from the current position is dropped, not applied.
+        var b = _state.value.board
+        for (m in c.moves) {
+            if (!b.isLegal(m)) {
+                _state.update { it.copy(liveSuggestions = emptyList(), pickPath = emptyList(), message = "${c.description} is no longer possible here.") }
+                return
+            }
+            b = b.play(m)
+        }
+        synchronized(tracker) { if (tracker.board == _state.value.board) tracker.accept(c) else tracker.setBoard(b) }
         _state.update { it.copy(liveSuggestions = emptyList(), pickPath = emptyList(), liveCandidate = null) }
         for (m in c.moves) applyMove(m)
     }
@@ -176,7 +200,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         val now = System.currentTimeMillis()
         val fps = if (lastFrameAt > 0) 1000f / (now - lastFrameAt).coerceAtLeast(1) else 0f
         lastFrameAt = now
-        viewModelScope.launch(Dispatchers.Default) {
+        viewModelScope.launch(trackerDispatcher) {
             try {
                 val r = synchronized(tracker) { tracker.process(frame) }
                 val corners = r.geometry?.corners ?: emptyList()
@@ -188,6 +212,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                         liveStatus = r.message, liveFrameWidth = frame.width, liveFrameHeight = frame.height, liveCorners = corners,
                         liveObservations = r.observations?.toList(), liveCandidate = r.candidate?.takeIf { c -> c.moves.isNotEmpty() }?.description,
                         liveFps = fps,
+                        liveReading = r.reading,
                         liveSuggestions = offers,
                         pickPath = if (offers == it.liveSuggestions) it.pickPath else emptyList(),
                     )
@@ -208,6 +233,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 liveBusy = false
             }
         }
+    }
+
+    override fun onCleared() {
+        trackerDispatcher.close()
+        super.onCleared()
     }
 
     // ---- camera settings ---------------------------------------------------------------------
