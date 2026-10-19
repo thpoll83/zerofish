@@ -44,6 +44,7 @@ object Palette {
     val control = Color(0xFF94A3B8)
     val disabledText = Color(0xFF64748B)
     val error = Color(0xFFF87171)
+    val warn = Color(0xFFFACC15)
 }
 
 private val scheme = darkColorScheme(

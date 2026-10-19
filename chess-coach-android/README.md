@@ -35,9 +35,15 @@ snapped to the picture's lines and corners, and judged by alternation and corner
 repeats until the reading stops moving, and a round that reads worse than the one before (the
 grid has walked a square sideways) is dropped. That is how the near edge-on tournament photos are read.
 
-Camera settings on the live screen: zoom from the phone's minimum (below 1x selects the wide-angle
-lens on phones that expose it through zoom), a lens picker when the phone lists several back
-cameras, and a torch toggle. Zoom and lens are remembered.
+Camera controls sit on the live screen itself: a zoom slider under the viewport (from the phone's
+minimum; below 1x selects the wide-angle lens on phones that expose it through zoom), a torch chip
+in the row above it, and, before the pieces are learned, a lens picker when the phone lists several
+back cameras. Zoom and lens are remembered. Until the game starts, a frame around the viewport
+shows how well this view will work, red to green with the score as a percentage, and the status
+line names the weakest point: how clearly the grid was found, how large the board is in the
+picture (distance and zoom), and how clearly pieces differ from empty squares and white from
+black (light, torch). Each part is a ramp between a failing and a comfortable value of what the
+tracker measures anyway; the score is half the weakest part, half the average.
 
 The playing screen is built around one square viewport, so nothing needs scrolling: it shows
 the camera picture with the recognition overlay, or, by a toggle, the digital board with the last

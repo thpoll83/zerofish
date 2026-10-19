@@ -60,6 +60,9 @@ data class UiState(
     val liveFps: Float = 0f,
     /** The board changed and the tracker is still working out which move was played. */
     val liveReading: Boolean = false,
+    /** How well the view will work, 0 to 1, and what is weakest about it; judged before the game starts. */
+    val liveQuality: Double? = null,
+    val liveHint: String? = null,
     /** Offered when the camera cannot decide which move was played. */
     val liveSuggestions: List<Candidate> = emptyList(),
     /** Destination squares tapped so far to pick one of [liveSuggestions]. */
@@ -140,7 +143,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             it.copy(
                 phase = Phase.LIVE, board = Board.start(), history = emptyList(), suggestion = null, message = null,
                 liveStatus = "Point the camera at the board", liveLearned = false, livePaused = false, liveCandidate = null,
-                liveSuggestions = emptyList(), pickPath = emptyList(), viewMode = ViewMode.CAMERA,
+                liveSuggestions = emptyList(), pickPath = emptyList(), viewMode = ViewMode.CAMERA, liveQuality = null, liveHint = null,
             )
         }
     }
@@ -213,6 +216,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                         liveObservations = r.observations?.toList(), liveCandidate = r.candidate?.takeIf { c -> c.moves.isNotEmpty() }?.description,
                         liveFps = fps,
                         liveReading = r.reading,
+                        liveQuality = r.quality?.score ?: it.liveQuality,
+                        liveHint = r.quality?.hint ?: it.liveHint,
                         liveSuggestions = offers,
                         pickPath = if (offers == it.liveSuggestions) it.pickPath else emptyList(),
                     )

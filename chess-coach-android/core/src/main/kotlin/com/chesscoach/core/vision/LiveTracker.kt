@@ -3,6 +3,7 @@ package com.chesscoach.core.vision
 import com.chesscoach.core.chess.Board
 import com.chesscoach.core.chess.Move
 import com.chesscoach.core.chess.Square
+import kotlin.math.hypot
 
 /**
  * Follows a game through a stream of camera frames. Feed every frame to [process]; the tracker
@@ -42,7 +43,17 @@ class LiveTracker(
          * why: a move is being read, and the user is not asked yet.
          */
         val reading: Boolean = false,
+        /** How well this view will work, 0 to 1, with a hint naming the weakest point. */
+        val quality: Quality? = null,
     )
+
+    /**
+     * How well the camera's view of the board will work, judged from what the tracker measures
+     * anyway: how clearly the grid was found, how large the board is in the frame (zoom and
+     * distance), and, while learning, how clearly pieces differ from empty squares and white
+     * from black (light). The hint names the weakest of these.
+     */
+    class Quality(val score: Double, val hint: String)
 
     var board: Board = board
         private set
@@ -96,6 +107,22 @@ class LiveTracker(
 
     /** A frame whose best explanation still costs more than this (about twenty squares wrong) is a misread. */
     private val badFrameCost = 20.0
+
+    private fun ramp(v: Double, low: Double, high: Double): Double = ((v - low) / (high - low)).coerceIn(0.0, 1.0)
+
+    private fun quality(image: LumaImage, grid: DetectedGrid, geometry: BoardGeometry, extra: List<Pair<Double, String>>): Quality {
+        val c = geometry.corners
+        val side = (0 until 4).map { i -> val p = c[i]; val q = c[(i + 1) % 4]; hypot(p.x - q.x, p.y - q.y) }.average()
+        val fraction = side / minOf(image.width, image.height)
+        val parts = ArrayList<Pair<Double, String>>()
+        parts += ramp(grid.checkerScore, 0.4, 0.8) to "Board edges unclear: light the board evenly, avoid glare"
+        parts += if (fraction > 0.95) 0.6 to "Too close: keep all four edges in the picture"
+        else ramp(fraction, 0.25, 0.6) to "The board is small in the picture: move closer or zoom in"
+        parts += extra
+        val worst = parts.minBy { it.first }
+        val score = 0.5 * worst.first + 0.5 * parts.map { it.first }.average()
+        return Quality(score, if (worst.first < 0.7) worst.second else "Good view")
+    }
 
     private fun baseline(): Double? =
         if (quietCosts.size < baselineMinSamples) null else quietCosts.sorted()[quietCosts.size / 2]
@@ -214,17 +241,25 @@ class LiveTracker(
         val whites = (0 until 64).filter { Square.rank(it) <= 1 }.map { f.colourScore[it] }.average()
         val blacks = (0 until 64).filter { Square.rank(it) >= 6 }.map { f.colourScore[it] }.average()
         val looksLikeStart = pieceLow > emptyHigh + 0.08 && whites > blacks + 0.2
+        val q = quality(
+            image, grid, located.geometry,
+            listOf(
+                ramp(pieceLow - emptyHigh, 0.0, 0.25) to "Pieces hard to tell from empty squares: more light from above",
+                ramp(whites - blacks, 0.1, 0.6) to "White and black pieces look alike: more light, or turn the torch on",
+            ),
+        )
         if (!looksLikeStart) {
             learnStreak = 0
             return FrameResult(
                 Status.WAITING_FOR_START, located.geometry, located.observations, null, 0, emptyList(),
                 "Board found. Set up the starting position with White's pieces nearest to you or facing the camera.",
+                quality = q,
             )
         }
         learnStreak++
         rotation = located.rotation
         if (learnStreak < framesToLearn) {
-            return FrameResult(Status.LEARNING, located.geometry, located.observations, null, learnStreak, emptyList(), "Learning your pieces ($learnStreak/$framesToLearn)")
+            return FrameResult(Status.LEARNING, located.geometry, located.observations, null, learnStreak, emptyList(), "Learning your pieces ($learnStreak/$framesToLearn)", quality = q)
         }
         val cal = Calibration.learn(f)
         calibration = cal
@@ -232,7 +267,7 @@ class LiveTracker(
         board = Board.start()
         phase = Phase.TRACKING
         resetPending()
-        return FrameResult(Status.LEARNED, located.geometry, cal.observe(f), null, 0, emptyList(), "Ready. Play on the board.")
+        return FrameResult(Status.LEARNED, located.geometry, cal.observe(f), null, 0, emptyList(), "Ready. Play on the board.", quality = q)
     }
 
     private fun track(image: LumaImage, grid: DetectedGrid): FrameResult {
