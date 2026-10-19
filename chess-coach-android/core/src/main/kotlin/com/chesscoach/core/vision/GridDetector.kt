@@ -72,7 +72,7 @@ object GridDetector {
         var found = first != null
         // A confident first reading is kept as it is; the second look is for weak ones.
         if (first != null && first.checkerScore >= 0.65 && first.cornerSupport >= 0.3) return first
-        for (round in 0 until 3) {
+        for (round in 0 until 4) {
             val again = rectifyAndRedetect(image, current, log) ?: break
             log?.invoke("rectified round $round: ${again.notes} corners ${again.corners.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }}")
             current = again
@@ -142,13 +142,17 @@ object GridDetector {
         val warped = ArrayLumaImage(WARP_SIZE, WARP_SIZE, data)
         warpSink?.invoke(warped)
         log?.invoke("rectified view: looking again")
-        val g = axisAlignedGrid(warped, scale, log) ?: detectFrame(warped, false, log, null) ?: detectFrame(warped, false, log, null, peakFraction = 0.05f) ?: return null
-        // The new reading must beat the seed on the same picture, where the seed's board sits at
+        val axis = axisAlignedGrid(warped, scale, log)
+        val g = axis ?: detectFrame(warped, false, log, null) ?: detectFrame(warped, false, log, null, peakFraction = 0.05f) ?: return null
+        // The axis fit judged the seed's own lattice among its candidates. A reading from the
+        // general detector must beat the seed on the same picture, where the seed's board sits at
         // the expected place; otherwise the seed stands (a wrong new reading is worse than none).
         val expected = listOf(Pt(0.0, 0.0), Pt(8.0, 0.0), Pt(8.0, 8.0), Pt(0.0, 8.0)).map { Pt((it.x + WARP_MARGIN) * scale, (it.y + WARP_MARGIN) * scale) }
         val expectedGeo = BoardGeometry(expected)
-        val saddles = BoardFinder.saddlePoints(warped, 300)
-        val seedScore = 28.0 * checkerScore(warped, expectedGeo) + 20.0 * latticeSupport(expectedGeo, saddles)
+        val seedScore = if (axis != null) Double.NEGATIVE_INFINITY else {
+            val saddles = BoardFinder.saddlePoints(warped, 300)
+            28.0 * checkerScore(warped, expectedGeo) + 20.0 * latticeSupport(expectedGeo, saddles)
+        }
         val newScore = 28.0 * g.checkerScore + 20.0 * g.cornerSupport
         // the seed's homography may mirror the picture, so compare and map back with a fixed winding
         val foundCorners = orderCorners(g.corners) ?: return null
@@ -223,9 +227,10 @@ object GridDetector {
             val all = ArrayList<Hit>()
             var spacing = nominal * 0.7
             while (spacing <= nominal * 1.3) {
+                // every placement of the nine lines inside the picture, not only the first period
                 var o = 0.0
-                while (o < spacing) {
-                    if (o + 8 * spacing < size) all.add(Hit(o, spacing, scoreAt(profile, pts, o, spacing)))
+                while (o + 8 * spacing <= size - 1) {
+                    all.add(Hit(o, spacing, scoreAt(profile, pts, o, spacing)))
                     o += 1.0
                 }
                 spacing += 0.5
@@ -255,16 +260,14 @@ object GridDetector {
             val corners = listOf(Pt(ox, oy), Pt(ox + 8 * sxp, oy), Pt(ox + 8 * sxp, oy + 8 * syp), Pt(ox, oy + 8 * syp))
             val ordered = orderCorners(corners) ?: continue
             val refined = if (lines.isNotEmpty()) refine(ordered, lines, small, image) else null
-            val finalCorners = refined ?: ordered
+            val snapped = snapToCorners(image, refined ?: ordered, saddles)
+            val finalCorners = snapped ?: refined ?: ordered
             val geometry = try { BoardGeometry(finalCorners) } catch (e: IllegalArgumentException) { continue }
-            val details = checkerDetails(image, geometry)
-            val checker = details.score
+            val checker = checkerScore(image, geometry)
             val support = latticeSupport(geometry, saddles)
-            // a row or column of cells all of one tone is a frame band, not part of the board
-            val edgeLines = listOf(details.lineAlternation[0], details.lineAlternation[7], details.lineAlternation[8], details.lineAlternation[15])
-            val uniformEdges = edgeLines.count { it < 0.15 }
-            val score = 28.0 * checker + 20.0 * support - 8.0 * uniformEdges
-            log?.invoke("axis-aligned fit: x %.1f + k*%.1f, y %.1f + k*%.1f -> checker %.2f corners %.2f edge lines %s score %.1f%s".format(ox, sxp, oy, syp, checker, support, edgeLines.joinToString { "%.2f".format(it) }, score, if (refined != null) ", refined" else ""))
+            val onBoundary = boundaryCorners(geometry, saddles)
+            val score = 28.0 * checker + 20.0 * support - 2.0 * onBoundary
+            log?.invoke("axis-aligned fit: x %.1f + k*%.1f, y %.1f + k*%.1f -> checker %.2f corners %.2f on boundary %d score %.1f%s".format(ox, sxp, oy, syp, checker, support, onBoundary, score, if (refined != null) ", refined" else ""))
             if (score > bestScore) {
                 bestScore = score
                 best = DetectedGrid(finalCorners, 18, checker, emptyList(), "axis fit, checker %.2f, corners %.2f".format(checker, support), support)
@@ -274,8 +277,42 @@ object GridDetector {
         // In this view a right grid has most of its inner corners on x-corners; one that has
         // not is a wrong seed badly warped, and the general detector gets its turn.
         if (result.cornerSupport < 0.3) return null
-        if (result.checkerScore < 0.45 && !(result.cornerSupport >= 0.5 && result.checkerScore >= 0.2)) return null
+        if (result.checkerScore < 0.45 && !(result.cornerSupport >= 0.4 && result.checkerScore >= 0.3)) return null
         return result
+    }
+
+    /**
+     * Pulls a roughly placed grid onto the x-corners of the picture: each inner corner of the
+     * grid is matched to the nearest x-corner within a shrinking radius and a homography is
+     * fitted to the matches by least squares, a few times over. A grid whose spacing or skew is
+     * off by less than half a square converges onto the true one.
+     */
+    private fun snapToCorners(image: LumaImage, corners: List<Pt>, saddles: List<Pt>): List<Pt>? {
+        if (saddles.size < 8) return null
+        var current = corners
+        for (radius in doubleArrayOf(0.45, 0.35, 0.25, 0.2, 0.15)) {
+            val geometry = try { BoardGeometry(current) } catch (e: IllegalArgumentException) { return null }
+            val src = ArrayList<Pt>()
+            val dst = ArrayList<Pt>()
+            for (i in 1..7) for (j in 1..7) {
+                val p = geometry.toImage(i.toDouble(), j.toDouble())
+                val q = geometry.toImage(i + 1.0, j.toDouble())
+                val r = geometry.toImage(i.toDouble(), j + 1.0)
+                val tol = radius * min(hypot(q.x - p.x, q.y - p.y), hypot(r.x - p.x, r.y - p.y))
+                var best: Pt? = null
+                var bestD = tol
+                for (sp in saddles) {
+                    val d = hypot(sp.x - p.x, sp.y - p.y)
+                    if (d < bestD) { bestD = d; best = sp }
+                }
+                if (best != null) { src.add(Pt(i.toDouble(), j.toDouble())); dst.add(best) }
+            }
+            if (src.size < 10) return null
+            val h = leastSquaresHomography(src, dst, image) ?: return null
+            current = orderCorners(listOf(h.map(0.0, 0.0), h.map(8.0, 0.0), h.map(8.0, 8.0), h.map(0.0, 8.0))) ?: return null
+            if (!plausible(current, image)) return null
+        }
+        return current
     }
 
     /**
@@ -421,12 +458,32 @@ object GridDetector {
             }
             Final(out, c.total)
         }
-        val topSupport = finals.maxOf { it.grid.cornerSupport }
-        val result = finals.filter { it.grid.cornerSupport >= topSupport - 0.05 }.maxByOrNull { it.total }!!.grid
+        fun evidence(f: Final) = f.grid.cornerSupport - boundaryCorners(BoardGeometry(f.grid.corners), saddles) / 14.0
+        val topSupport = finals.maxOf { evidence(it) }
+        val result = finals.filter { evidence(it) >= topSupport - 0.05 }.maxByOrNull { it.total }!!.grid
         seedOut?.set(0, result)
         if (result.lineSupport < 10) return null
         if (result.checkerScore < 0.45 && !(result.cornerSupport >= 0.5 && result.checkerScore >= 0.2)) return null
         return result
+    }
+
+    /**
+     * X-corners of the image that sit on the 28 nodes along the grid's boundary (excluding the
+     * four outer corners). The boundary of the real board meets the frame or the table in T
+     * junctions, which are not x-corners; a grid shifted by a square has a line of real inner
+     * corners along one of its edges.
+     */
+    fun boundaryCorners(geometry: BoardGeometry, saddles: List<Pt>): Int {
+        if (saddles.isEmpty()) return 0
+        var hits = 0
+        for (k in 1..7) for ((i, j) in listOf(0 to k, 8 to k, k to 0, k to 8)) {
+            val p = geometry.toImage(i.toDouble(), j.toDouble())
+            val q = geometry.toImage(i + if (i == 8) -1.0 else 1.0, j.toDouble())
+            val r = geometry.toImage(i.toDouble(), j + if (j == 8) -1.0 else 1.0)
+            val tol = 0.125 * min(hypot(q.x - p.x, q.y - p.y), hypot(r.x - p.x, r.y - p.y))
+            if (saddles.any { hypot(it.x - p.x, it.y - p.y) < tol }) hits++
+        }
+        return hits
     }
 
     /**
