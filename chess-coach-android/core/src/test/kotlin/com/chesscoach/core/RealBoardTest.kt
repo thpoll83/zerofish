@@ -175,9 +175,11 @@ class RealBoardTest {
     }
 
     /**
-     * The owner's board, five views of the starting position. Besides reading the squares, the
-     * orientation must come out right: a1 is White's left corner, which lands in a different
-     * image corner in every photo (White far, from a corner, White on the right, White near).
+     * The owner's board, five views of the starting position, and the glossy travel set from the
+     * two viewpoints where its black pieces on dark squares can be told apart. Besides reading
+     * the squares, the orientation must come out right: a1 is White's left corner, which lands
+     * in a different image corner in every photo (White far, from a corner, White on the right,
+     * White near).
      */
     @Test
     fun readsTheOwnersBoardFromEveryAngle() {
@@ -188,6 +190,8 @@ class RealBoardTest {
             Triple("own_3", Pt(380.0, 640.0), 8), // low side view: pieces hide much of the middle
             Triple("own_4", Pt(27.0, 648.0), 2),
             Triple("own_5", Pt(77.0, 624.0), 2),
+            Triple("travel_3", Pt(159.0, 538.0), 3),
+            Triple("travel_4", Pt(108.0, 572.0), 2),
         )
         val problems = ArrayList<String>()
         for ((name, a1, maxWrong) in cases) {

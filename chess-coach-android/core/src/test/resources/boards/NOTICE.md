@@ -27,3 +27,8 @@ with the board small in the original frame. `club_9` is a plastic roll-up board 
 position, seen flat across a table in a tournament hall. `club_10` is a wooden board on the floor
 seen from above. All are cut down to the board and the table around it so that no person is
 recognisable.
+
+The `travel_*.jpg` files were photographed by the repository owner: a small magnetic travel set
+with a glossy black plastic frame that is as dark as its dark squares, with the starting position,
+from four viewpoints (White far and near, from above and from a low angle), on a desk next to a
+laptop. Downscaled to 1000 px.
