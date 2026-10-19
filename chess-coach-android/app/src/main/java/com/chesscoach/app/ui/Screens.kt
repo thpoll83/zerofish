@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -50,15 +51,19 @@ import com.chesscoach.core.chess.GameResult
 @Composable
 fun ChessCoachApp(vm: GameViewModel) {
     val state by vm.state.collectAsState()
-    when (state.phase) {
-        Phase.SETUP -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) { SetupScreen(state, vm) }
-        Phase.LIVE -> LiveScreen(state, vm)
+    Column(Modifier.fillMaxSize().navigationBarsPadding()) {
+        when (state.phase) {
+            Phase.SETUP -> {
+                AppHeader("Settings")
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) { SetupScreen(state, vm) }
+            }
+            Phase.LIVE -> LiveScreen(state, vm)
+        }
     }
 }
 
 @Composable
 private fun SetupScreen(state: UiState, vm: GameViewModel) {
-    Text("Chess Coach", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 8.dp))
     Text(state.engineStatus, style = MaterialTheme.typography.bodySmall)
     Spacer(Modifier.height(16.dp))
     Text("I play as", fontWeight = FontWeight.Bold)
@@ -84,23 +89,23 @@ private fun SetupScreen(state: UiState, vm: GameViewModel) {
         )
     }
     Spacer(Modifier.height(24.dp))
-    Button(onClick = { vm.startLive() }, modifier = Modifier.fillMaxWidth()) { Text("Start: watch the board") }
+    Button(onClick = { vm.resumeLive() }, modifier = Modifier.fillMaxWidth()) { Text("Back to the board") }
+    Spacer(Modifier.height(8.dp))
+    OutlinedButton(onClick = { vm.startLive() }, modifier = Modifier.fillMaxWidth()) { Text("New game") }
+    Spacer(Modifier.height(8.dp))
     Text(
         "Set up the starting position and point the camera at the board, or put the phone on a stand. " +
             "The app learns your pieces from the first frames and then follows every move by itself.",
         style = MaterialTheme.typography.bodySmall,
     )
-    if (state.liveLearned) {
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = { vm.resumeLive() }, modifier = Modifier.fillMaxWidth()) { Text("Back to the current game") }
-    }
     state.message?.let { Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp)) }
 }
 
 /**
- * The playing screen: a square viewport (camera picture or digital board, by the toggle), and
- * below it the status, the engine's advice and a row of buttons. Nothing needs scrolling on a
- * phone screen; the lower part scrolls only on a very short one.
+ * The playing screen: the headline with the state, a row of controls, a square viewport (camera
+ * picture or digital board, by the toggle), and below it the status, the engine's advice and a
+ * row of buttons. Nothing needs scrolling on a phone screen; the lower part scrolls only on a
+ * very short one.
  */
 @Composable
 private fun LiveScreen(state: UiState, vm: GameViewModel) {
@@ -123,15 +128,17 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
         !state.liveLearned -> state.liveStatus
         result != GameResult.ONGOING -> "Game over"
         state.myTurn -> "Your move"
-        else -> "Your son's move"
+        else -> "Opponent's move"
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text(headline, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            TextButton(onClick = { showCamera = true }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("%.1fx".format(state.camera.zoom)) }
+    AppHeader(headline)
+    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
             FilterChip(selected = state.viewMode == ViewMode.CAMERA, onClick = { vm.setViewMode(ViewMode.CAMERA) }, label = { Text("Camera") })
             Spacer(Modifier.width(6.dp))
             FilterChip(selected = state.viewMode == ViewMode.BOARD, onClick = { vm.setViewMode(ViewMode.BOARD) }, enabled = state.liveLearned, label = { Text("Board") })
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = { showCamera = true }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Zoom %.1fx".format(state.camera.zoom)) }
+            TextButton(onClick = { vm.toggleLivePause() }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text(if (state.livePaused) "Resume" else "Pause") }
         }
         Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
             // The camera stays bound while the digital board is shown on top of it: the tracker
@@ -182,11 +189,10 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
             }
             Advice(state, vm)
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
-                TextButton(onClick = { vm.toggleLivePause() }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text(if (state.livePaused) "Resume" else "Pause") }
-                TextButton(onClick = { showEntry = true }, enabled = state.liveLearned && result == GameResult.ONGOING, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Type") }
+                TextButton(onClick = { showEntry = true }, enabled = state.liveLearned && result == GameResult.ONGOING, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Type move") }
                 TextButton(onClick = { vm.undo() }, enabled = state.history.isNotEmpty(), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Undo") }
-                TextButton(onClick = { vm.newGame() }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("New") }
-                TextButton(onClick = { vm.backToSetup() }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Setup") }
+                TextButton(onClick = { vm.newGame() }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("New game") }
+                TextButton(onClick = { vm.backToSetup() }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Settings") }
             }
             if (state.history.isNotEmpty()) {
                 Text(state.moveListText(), style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)

@@ -32,7 +32,8 @@ data class HistoryEntry(val before: Board, val move: Move, val san: String)
 data class Suggestion(val lines: List<EngineInfo>, val bestMove: Move?, val bestSan: String?, val done: Boolean)
 
 data class UiState(
-    val phase: Phase = Phase.SETUP,
+    /** The app opens on the live view; the setup screen is reached from its button. */
+    val phase: Phase = Phase.LIVE,
     val myColor: Color = Color.WHITE,
     val thinkSeconds: Float = 2f,
     /** Playing strength for the advice, or null for full strength. */
@@ -46,7 +47,7 @@ data class UiState(
     val message: String? = null,
     val viewMode: ViewMode = ViewMode.CAMERA,
     // live mode
-    val liveStatus: String = "Starting camera...",
+    val liveStatus: String = "Point the camera at the board",
     val liveFrameWidth: Int = 0,
     val liveFrameHeight: Int = 0,
     val liveCorners: List<Pt> = emptyList(),

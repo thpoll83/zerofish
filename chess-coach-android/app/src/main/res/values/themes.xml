@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.ChessCoach" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:statusBarColor">#2E7D32</item>
+    <!-- One dark look on every phone. The header is drawn by the screen, not by the system
+         title bar (phones that draw their own title bar ignore theme colours). The window
+         background is the body colour so nothing flashes white before Compose draws. -->
+    <style name="Theme.ChessCoach" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:colorBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/header</item>
+        <item name="android:navigationBarColor">@color/bg</item>
     </style>
 </resources>

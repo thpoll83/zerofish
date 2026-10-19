@@ -49,9 +49,17 @@ the tap narrows them down and the next tap picks between their second moves. The
 listed as buttons under the viewport, with "Other" for typing a move (SAN or UCI, several at
 once).
 
-Setup: choose your colour, how long Stockfish may think per move, and the strength of the advice:
+The app opens straight on the camera. One dark look on every phone: a black headline with the
+logo, the app name and the state of the game ("Your move", "Learning your pieces"), drawn by the
+screen rather than by the system title bar, which some phones colour as they like; the app draws
+edge to edge and the header pads itself by the status-bar inset. The launcher icon, the themed
+(monochrome) icon and the header logo are vector drawables written by
+`app/tools/gen_launcher_icon.py` (a 4x4 board with a camera lens over it); `--sheet` renders a
+preview of the mark under the circle, squircle and square launcher masks.
+
+Settings: choose your colour, how long Stockfish may think per move, and the strength of the advice:
 full strength, or a rating between 1320 and 3190 Elo (Stockfish's `UCI_LimitStrength` and
-`UCI_Elo` options), so the suggestions can be pitched at your son's level.
+`UCI_Elo` options), so the suggestions can be pitched at the player's level.
 
 No piece classifier is needed because the game always starts from the known position and only
 occupancy and piece colour change. Castling, en passant, captures and promotions are matched
@@ -131,8 +139,9 @@ core/   pure Kotlin: chess rules (move generation, SAN, FEN), grid detector, hom
         replay a whole video; CHESS_REPLAY_TRUTH="e4 c5 ..." adds the simulated user and prints
         how many moves were followed by the tracker itself, how many needed a tap, and how many
         were wrong.
-app/    Android: CameraX live view with overlay, Compose UI (digital board, screens, arrows),
-        view model, Stockfish JNI bridge and CMake build.
+app/    Android: CameraX live view with overlay, Compose UI (digital board, screens, arrows,
+        theme and header), view model, Stockfish JNI bridge and CMake build; tools/ writes the
+        icons.
 ```
 
 ## Limits

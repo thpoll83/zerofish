@@ -2,23 +2,26 @@ package com.chesscoach.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.ui.graphics.Color
+import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chesscoach.app.ui.ChessCoachApp
+import com.chesscoach.app.ui.ChessCoachTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Edge to edge on every Android version (Android 15 enforces it anyway), with light
+        // icons in both bars: the header behind the status bar is black, the body dark.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF2E7D32), secondary = Color(0xFF6D4C41))) {
-                Surface {
-                    val vm: GameViewModel = viewModel()
-                    ChessCoachApp(vm)
-                }
+            ChessCoachTheme {
+                val vm: GameViewModel = viewModel()
+                ChessCoachApp(vm)
             }
         }
     }
