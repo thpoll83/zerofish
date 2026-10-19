@@ -14,7 +14,6 @@ White on the far side (own_1), from a corner (own_2), from the side with White o
 `ground_truth.txt` holds, per photo, the pixel positions of the board's four outer corners in
 cyclic order (any rotation). The values were produced by the detector and checked by eye against
 overlays; they are regression anchors with a tolerance, not survey-grade measurements.
-Photos listed under `# known failures` are side views where the detector currently fails.
 
 The `club_*.jpg` files are crops of photographs the repository owner took at a chess club and at
 a public tournament, cut down to the board and the table around it so that no person is

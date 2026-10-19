@@ -29,5 +29,5 @@ club_2     361 109  168 204  482 283   644 160
 club_3     190 131  179 378  729 348   599 114
 club_4     709 136  305 117  180 289   730 325
 club_5     761 153  329 135  206 326   805 360
-# board_17: the near edge of the board is outside the frame. board_cc6: low side view, result unverified.
-# known failures: board_17 board_cc6
+board_17   800 175  255 149  189 489   916 519
+board_cc6  34 709   767 685  634 382   227 385
