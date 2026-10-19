@@ -141,6 +141,17 @@ class LiveTracker(
     /** A frame whose best explanation still costs more than this (about twenty squares wrong) is a misread. */
     private val badFrameCost = 20.0
 
+    /**
+     * How the board reads when nothing is wrong: the number of unsure squares and the cost of
+     * the tracked position on the learning frame, updated on quiet frames. A board whose pieces
+     * are hard to tell from its squares reads unsure and costly on every frame; a hand or a
+     * misread grid is a frame that reads much worse than that, not worse than a fixed number.
+     */
+    private var usualUnsure = 0.0
+    private var usualCost = 0.0
+    private val unsureSlack = 10
+    private val costSlack = 10.0
+
     private fun ramp(v: Double, low: Double, high: Double): Double = ((v - low) / (high - low)).coerceIn(0.0, 1.0)
 
     private fun quality(image: LumaImage, grid: DetectedGrid, geometry: BoardGeometry, extra: List<Pair<Double, String>>): Quality {
@@ -173,22 +184,19 @@ class LiveTracker(
     private val minEvidence = 0.6
 
     /**
-     * Explanations offered to the user, by description, with the cost each had on the latest frame
-     * that scored it and the unsettled-frame index when it was last among the best. Kept across
-     * frames so the buttons do not change every frame.
+     * Explanations offered to the user, by description, in the order they were first seen. Once
+     * offered, an explanation stays until the position is settled or changed, and new ones are
+     * only appended: a button that moves or vanishes cannot be tapped. At most [maxOffers]
+     * one- and two-move explanations; three-move ones from the deep search are always added.
      */
-    private class Offer(var candidate: Candidate, var lastSeen: Int)
-    private val offers = HashMap<String, Offer>()
+    private val offers = LinkedHashMap<String, Candidate>()
+    private val maxOffers = 10
 
-    /** An explanation stays on offer this many unexplained frames after it last ranked among the best. */
-    private val offerMemory = 12
+    /** Unexplained frames before the likeliest explanations are offered as buttons (while still reading). */
+    private val framesBeforeOffering = 3
 
-    /**
-     * An offer that now fits this much worse than the best offer is dropped: a single move that
-     * was offered before the reply to it was played fits two squares worse than the pair once
-     * the reply is on the board, and would otherwise stay on the buttons as a move already made.
-     */
-    private val offerSlack = 2.5
+    /** An explanation is offered only while it fits within this of the best one on that frame. */
+    private val offerWindow = 1.5
 
     /** Forget the pending move evidence, for example after the user corrected the position by hand. */
     fun resetPending() {
@@ -198,29 +206,15 @@ class LiveTracker(
         offers.clear()
     }
 
-    private fun offer(candidates: List<Candidate>) {
+    private fun offer(candidates: List<Candidate>, always: Boolean = false) {
         for (c in candidates) {
-            val o = offers[c.description]
-            if (o == null) offers[c.description] = Offer(c, unsettled)
-            else {
-                o.candidate = c
-                o.lastSeen = unsettled
-            }
+            if (offers.containsKey(c.description)) continue
+            if (!always && offers.size >= maxOffers) continue
+            offers[c.description] = c
         }
-        offers.values.removeIf { it.lastSeen < unsettled - offerMemory }
     }
 
-    /** The latest frame's cost for every offer it scored, so stale offers are judged on the board as it is now. */
-    private fun rescore(all: List<Candidate>) {
-        if (offers.isEmpty()) return
-        for (c in all) offers[c.description]?.let { it.candidate = c }
-    }
-
-    private fun suggestions(): List<Candidate> {
-        val sorted = offers.values.map { it.candidate }.sortedBy { it.cost }
-        val best = sorted.firstOrNull()?.cost ?: return emptyList()
-        return sorted.filter { it.cost <= best + offerSlack }.take(6)
-    }
+    private fun suggestions(): List<Candidate> = offers.values.toList()
 
     /** The user picked one of the offered explanations: apply it and resynchronise on the last frame. */
     fun accept(candidate: Candidate) {
@@ -308,14 +302,18 @@ class LiveTracker(
         startConfirmed = false
         smoothed = null
         resetPending()
-        return FrameResult(Status.LEARNED, located.geometry, cal.observe(f), null, 0, emptyList(), "Ready. Play on the board.", quality = q)
+        val obs = cal.observe(f)
+        usualUnsure = obs.count { it.unsure }.toDouble()
+        usualCost = MoveInference.cost(board.occupancy(), obs, located.geometry.nearSide)
+        return FrameResult(Status.LEARNED, located.geometry, obs, null, 0, emptyList(), "Ready. Play on the board.", quality = q)
     }
 
     private fun track(image: LumaImage, grid: DetectedGrid): FrameResult {
         val cal = calibration ?: return FrameResult(Status.NO_BOARD, null, null, null, 0, emptyList(), "No calibration")
         val located = BoardLocator.locate(image, grid.corners, cal, board.occupancy(), rotation)
         val raw = located.observations
-        if (raw.count { it.unsure } > 14) {
+        val unsure = raw.count { it.unsure }
+        if (unsure > maxOf(14.0, usualUnsure + unsureSlack)) {
             // a hand or a shadow over the board: do not count this frame for or against anything
             smoothed = null
             return FrameResult(Status.UNSTABLE, located.geometry, raw, null, pendingCount, emptyList(), "Hold still, hand or shadow over the board")
@@ -326,11 +324,13 @@ class LiveTracker(
         val change = previousPatches?.let { ChangeDetector.scores(it, located.patches) }
         val result = MoveInference.infer(board, obs, change, maxPlies = 2, nearSide = located.geometry.nearSide)
         val best = result.best ?: return FrameResult(Status.TRACKING, located.geometry, obs, null, 0, emptyList(), "Tracking")
-        if (best.cost > badFrameCost) {
-            // even the best explanation leaves a third of the board wrong: the grid was misread
-            // (or a body covers it). Like a hand over the board, the frame counts for nothing.
+        if (best.cost > maxOf(badFrameCost, (baseline() ?: usualCost) + costSlack)) {
+            // even the best explanation leaves far more of the board wrong than usual: the grid
+            // was misread (or a body covers it). Like a hand over the board, the frame counts for nothing.
             return FrameResult(Status.UNSTABLE, located.geometry, obs, null, pendingCount, emptyList(), "Hold still, cannot read the board", candidates = result.candidates)
         }
+        // the usual readings follow the light slowly
+        usualUnsure = 0.9 * usualUnsure + 0.1 * unsure
         val noMove = result.candidates.firstOrNull { it.moves.isEmpty() }
         val evidence = (noMove?.cost ?: Double.POSITIVE_INFINITY) - best.cost
         if (best.moves.isEmpty() || evidence < minEvidence) {
@@ -338,17 +338,18 @@ class LiveTracker(
             // unexplained period; a single one (a bad frame) keeps the offers on the screen.
             quiet++
             // only settled frames define the baseline: a weakly seen move would otherwise raise it
-            if (unsettled == 0) noMove?.let { noteQuiet(it.cost) }
+            if (unsettled == 0) noMove?.let { noteQuiet(it.cost); usualCost = 0.9 * usualCost + 0.1 * it.cost }
             if (quiet >= quietFramesToSettle) resetPending()
-            rescore(result.candidates)
             val asking = unsettled >= framesBeforeAsking && offers.isNotEmpty()
             return if (asking) FrameResult(Status.AMBIGUOUS, located.geometry, obs, best, pendingCount, emptyList(), "Not sure what was played. Tap the right one, or type it.", suggestions(), candidates = result.candidates)
-            else FrameResult(Status.TRACKING, located.geometry, obs, best, 0, emptyList(), if (unsettled > 0) "Reading the move..." else "Tracking", candidates = result.candidates, reading = unsettled > 0)
+            else FrameResult(Status.TRACKING, located.geometry, obs, best, 0, emptyList(), if (unsettled > 0) "Reading the move..." else "Tracking", suggestions(), candidates = result.candidates, reading = unsettled > 0)
         }
         // The board no longer matches the tracked position. Count how long this lasts.
         quiet = 0
         unsettled++
-        rescore(result.candidates)
+        // From the first second on, the likeliest explanations are offered as buttons while the
+        // reading goes on: the user may know the move and need not wait for the question.
+        if (unsettled >= framesBeforeOffering) offer(result.candidates.filter { it.moves.isNotEmpty() && it.cost <= best.cost + offerWindow }.take(3))
         // three agreeing frames are required anyway, so a modest per-frame margin is enough
         if (result.margin >= 0.3) {
             if (best.moves == pending) pendingCount++ else {
@@ -372,7 +373,7 @@ class LiveTracker(
                 if (unsettled < framesBeforeAsking) {
                     return FrameResult(
                         Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(),
-                        "Seeing ${best.description}, but more changed (%.1f, quiet is %.1f)".format(best.cost, base), candidates = result.candidates,
+                        "Seeing ${best.description}, but more changed (%.1f, quiet is %.1f)".format(best.cost, base), suggestions(), candidates = result.candidates,
                         reading = true,
                     )
                 }
@@ -384,7 +385,7 @@ class LiveTracker(
             offer(result.candidates.filter { it.moves.isNotEmpty() }.take(4))
             if (unsettled >= framesBeforeDeepSearch && (unsettled - framesBeforeDeepSearch) % 4 == 0) {
                 val deep = MoveInference.infer(board, obs, change, maxPlies = 3, nearSide = located.geometry.nearSide)
-                offer(deep.candidates.filter { it.moves.size == 3 }.take(5))
+                offer(deep.candidates.filter { it.moves.size == 3 }.take(3), always = true)
             }
             return FrameResult(
                 Status.AMBIGUOUS, located.geometry, obs, best, pendingCount, emptyList(),
@@ -394,6 +395,6 @@ class LiveTracker(
         val runnerUp = result.candidates.getOrNull(1)
         val msg = if (result.margin >= 0.3) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
         else "Maybe ${best.description} (%.2f) or ${runnerUp?.description} (%.2f); unchanged %.2f".format(best.cost, runnerUp?.cost ?: 0.0, noMove?.cost ?: 0.0)
-        return FrameResult(Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(), msg, candidates = result.candidates, reading = true)
+        return FrameResult(Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(), msg, suggestions(), candidates = result.candidates, reading = true)
     }
 }

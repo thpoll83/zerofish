@@ -65,8 +65,10 @@ data class UiState(
     /** How well the view will work, 0 to 1, and what is weakest about it; judged before the game starts. */
     val liveQuality: Double? = null,
     val liveHint: String? = null,
-    /** Offered when the camera cannot decide which move was played. */
+    /** Offered while a move is being read; the tracker only appends to this list, so the buttons stay put. */
     val liveSuggestions: List<Candidate> = emptyList(),
+    /** The tracker has given up reading the move by itself and asks for a tap. */
+    val liveAsking: Boolean = false,
     /** Destination squares tapped so far to pick one of [liveSuggestions]. */
     val pickPath: List<Int> = emptyList(),
     val camera: CameraSettings = CameraSettings(),
@@ -187,7 +189,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             b = b.play(m)
         }
         synchronized(tracker) { if (tracker.board == _state.value.board) tracker.accept(c) else tracker.setBoard(b) }
-        _state.update { it.copy(liveSuggestions = emptyList(), pickPath = emptyList(), liveCandidate = null) }
+        _state.update { it.copy(liveSuggestions = emptyList(), pickPath = emptyList(), liveCandidate = null, liveAsking = false) }
         for (m in c.moves) applyMove(m)
     }
 
@@ -235,7 +237,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                         liveQuality = r.quality?.score ?: it.liveQuality,
                         liveHint = r.quality?.hint ?: it.liveHint,
                         liveSuggestions = offers,
-                        pickPath = if (offers == it.liveSuggestions) it.pickPath else emptyList(),
+                        liveAsking = if (keep) it.liveAsking else r.status == LiveTracker.Status.AMBIGUOUS,
+                        // the list only grows while the same move is read; a tap path survives that
+                        pickPath = if (offers.size >= it.liveSuggestions.size && offers.take(it.liveSuggestions.size) == it.liveSuggestions) it.pickPath else emptyList(),
                     )
                 }
                 if (r.status == LiveTracker.Status.LEARNED) {

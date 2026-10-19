@@ -32,3 +32,9 @@ The `travel_*.jpg` files were photographed by the repository owner: a small magn
 with a glossy black plastic frame that is as dark as its dark squares, with the starting position,
 from four viewpoints (White far and near, from above and from a low angle), on a desk next to a
 laptop. Downscaled to 1000 px.
+
+The `red_*.jpg` files are crops of photographs the repository owner took of a folding board with
+red and cream squares, a red frame, and brown and yellow plastic pieces, in the middle of a game
+on a dinner table, from a low angle across the table; cut down so that no person is in them.
+In grayscale the brown pieces are as dark as the red squares and the yellow pieces as light as
+the cream ones, which makes it the hardest board of the set to read.

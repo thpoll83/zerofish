@@ -6,6 +6,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -55,6 +57,26 @@ import com.chesscoach.app.ViewMode
 import com.chesscoach.core.chess.Color
 import com.chesscoach.core.chess.GameResult
 
+/**
+ * SAN with piece symbols instead of letters, for the compact move buttons: "Nf3" becomes "♘f3"
+ * for White and "♞f3" for Black.
+ */
+private fun figurine(san: String, white: Boolean): String {
+    val symbols = if (white) "KQRBN" to "♔♕♖♗♘" else "KQRBN" to "♚♛♜♝♞"
+    val sb = StringBuilder()
+    for ((i, ch) in san.withIndex()) {
+        val k = symbols.first.indexOf(ch)
+        // a piece letter at the start, or after "=" in a promotion
+        sb.append(if (k >= 0 && (i == 0 || san[i - 1] == '=')) symbols.second[k] else ch)
+    }
+    return sb.toString()
+}
+
+/** The moves of an offered explanation as figurines, alternating colours from the side to move. */
+private fun figurines(c: com.chesscoach.core.vision.Candidate, whiteFirst: Boolean): String =
+    c.sans.mapIndexed { i, san -> figurine(san, if (i % 2 == 0) whiteFirst else !whiteFirst) }.joinToString(" ")
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChessCoachApp(vm: GameViewModel) {
     val state by vm.state.collectAsState()
@@ -241,18 +263,29 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
             state.message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
             if (choices.isNotEmpty()) {
                 Text(
-                    if (nextPly == 0) "Not sure what was played. Tap the square the piece went to, or a move:" else "And then? Tap the next square:",
+                    when {
+                        nextPly > 0 -> "And then? Tap the next square or move:"
+                        state.liveAsking -> "Not sure what was played. Tap the square the piece went to, or the move:"
+                        else -> "Reading the move. If you know it, tap it:"
+                    },
                     style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp),
                 )
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Compact buttons in as many rows as needed, never scrolling: the tracker only
+                // appends to the list, so a button keeps its place and colour until the move is settled.
+                val whiteFirst = state.board.sideToMove == Color.WHITE
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     choices.forEachIndexed { i, c ->
-                        OutlinedButton(onClick = { vm.acceptLiveCandidate(c) }, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)) {
-                            Box(Modifier.size(10.dp).background(ArrowColors.choice(i), CircleShape))
-                            Spacer(Modifier.width(6.dp))
-                            Text("${i + 1} ${c.description}")
+                        OutlinedButton(
+                            onClick = { vm.acceptLiveCandidate(c) },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            modifier = Modifier.height(34.dp),
+                        ) {
+                            Box(Modifier.size(9.dp).background(ArrowColors.choice(i), CircleShape))
+                            Spacer(Modifier.width(5.dp))
+                            Text(figurines(c, whiteFirst), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
-                    TextButton(onClick = { showEntry = true }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Other") }
+                    TextButton(onClick = { showEntry = true }, contentPadding = PaddingValues(horizontal = 6.dp), modifier = Modifier.height(34.dp)) { Text("Other") }
                 }
             }
             if (!state.liveLearned && state.liveCorners.size == 4) {

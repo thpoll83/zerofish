@@ -51,13 +51,15 @@ just played stays drawn as a green arrow until the next one, and the engine's su
 blue one; the headline says whose move it is, "Your move: White" or "Opponent's move: Black".
 The per-square markers (a dot for what the camera read, a yellow ring where it is unsure) are
 shown while the pieces are learned and hidden during the game, unless the switch "Show
-recognition markers" in the settings is on. The camera keeps running behind the digital board. When the tracker
-cannot tell which move was played, the possible moves are drawn on the viewport as numbered
-arrows in distinct colours (on the camera picture they follow the board as found), and tapping the
-square the piece went to picks that move; when two offered sequences start with the same move,
-the tap narrows them down and the next tap picks between their second moves. The same moves are
-listed as buttons under the viewport, with "Other" for typing a move (SAN or UCI, several at
-once).
+recognition markers" in the settings is on. The camera keeps running behind the digital board. While a move is
+being read (from the first second the board no longer matches the tracked position), the likeliest
+explanations are drawn on the viewport as numbered arrows in distinct colours (on the camera
+picture they follow the board as found) and listed as compact buttons with piece symbols, in as
+many rows as needed, with "Other" for typing a move (SAN or UCI, several at once). The list only
+grows until the move is settled, so a button keeps its place and colour; after about 3.5 s of
+reading the tracker gives up on its own and asks for a tap. Tapping the square the piece went to
+picks that move; when two offered sequences start with the same move, the tap narrows them down
+and the next tap picks between their second moves.
 
 The app recognises the starting position by itself when the
 pieces read clearly. When they do not (black pieces on the dark squares of a glossy board), the
@@ -75,6 +77,12 @@ preview of the mark under the circle, squircle and square launcher masks.
 Settings: choose your colour, how long Stockfish may think per move, and the strength of the advice:
 full strength, or a rating between 1320 and 3190 Elo (Stockfish's `UCI_LimitStrength` and
 `UCI_Elo` options), so the suggestions can be pitched at the player's level.
+
+A frame counts as a hand or a shadow over the board, or a misread grid ("Hold still"), when it
+reads much worse than the board usually does: more unsure squares than usual by ten, or a best
+explanation costlier than the usual quiet reading by ten, where "usual" is measured on the learning
+frame and follows quiet frames slowly. A board whose pieces are hard to tell from its squares
+therefore reads unsure on every frame without being blocked.
 
 The square readings of each frame are blended with the readings so far (60% the new frame, 40%
 the blend), since a piece cannot change between two frames unless a hand came in between; a
@@ -148,9 +156,10 @@ To build with ARMv8.2 dot-product instructions (about 30% faster search on 2018+
 core/   pure Kotlin: chess rules (move generation, SAN, FEN), grid detector, homography,
         square sampling and classification, move inference, UCI parsing. Unit-tested with
         perft, a synthetic renderer of boards with pieces seen from changing viewpoints, and
-        41 photographs of real boards (core/src/test/resources/boards, see NOTICE.md there),
+        43 photographs of real boards (core/src/test/resources/boards, see NOTICE.md there),
         five of them of the owner's own board from every side, four of a glossy travel set whose
-        black frame is as dark as its squares, and ten crops of club, tournament
+        black frame is as dark as its squares, two of a red folding board whose pieces are as
+        dark and as light as its squares, and ten crops of club, tournament
         and event boards, most mid-game and seen across the table: the grid must be found within 2.5% of the
         labelled corners on every one of them, the starting position must be read with the right orientation from eight, a wooden
         middlegame from one more, and detection must stay under 2 s per photo. A 33 s passage of a real game video (136 frames at 360x640,
