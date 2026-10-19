@@ -1,19 +1,25 @@
 package com.chesscoach.app.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,68 +36,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.chesscoach.app.CameraCapture
-import com.chesscoach.app.LiveCameraView
 import com.chesscoach.app.GameViewModel
+import com.chesscoach.app.LiveCameraView
 import com.chesscoach.app.Phase
-import com.chesscoach.app.Purpose
 import com.chesscoach.app.StockfishEngine
 import com.chesscoach.app.UiState
+import com.chesscoach.app.ViewMode
 import com.chesscoach.core.chess.Color
 import com.chesscoach.core.chess.GameResult
 
 @Composable
 fun ChessCoachApp(vm: GameViewModel) {
     val state by vm.state.collectAsState()
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        when (state.phase) {
-            Phase.SETUP -> SetupScreen(state, vm)
-            Phase.LIVE -> LiveScreen(state, vm)
-            Phase.SCAN_START -> ScanStartScreen(state, vm)
-            Phase.CONFIRM_START -> ConfirmStartScreen(state, vm)
-            Phase.PICK_CORNERS -> PickCornersScreen(state, vm)
-            Phase.PLAYING -> GameScreen(state, vm)
-            Phase.SCANNING -> ScanningScreen(state, vm)
-            Phase.CONFIRM_SCAN -> ConfirmScanScreen(state, vm)
-        }
+    when (state.phase) {
+        Phase.SETUP -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) { SetupScreen(state, vm) }
+        Phase.LIVE -> LiveScreen(state, vm)
     }
-}
-
-@Composable
-private fun Title(text: String) {
-    Text(text, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 8.dp))
-}
-
-@Composable
-private fun Message(state: UiState) {
-    state.message?.let {
-        Card(Modifier.fillMaxWidth().padding(vertical = 8.dp)) { Text(it, Modifier.padding(12.dp)) }
-    }
-}
-
-@Composable
-private fun Busy(state: UiState) {
-    if (state.busy) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
-            CircularProgressIndicator(Modifier.padding(end = 12.dp))
-            Text("Looking for the board...")
-        }
-    }
-}
-
-@Composable
-private fun Legend() {
-    Text(
-        "Green grid: where the board was found. White and black dots: squares read as white or black pieces. " +
-            "Small green dots: empty. Yellow rings: unsure.",
-        style = MaterialTheme.typography.bodySmall,
-    )
 }
 
 @Composable
 private fun SetupScreen(state: UiState, vm: GameViewModel) {
-    Title("Chess Coach")
+    Text("Chess Coach", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 8.dp))
     Text(state.engineStatus, style = MaterialTheme.typography.bodySmall)
     Spacer(Modifier.height(16.dp))
     Text("I play as", fontWeight = FontWeight.Bold)
@@ -116,181 +83,116 @@ private fun SetupScreen(state: UiState, vm: GameViewModel) {
             valueRange = StockfishEngine.MIN_ELO.toFloat()..StockfishEngine.MAX_ELO.toFloat(),
         )
     }
-    Spacer(Modifier.height(16.dp))
-    Spacer(Modifier.height(8.dp))
-    Button(onClick = { vm.startLive() }, modifier = Modifier.fillMaxWidth()) { Text("Start: watch the board live") }
+    Spacer(Modifier.height(24.dp))
+    Button(onClick = { vm.startLive() }, modifier = Modifier.fillMaxWidth()) { Text("Start: watch the board") }
     Text(
         "Set up the starting position and point the camera at the board, or put the phone on a stand. " +
             "The app learns your pieces from the first frames and then follows every move by itself.",
         style = MaterialTheme.typography.bodySmall,
     )
-    Spacer(Modifier.height(8.dp))
-    OutlinedButton(onClick = { vm.beginStartScan() }, modifier = Modifier.fillMaxWidth()) { Text("Photo mode (one photo per move)") }
-    if (state.calibrated) {
-        TextButton(onClick = { vm.newGame() }) { Text("Continue with the current game") }
+    if (state.liveLearned) {
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = { vm.resumeLive() }, modifier = Modifier.fillMaxWidth()) { Text("Back to the current game") }
     }
-    Message(state)
+    state.message?.let { Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp)) }
 }
 
-@Composable
-private fun ScanStartScreen(state: UiState, vm: GameViewModel) {
-    Title("Starting position")
-    Text("All 32 pieces on their starting squares. Keep all four edges of the board in the picture and avoid hands or shadows over it.")
-    Busy(state)
-    CameraCapture(buttonLabel = "Photograph the board", enabled = !state.busy, onPhoto = { vm.onStartPhoto(it) })
-    TextButton(onClick = { vm.backToSetup() }) { Text("Back") }
-}
-
-@Composable
-private fun ConfirmStartScreen(state: UiState, vm: GameViewModel) {
-    Title(if (state.detectionFailed) "Board not found" else "Check recognition")
-    Message(state)
-    if (!state.detectionFailed) Legend()
-    state.photo?.let { PhotoOverlay(it, state.corners, state.observations, debugLines = state.debugLines) }
-    Spacer(Modifier.height(8.dp))
-    for (note in state.calibrationNotes) Text(note, style = MaterialTheme.typography.bodySmall)
-    Spacer(Modifier.height(8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (!state.detectionFailed) {
-            Button(onClick = { vm.acceptStart() }) { Text(if (state.calibrationUsable) "Start game" else "Use anyway") }
-        }
-        OutlinedButton(onClick = { vm.beginStartScan() }) { Text("Rescan") }
-        TextButton(onClick = { vm.pickCornersManually() }) { Text("Tap corners") }
-    }
-    if (state.detectionFailed) {
-        Text("The red and orange lines show what the detector saw. If the board is in the picture, tap its four corners by hand.", style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-@Composable
-private fun PickCornersScreen(state: UiState, vm: GameViewModel) {
-    val names = listOf("a1 (White's left corner)", "h1 (White's right corner)", "h8 (Black's left corner)", "a8 (Black's right corner)")
-    Title("Tap the corners")
-    val n = state.corners.size
-    Text(if (n < 4) "Tap corner ${n + 1} of 4: ${names[n]}" else "Check that the green grid sits on the squares.")
-    Message(state)
-    Busy(state)
-    state.photo?.let { PhotoOverlay(it, state.corners, onTap = { p -> vm.addCorner(p) }) }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-        OutlinedButton(onClick = { vm.undoCorner() }, enabled = n > 0) { Text("Undo") }
-        Button(onClick = { vm.cornersDone() }, enabled = n == 4 && !state.busy) {
-            Text(if (state.cornerPurpose == Purpose.START) "Learn pieces" else "Read move")
-        }
-        TextButton(onClick = { vm.cancelCorners() }) { Text("Retake photo") }
-    }
-}
-
-@Composable
-private fun SuggestionCard(state: UiState, vm: GameViewModel) {
-    val result = state.board.result()
-    if (!(state.myTurn && result == GameResult.ONGOING)) return
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
-            val sug = state.suggestion
-            if (sug == null || sug.lines.isEmpty()) {
-                Text(if (state.thinking) "Stockfish is thinking..." else if (state.engineReady) "No suggestion yet." else state.engineStatus)
-            } else {
-                Text("Play ${sug.bestSan ?: "?"}", style = MaterialTheme.typography.headlineSmall)
-                sug.lines.forEachIndexed { i, line ->
-                    val first = line.pv.firstOrNull()?.let { vm.sanOf(state.board, it) } ?: "?"
-                    Text("${i + 1}. $first  ${line.scoreText()}  depth ${line.depth ?: "?"}", style = MaterialTheme.typography.bodySmall)
-                }
-                if (!sug.done) Text("still thinking...", style = MaterialTheme.typography.bodySmall)
-            }
-        }
-    }
-}
-
+/**
+ * The playing screen: a square viewport (camera picture or digital board, by the toggle), and
+ * below it the status, the engine's advice and a row of buttons. Nothing needs scrolling on a
+ * phone screen; the lower part scrolls only on a very short one.
+ */
 @Composable
 private fun LiveScreen(state: UiState, vm: GameViewModel) {
     var showEntry by remember { mutableStateOf(false) }
     var entry by remember { mutableStateOf("") }
     var showCamera by remember { mutableStateOf(false) }
-    LiveCameraView(
-        settings = state.camera,
-        corners = state.liveCorners,
-        observations = state.liveObservations,
-        frameWidth = state.liveFrameWidth,
-        frameHeight = state.liveFrameHeight,
-        isBusy = { vm.isLiveBusy() },
-        onCameras = { options, zMin, zMax -> vm.onCamerasAvailable(options, zMin, zMax) },
-        onFrame = { vm.onLiveFrame(it) },
-    )
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        TextButton(onClick = { showCamera = !showCamera }) { Text(if (showCamera) "Hide camera settings" else "Camera settings") }
-        Text("%.1fx".format(state.camera.zoom), style = MaterialTheme.typography.bodySmall)
-    }
-    if (showCamera) {
-        Text("Zoom (below 1x switches to the wide-angle lens on phones that have one)", style = MaterialTheme.typography.bodySmall)
-        Slider(
-            value = state.camera.zoom.coerceIn(state.zoomMin, maxOf(state.zoomMax, state.zoomMin + 0.01f)),
-            onValueChange = { vm.setZoom(it) },
-            valueRange = state.zoomMin..maxOf(minOf(state.zoomMax, 4f), state.zoomMin + 0.01f),
-        )
-        if (state.cameras.size > 1) {
-            Text("Lens", style = MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = state.camera.cameraId == null, onClick = { vm.setCameraId(null) }, label = { Text("Default") })
-                state.cameras.forEachIndexed { i, c ->
-                    val name = if (i == 0) "Widest (%.1f mm)".format(c.focalMm) else c.label
-                    FilterChip(selected = state.camera.cameraId == c.id, onClick = { vm.setCameraId(c.id) }, label = { Text(name) })
-                }
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = state.camera.torch, onClick = { vm.setTorch(!state.camera.torch) }, label = { Text("Torch") })
-        }
-    }
     val result = state.board.result()
+    val flipped = state.myColor == Color.BLACK
+    val choices = state.openChoices
+    val nextPly = state.pickPath.size
+    // One numbered arrow per offered move (its next move, when the first taps narrowed the
+    // sequences); otherwise the engine's suggestion.
+    val choiceArrows = choices.mapIndexedNotNull { i, c ->
+        c.moves.getOrNull(nextPly)?.let { m -> MoveArrow(m.from, m.to, ArrowColors.choice(i), "${i + 1}") }
+    }.distinctBy { it.from to it.to }
+    val arrows = if (choiceArrows.isNotEmpty()) choiceArrows else listOfNotNull(
+        state.suggestion?.bestMove?.takeIf { state.myTurn && result == GameResult.ONGOING }?.let { MoveArrow(it.from, it.to, ArrowColors.suggestion) },
+    )
     val headline = when {
         !state.liveLearned -> state.liveStatus
         result != GameResult.ONGOING -> "Game over"
         state.myTurn -> "Your move"
         else -> "Your son's move"
     }
-    Text(headline, style = MaterialTheme.typography.titleMedium)
-    Text(
-        (if (state.liveLearned) state.liveStatus else "") + (state.liveCandidate?.let { "  seeing $it" } ?: "") +
-            (if (state.liveFps > 0) "  (%.1f fps)".format(state.liveFps) else ""),
-        style = MaterialTheme.typography.bodySmall,
-    )
-    Message(state)
-    if (state.liveSuggestions.isNotEmpty()) {
-        Card(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            Column(Modifier.padding(12.dp)) {
-                Text("Not sure what was played. Tap the right one:", fontWeight = FontWeight.Bold)
-                for (c in state.liveSuggestions) {
-                    OutlinedButton(onClick = { vm.acceptLiveCandidate(c) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(c.description)
+    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text(headline, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            TextButton(onClick = { showCamera = true }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("%.1fx".format(state.camera.zoom)) }
+            FilterChip(selected = state.viewMode == ViewMode.CAMERA, onClick = { vm.setViewMode(ViewMode.CAMERA) }, label = { Text("Camera") })
+            Spacer(Modifier.width(6.dp))
+            FilterChip(selected = state.viewMode == ViewMode.BOARD, onClick = { vm.setViewMode(ViewMode.BOARD) }, enabled = state.liveLearned, label = { Text("Board") })
+        }
+        Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
+            // The camera stays bound while the digital board is shown on top of it: the tracker
+            // keeps following the game either way.
+            LiveCameraView(
+                settings = state.camera,
+                corners = state.liveCorners,
+                observations = state.liveObservations,
+                frameWidth = state.liveFrameWidth,
+                frameHeight = state.liveFrameHeight,
+                isBusy = { vm.isLiveBusy() },
+                onCameras = { options, zMin, zMax -> vm.onCamerasAvailable(options, zMin, zMax) },
+                onFrame = { vm.onLiveFrame(it) },
+                arrows = arrows,
+                onSquareTap = { vm.pickSquare(it) },
+                modifier = Modifier.fillMaxSize(),
+            )
+            if (state.viewMode == ViewMode.BOARD && state.liveLearned) {
+                BoardView(
+                    board = state.board, flipped = flipped, lastMove = state.lastMove, arrows = arrows,
+                    onSquareTap = { vm.pickSquare(it) }, modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 6.dp)) {
+            val status = if (state.liveLearned) state.liveStatus else
+                "Green grid: the board as found. White and black dots: pieces as read. Yellow ring: unsure square."
+            Text(
+                status + (state.liveCandidate?.let { "  seeing $it" } ?: "") + (if (state.liveFps > 0) "  (%.1f fps)".format(state.liveFps) else ""),
+                style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
+            )
+            state.message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+            if (choices.isNotEmpty()) {
+                Text(
+                    if (nextPly == 0) "Not sure what was played. Tap the square the piece went to, or a move:" else "And then? Tap the next square:",
+                    style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp),
+                )
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    choices.forEachIndexed { i, c ->
+                        OutlinedButton(onClick = { vm.acceptLiveCandidate(c) }, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)) {
+                            Box(Modifier.size(10.dp).background(ArrowColors.choice(i), CircleShape))
+                            Spacer(Modifier.width(6.dp))
+                            Text("${i + 1} ${c.description}")
+                        }
                     }
+                    TextButton(onClick = { showEntry = true }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Other") }
                 }
-                TextButton(onClick = { showEntry = true }) { Text("None of these, type it") }
+            }
+            Advice(state, vm)
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
+                TextButton(onClick = { vm.toggleLivePause() }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text(if (state.livePaused) "Resume" else "Pause") }
+                TextButton(onClick = { showEntry = true }, enabled = state.liveLearned && result == GameResult.ONGOING, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Type") }
+                TextButton(onClick = { vm.undo() }, enabled = state.history.isNotEmpty(), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Undo") }
+                TextButton(onClick = { vm.newGame() }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("New") }
+                TextButton(onClick = { vm.backToSetup() }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Setup") }
+            }
+            if (state.history.isNotEmpty()) {
+                Text(state.moveListText(), style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }
-    if (state.liveLearned) {
-        BoardView(
-            board = state.board,
-            flipped = state.myColor == Color.BLACK,
-            lastMove = state.lastMove,
-            arrow = state.suggestion?.bestMove,
-            modifier = Modifier.padding(vertical = 8.dp),
-        )
-        SuggestionCard(state, vm)
-    } else {
-        Legend()
-    }
-    Spacer(Modifier.height(8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = { vm.toggleLivePause() }) { Text(if (state.livePaused) "Resume" else "Pause") }
-        OutlinedButton(onClick = { showEntry = true }, enabled = state.liveLearned && result == GameResult.ONGOING) { Text("Type move") }
-        OutlinedButton(onClick = { vm.undo() }, enabled = state.history.isNotEmpty()) { Text("Undo") }
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-        TextButton(onClick = { vm.newGame() }) { Text("New game") }
-        TextButton(onClick = { vm.backToSetup() }) { Text("Settings") }
-    }
-    Text(state.moveListText(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
     if (showEntry) {
         AlertDialog(
             onDismissRequest = { showEntry = false },
@@ -300,97 +202,53 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
             dismissButton = { TextButton(onClick = { showEntry = false }) { Text("Cancel") } },
         )
     }
-}
-
-@Composable
-private fun GameScreen(state: UiState, vm: GameViewModel) {
-    var showEntry by remember { mutableStateOf(false) }
-    var entry by remember { mutableStateOf("") }
-    val result = state.board.result()
-    val turnText = when {
-        result != GameResult.ONGOING -> "Game over"
-        state.myTurn -> "Your move"
-        else -> "Your son's move. Tap Scan when he has played."
-    }
-    Text(turnText, style = MaterialTheme.typography.titleMedium)
-    Message(state)
-    BoardView(
-        board = state.board,
-        flipped = state.myColor == Color.BLACK,
-        lastMove = state.lastMove,
-        arrow = state.suggestion?.bestMove,
-        modifier = Modifier.padding(vertical = 8.dp),
-    )
-    SuggestionCard(state, vm)
-    Spacer(Modifier.height(8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = { vm.startScan() }, enabled = result == GameResult.ONGOING) { Text("Scan board") }
-        state.suggestion?.bestSan?.let { san ->
-            if (state.myTurn) Button(onClick = { vm.playSuggestion() }) { Text("I played $san") }
-        }
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-        OutlinedButton(onClick = { showEntry = true }, enabled = result == GameResult.ONGOING) { Text("Type move") }
-        OutlinedButton(onClick = { vm.undo() }, enabled = state.history.isNotEmpty()) { Text("Undo") }
-        TextButton(onClick = { vm.newGame() }) { Text("New game") }
-    }
-    TextButton(onClick = { vm.backToSetup() }) { Text("Settings") }
-    Text(state.moveListText(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
-
-    if (showEntry) {
+    if (showCamera) {
         AlertDialog(
-            onDismissRequest = { showEntry = false },
-            title = { Text("Enter the move played") },
+            onDismissRequest = { showCamera = false },
+            title = { Text("Camera") },
             text = {
-                OutlinedTextField(value = entry, onValueChange = { entry = it }, label = { Text("e.g. Nf3, exd5, O-O or g1f3") }, singleLine = true)
+                Column {
+                    Text("Zoom %.1fx (below 1x switches to the wide-angle lens on phones that have one)".format(state.camera.zoom), style = MaterialTheme.typography.bodySmall)
+                    Slider(
+                        value = state.camera.zoom.coerceIn(state.zoomMin, maxOf(state.zoomMax, state.zoomMin + 0.01f)),
+                        onValueChange = { vm.setZoom(it) },
+                        valueRange = state.zoomMin..maxOf(minOf(state.zoomMax, 4f), state.zoomMin + 0.01f),
+                    )
+                    if (state.cameras.size > 1) {
+                        Text("Lens", style = MaterialTheme.typography.bodySmall)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(selected = state.camera.cameraId == null, onClick = { vm.setCameraId(null) }, label = { Text("Default") })
+                            state.cameras.forEachIndexed { i, c ->
+                                val name = if (i == 0) "Widest (%.1f mm)".format(c.focalMm) else c.label
+                                FilterChip(selected = state.camera.cameraId == c.id, onClick = { vm.setCameraId(c.id) }, label = { Text(name) })
+                            }
+                        }
+                    }
+                    FilterChip(selected = state.camera.torch, onClick = { vm.setTorch(!state.camera.torch) }, label = { Text("Torch") })
+                }
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.enterMove(entry)
-                    entry = ""
-                    showEntry = false
-                }) { Text("Apply") }
-            },
-            dismissButton = { TextButton(onClick = { showEntry = false }) { Text("Cancel") } },
+            confirmButton = { TextButton(onClick = { showCamera = false }) { Text("Done") } },
         )
     }
 }
 
+/** The engine's advice in two lines: the move to play, and the alternatives it considered. */
 @Composable
-private fun ScanningScreen(state: UiState, vm: GameViewModel) {
-    Title("Scan the board")
-    Text("Whole board in the picture, no hands over it. Any angle is fine.")
-    Busy(state)
-    CameraCapture(buttonLabel = "Scan", enabled = !state.busy, onPhoto = { vm.onScanPhoto(it) })
-    TextButton(onClick = { vm.cancelScan() }) { Text("Cancel") }
-}
-
-@Composable
-private fun ConfirmScanScreen(state: UiState, vm: GameViewModel) {
-    val result = state.scanResult
-    Title(if (state.detectionFailed) "Board not found" else "What was played?")
-    Message(state)
-    if (!state.detectionFailed) Legend()
-    state.photo?.let { PhotoOverlay(it, state.corners, state.observations, debugLines = state.debugLines) }
-    Spacer(Modifier.height(8.dp))
-    val candidates = result?.candidates?.take(5).orEmpty()
-    val best = candidates.firstOrNull()
-    if (best != null && best.moves.isNotEmpty()) {
-        var b = state.board
-        for (m in best.moves) b = b.play(m)
-        Text("Board after ${best.description}, with what the camera saw on each square:", style = MaterialTheme.typography.bodySmall)
-        BoardView(board = b, flipped = state.myColor == Color.BLACK, lastMove = best.moves.last(), marks = state.observations)
+private fun Advice(state: UiState, vm: GameViewModel) {
+    if (!state.liveLearned || !state.myTurn || state.board.result() != GameResult.ONGOING) return
+    val sug = state.suggestion
+    if (sug == null || sug.lines.isEmpty()) {
+        Text(if (state.thinking) "Stockfish is thinking..." else if (state.engineReady) "No suggestion yet." else state.engineStatus, modifier = Modifier.padding(top = 4.dp))
+        return
     }
-    Spacer(Modifier.height(8.dp))
-    for ((i, c) in candidates.withIndex()) {
-        val label = if (c.moves.isEmpty()) "Nothing was played" else c.description
-        val content: @Composable () -> Unit = { Text("$label   (mismatch %.1f)".format(c.cost)) }
-        if (i == 0) Button(onClick = { vm.acceptCandidate(c) }, modifier = Modifier.fillMaxWidth()) { content() }
-        else OutlinedButton(onClick = { vm.acceptCandidate(c) }, modifier = Modifier.fillMaxWidth()) { content() }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+        Text("Play ${sug.bestSan ?: "?"}", style = MaterialTheme.typography.headlineSmall)
+        Spacer(Modifier.width(12.dp))
+        Text(sug.lines.first().scoreText() + (if (sug.done) "" else "  thinking..."), style = MaterialTheme.typography.bodyMedium)
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-        OutlinedButton(onClick = { vm.startScan() }) { Text("Rescan") }
-        TextButton(onClick = { vm.pickCornersManually() }) { Text("Tap corners") }
-        TextButton(onClick = { vm.cancelScan() }) { Text("Cancel") }
+    val others = sug.lines.drop(1).joinToString("   ") { line ->
+        val first = line.pv.firstOrNull()?.let { vm.sanOf(state.board, it) } ?: "?"
+        "$first ${line.scoreText()}"
     }
+    if (others.isNotEmpty()) Text("Also: $others", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }

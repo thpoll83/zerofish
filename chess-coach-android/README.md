@@ -39,25 +39,23 @@ Camera settings on the live screen: zoom from the phone's minimum (below 1x sele
 lens on phones that expose it through zoom), a lens picker when the phone lists several back
 cameras, and a torch toggle. Zoom and lens are remembered.
 
-Photo mode (fallback): one photo per move with a confirm step, described below.
+The playing screen is built around one square viewport, so nothing needs scrolling: it shows
+the camera picture with the recognition overlay, or, by a toggle, the digital board with the last
+move and the engine's arrow. The camera keeps running behind the digital board. When the tracker
+cannot tell which move was played, the possible moves are drawn on the viewport as numbered
+arrows in distinct colours (on the camera picture they follow the board as found), and tapping the
+square the piece went to picks that move; when two offered sequences start with the same move,
+the tap narrows them down and the next tap picks between their second moves. The same moves are
+listed as buttons under the viewport, with "Other" for typing a move (SAN or UCI, several at
+once).
 
-1. Setup: choose your colour, how long Stockfish may think per move, and the strength of the
-   advice: full strength, or a rating between 1320 and 3190 Elo (Stockfish's `UCI_LimitStrength`
-   and `UCI_Elo` options), so the suggestions can be pitched at your son's level.
-2. Photograph the board with all 32 pieces on their starting squares, from above or from your
-   seat. The app finds the board by itself and learns, per square shade, how an empty square, a
-   white piece and a black piece look in your light. A check screen shows the grid it found and a
-   marker per square so you can see that everything was recognised.
-3. Game: after your opponent moves, tap "Scan board" and take a photo. The phone does not need to
-   stay in place. The app finds the board again, classifies every square as empty, white or black,
-   and picks the legal move (or two-move sequence, in case you forgot to scan once) whose result
-   matches best. You confirm with one tap, Stockfish analyses, and the digital board shows the
-   suggested move with an arrow. Tap "I played Nf3" once you have moved it on the real board.
+Setup: choose your colour, how long Stockfish may think per move, and the strength of the advice:
+full strength, or a rating between 1320 and 3190 Elo (Stockfish's `UCI_LimitStrength` and
+`UCI_Elo` options), so the suggestions can be pitched at your son's level.
 
 No piece classifier is needed because the game always starts from the known position and only
 occupancy and piece colour change. Castling, en passant, captures and promotions are matched
-through the move generator. Any scan can be corrected by choosing an alternative or typing the
-move (SAN or UCI). If the board is not found in a photo, you can tap its four corners instead.
+through the move generator.
 
 ## How the board is found
 
@@ -133,14 +131,14 @@ core/   pure Kotlin: chess rules (move generation, SAN, FEN), grid detector, hom
         replay a whole video; CHESS_REPLAY_TRUTH="e4 c5 ..." adds the simulated user and prints
         how many moves were followed by the tracker itself, how many needed a tap, and how many
         were wrong.
-app/    Android: CameraX capture, Compose UI (photo overlay, digital board, screens),
+app/    Android: CameraX live view with overlay, Compose UI (digital board, screens, arrows),
         view model, Stockfish JNI bridge and CMake build.
 ```
 
 ## Limits
 
-- All four board edges must be in the photo. Hands, shadows or strong lighting changes lower
-  confidence. The confirm screen lists alternatives, and any move can be typed.
+- All four board edges must be in the picture. Hands, shadows or strong lighting changes lower
+  confidence. Unclear moves are offered for a tap, and any move can be typed.
 - The scanner was tuned on synthetic scenes and 22 real photos from one public set; other
   boards may need threshold adjustments in `core/.../vision/Calibration.kt` or `GridDetector.kt`.
   Black pieces on dark squares seen from a low angle give the weakest readings.

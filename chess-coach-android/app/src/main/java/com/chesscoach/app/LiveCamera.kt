@@ -20,6 +20,7 @@ import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -35,20 +36,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.chesscoach.app.ui.MoveArrow
+import com.chesscoach.app.ui.drawMoveArrow
 import com.chesscoach.core.chess.Square
 import com.chesscoach.core.vision.ArrayLumaImage
 import com.chesscoach.core.vision.BoardGeometry
 import com.chesscoach.core.vision.Pt
 import com.chesscoach.core.vision.SquareObservation
 import java.util.concurrent.Executors
+import kotlin.math.hypot
 
 /** A back camera the phone exposes, with its focal length so the widest one can be named. */
 data class CameraOption(val id: String, val label: String, val focalMm: Float)
@@ -57,8 +63,11 @@ data class CameraSettings(val cameraId: String? = null, val zoom: Float = 1f, va
 
 /**
  * Live preview with the recognition overlay, plus a frame stream to [onFrame] (upright grayscale,
- * at most one frame per [minIntervalMs] and never while [isBusy]). Preview and analysis share the
- * 4:3 aspect ratio, so overlay coordinates are a plain scale of analysis-frame coordinates.
+ * at most one frame per [minIntervalMs] and never while [isBusy]). The view is square: the 4:3
+ * picture fills it and is cropped at the top and bottom (the analysis still sees the whole
+ * frame). Preview and analysis share the aspect ratio, so an overlay point is the analysis-frame
+ * point scaled and shifted by the crop. [arrows] are drawn between square centres on the board
+ * as found, and a tap on the picture reports the nearest square to [onSquareTap].
  */
 @OptIn(ExperimentalCamera2Interop::class)
 @Composable
@@ -71,6 +80,8 @@ fun LiveCameraView(
     isBusy: () -> Boolean,
     onCameras: (List<CameraOption>, Float, Float) -> Unit,
     onFrame: (ArrayLumaImage) -> Unit,
+    arrows: List<MoveArrow> = emptyList(),
+    onSquareTap: ((Int) -> Unit)? = null,
     minIntervalMs: Long = 250,
     modifier: Modifier = Modifier,
 ) {
@@ -89,7 +100,7 @@ fun LiveCameraView(
         return
     }
     val executor = remember { Executors.newSingleThreadExecutor() }
-    val previewView = remember { PreviewView(context).apply { scaleType = PreviewView.ScaleType.FIT_CENTER } }
+    val previewView = remember { PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER } }
     var camera by remember { mutableStateOf<Camera?>(null) }
 
     DisposableEffect(lifecycleOwner, settings.cameraId) {
@@ -160,14 +171,35 @@ fun LiveCameraView(
         if (cam.cameraInfo.hasFlashUnit()) cam.cameraControl.enableTorch(settings.torch)
     }
 
-    val aspect = if (frameWidth > 0 && frameHeight > 0) frameWidth.toFloat() / frameHeight else 3f / 4f
-    Box(modifier.fillMaxWidth().aspectRatio(aspect)) {
+    val geometry = remember(corners) { if (corners.size == 4) runCatching { BoardGeometry(corners) }.getOrNull() else null }
+    Box(modifier.fillMaxWidth().aspectRatio(1f).clipToBounds()) {
         AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
-        Canvas(Modifier.fillMaxSize()) {
+        Canvas(
+            Modifier.fillMaxSize().pointerInput(geometry, onSquareTap, frameWidth, frameHeight) {
+                if (onSquareTap != null && geometry != null && frameWidth > 0) detectTapGestures { pos ->
+                    // the picture fills the square: same scale on both axes, centred
+                    val scale = maxOf(size.width.toFloat() / frameWidth, size.height.toFloat() / frameHeight)
+                    val ox = (size.width - frameWidth * scale) / 2
+                    val oy = (size.height - frameHeight * scale) / 2
+                    val x = (pos.x - ox) / scale
+                    val y = (pos.y - oy) / scale
+                    var best = -1
+                    var bestD = Double.MAX_VALUE
+                    for (sq in 0 until 64) {
+                        val c = geometry.toImage(Square.file(sq) + 0.5, Square.rank(sq) + 0.5)
+                        val d = hypot(c.x - x, c.y - y)
+                        if (d < bestD) { bestD = d; best = sq }
+                    }
+                    val a = geometry.toImage(0.5, 0.5); val b = geometry.toImage(1.5, 0.5)
+                    if (best >= 0 && bestD <= 0.8 * hypot(a.x - b.x, a.y - b.y)) onSquareTap(best)
+                }
+            },
+        ) {
             if (frameWidth <= 0) return@Canvas
-            val scale = size.width / frameWidth
-            fun o(p: Pt) = Offset((p.x * scale).toFloat(), (p.y * scale).toFloat())
-            val geometry = if (corners.size == 4) runCatching { BoardGeometry(corners) }.getOrNull() else null
+            val scale = maxOf(size.width / frameWidth, size.height / frameHeight)
+            val ox = (size.width - frameWidth * scale) / 2
+            val oy = (size.height - frameHeight * scale) / 2
+            fun o(p: Pt) = Offset((p.x * scale).toFloat() + ox, (p.y * scale).toFloat() + oy)
             if (geometry != null) {
                 for (i in 0..8) {
                     drawLine(Color(0xFF00E676), o(geometry.toImage(i.toDouble(), 0.0)), o(geometry.toImage(i.toDouble(), 8.0)), strokeWidth = 3f)
@@ -195,6 +227,13 @@ fun LiveCameraView(
                         if (ob.label != 0) drawCircle(Color(0xFF00C853), r, c, style = Stroke(width = 2f))
                         if (ob.unsure) drawCircle(Color.Yellow, r * 1.5f, c, style = Stroke(width = 3f))
                     }
+                }
+                val a = o(geometry.toImage(0.5, 0.5)); val b = o(geometry.toImage(1.5, 0.5))
+                val unit = hypot((a.x - b.x).toDouble(), (a.y - b.y).toDouble()).toFloat().coerceAtLeast(size.width / 16)
+                for (arrow in arrows) {
+                    val from = o(geometry.toImage(Square.file(arrow.from) + 0.5, Square.rank(arrow.from) + 0.5))
+                    val to = o(geometry.toImage(Square.file(arrow.to) + 0.5, Square.rank(arrow.to) + 0.5))
+                    drawMoveArrow(arrow, from, to, unit)
                 }
             }
         }
