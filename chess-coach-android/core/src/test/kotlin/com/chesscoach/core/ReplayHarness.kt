@@ -1,7 +1,7 @@
 package com.chesscoach.core
 
 import com.chesscoach.core.chess.Board
-import com.chesscoach.core.vision.ArrayLumaImage
+import com.chesscoach.core.vision.LumaImage
 import com.chesscoach.core.vision.LiveTracker
 import java.io.InputStream
 import javax.imageio.ImageIO
@@ -27,15 +27,7 @@ object ReplayHarness {
         var finalBoard: Board = Board.start()
     }
 
-    fun load(stream: InputStream): ArrayLumaImage {
-        val bi = ImageIO.read(stream)
-        val data = IntArray(bi.width * bi.height)
-        for (y in 0 until bi.height) for (x in 0 until bi.width) {
-            val rgb = bi.getRGB(x, y)
-            data[y * bi.width + x] = (((rgb shr 16) and 255) * 77 + ((rgb shr 8) and 255) * 151 + (rgb and 255) * 28) shr 8
-        }
-        return ArrayLumaImage(bi.width, bi.height, data)
-    }
+    fun load(stream: InputStream): LumaImage = TestImages.load(stream)
 
     private fun bare(san: String) = san.trimEnd('+', '#')
 
@@ -46,7 +38,7 @@ object ReplayHarness {
      * @param detail time window in seconds in which every scored candidate is logged.
      */
     fun run(
-        frames: List<Pair<String, () -> ArrayLumaImage>>,
+        frames: List<Pair<String, () -> LumaImage>>,
         fps: Double,
         jump: List<String>? = null,
         truth: List<String>? = null,
@@ -110,6 +102,7 @@ object ReplayHarness {
             }
             stats.counts[r.status.name] = (stats.counts[r.status.name] ?: 0) + 1
             val line = "${r.status} ${r.message}" + (r.quality?.let { " [quality %.2f: %s]".format(it.score, it.hint) } ?: "") +
+                (if (r.status == LiveTracker.Status.LEARNED) " [colour shift: ${tracker.projection ?: "none, plain luma"}]" else "") +
                 (if (r.suggestions.isNotEmpty()) " -> " + r.suggestions.joinToString(" | ") { "${it.description} (%.1f)".format(it.cost) } else "")
             if (r.applied.isNotEmpty()) stats.applied += r.applied.joinToString(" ") { it.uci() } + "@%.1fs".format(t)
             if (line != last || r.applied.isNotEmpty()) log("REPLAY %6.1fs %s %s".format(t, name, line))

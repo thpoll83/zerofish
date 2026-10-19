@@ -64,6 +64,14 @@ class LiveTracker(
     var rotation: Int? = null
         private set
 
+    /**
+     * The colour shift the pieces are read through, chosen while learning when the frames carry
+     * colour and the pieces differ from their squares in colour more than in brightness; null
+     * for plain luma. The grid is always found on plain luma.
+     */
+    var projection: ColorProjection? = null
+        private set
+
     private var learnStreak = 0
 
     /**
@@ -243,6 +251,7 @@ class LiveTracker(
         board = Board.start()
         phase = Phase.LEARNING
         calibration = null
+        projection = null
         learnStreak = 0
         startConfirmed = false
         previousPatches = null
@@ -259,8 +268,24 @@ class LiveTracker(
         }
     }
 
+    /** The frame as the pieces are read: through the colour shift when one was chosen. */
+    private fun view(image: LumaImage): LumaImage {
+        val p = projection ?: return image
+        val colour = image as? YuvImage ?: return image
+        return p.apply(colour)
+    }
+
     private fun learn(image: LumaImage, grid: DetectedGrid): FrameResult {
-        val located = BoardLocator.locate(image, grid.corners, Calibration.default(), Board.start().occupancy(), rotation)
+        val start = Board.start().occupancy()
+        var located = BoardLocator.locate(image, grid.corners, Calibration.default(), start, rotation)
+        // With colour in the frame, the pieces may stand out better in a channel other than
+        // luma: choose it on the first learning frames, from where the pieces are known to be,
+        // and read this frame again through it. Until the starting position is actually set up
+        // the choice is meaningless, so it is made again on every learning frame.
+        if (image is YuvImage) {
+            projection = ColorProjection.choose(image, located.geometry, start)
+            if (projection != null) located = BoardLocator.locate(view(image), grid.corners, Calibration.default(), start, rotation)
+        }
         val f = located.features
         // Does this frame look like the starting position? Occupied ranks must clearly differ from
         // empty ones and white pieces must be brighter than black ones, before any thresholds exist.
@@ -310,7 +335,7 @@ class LiveTracker(
 
     private fun track(image: LumaImage, grid: DetectedGrid): FrameResult {
         val cal = calibration ?: return FrameResult(Status.NO_BOARD, null, null, null, 0, emptyList(), "No calibration")
-        val located = BoardLocator.locate(image, grid.corners, cal, board.occupancy(), rotation)
+        val located = BoardLocator.locate(view(image), grid.corners, cal, board.occupancy(), rotation)
         val raw = located.observations
         val unsure = raw.count { it.unsure }
         if (unsure > maxOf(14.0, usualUnsure + unsureSlack)) {

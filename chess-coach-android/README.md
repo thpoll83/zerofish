@@ -78,6 +78,22 @@ Settings: choose your colour, how long Stockfish may think per move, and the str
 full strength, or a rating between 1320 and 3190 Elo (Stockfish's `UCI_LimitStrength` and
 `UCI_Elo` options), so the suggestions can be pitched at the player's level.
 
+The camera's colour reaches the tracker (luma at full size, chroma at half, as the camera delivers
+it) and the grid is always found on luma, which works on every board. The pieces, though, may
+stand out from their squares in colour rather than in brightness: a plastic roll-up board's far
+rank, say, or a red board with brown and yellow pieces, where in luma the brown pieces are as
+dark as the red squares and the yellow ones as light as the cream squares. While learning, the
+tracker therefore tries twelve channels made from luma and chroma (each chroma plane alone and
+their sums and differences with luma), reads the starting position through each with the square
+sampler, and keeps luma unless luma fails outright (pieces do not clear the empty squares) and a
+channel reads them clearly; a channel that merely read a little better on the learning frame
+lost a game on a wooden board under changing light. The chosen channel, normalised so that white
+pieces read brighter than black ones, is then what the pieces are read through for the whole
+game. The red board defeats every channel at telling pieces from empty squares: the wood grain of
+its squares reads as texture, which is the sampler's cue for a piece; its colour channels do
+tell white from black pieces seven times better than luma. That is recorded in a test for a
+later change to the sampler.
+
 A frame counts as a hand or a shadow over the board, or a misread grid ("Hold still"), when it
 reads much worse than the board usually does: more unsure squares than usual by ten, or a best
 explanation costlier than the usual quiet reading by ten, where "usual" is measured on the learning
@@ -180,7 +196,8 @@ app/    Android: CameraX live view with overlay, Compose UI (digital board, scre
   confidence. Unclear moves are offered for a tap, and any move can be typed.
 - The scanner was tuned on synthetic scenes and 22 real photos from one public set; other
   boards may need threshold adjustments in `core/.../vision/Calibration.kt` or `GridDetector.kt`.
-  Black pieces on dark squares seen from a low angle give the weakest readings.
+  Black pieces on dark squares seen from a low angle give the weakest readings, and a board
+  whose squares carry a strong wood-grain print reads its grain as pieces.
 - Promotions are assumed to be to a queen; type the move for an underpromotion.
 - Threefold repetition is not detected.
 - A fatal engine error (for example a missing network file) terminates the process, as Stockfish

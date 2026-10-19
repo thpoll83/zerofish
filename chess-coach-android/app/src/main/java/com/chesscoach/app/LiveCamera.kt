@@ -49,7 +49,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.chesscoach.app.ui.MoveArrow
 import com.chesscoach.app.ui.drawMoveArrow
 import com.chesscoach.core.chess.Square
-import com.chesscoach.core.vision.ArrayLumaImage
+import com.chesscoach.core.vision.LumaImage
+import com.chesscoach.core.vision.YuvImage
 import com.chesscoach.core.vision.BoardGeometry
 import com.chesscoach.core.vision.Pt
 import com.chesscoach.core.vision.SquareObservation
@@ -79,7 +80,7 @@ fun LiveCameraView(
     frameHeight: Int,
     isBusy: () -> Boolean,
     onCameras: (List<CameraOption>, Float, Float) -> Unit,
-    onFrame: (ArrayLumaImage) -> Unit,
+    onFrame: (LumaImage) -> Unit,
     arrows: List<MoveArrow> = emptyList(),
     onSquareTap: ((Int) -> Unit)? = null,
     minIntervalMs: Long = 250,
@@ -241,38 +242,54 @@ fun LiveCameraView(
 }
 
 object FrameConverter {
-    /** Copies the Y plane of a YUV frame and rotates it so the picture is upright. */
-    fun toUprightLuma(image: ImageProxy): ArrayLumaImage {
-        val plane = image.planes[0]
+    /** Copies the Y, U and V planes of a YUV 4:2:0 frame and rotates them so the picture is upright. */
+    fun toUprightLuma(image: ImageProxy): YuvImage {
+        val w = image.width
+        val h = image.height
+        val y = readPlane(image.planes[0], w, h)
+        val cw = (w + 1) / 2
+        val ch = (h + 1) / 2
+        val u = readPlane(image.planes[1], cw, ch)
+        val v = readPlane(image.planes[2], cw, ch)
+        return when (image.imageInfo.rotationDegrees) {
+            90 -> YuvImage(h, w, rotate90(y, w, h), rotate90(u, cw, ch), rotate90(v, cw, ch))
+            180 -> YuvImage(w, h, rotate180(y, w, h), rotate180(u, cw, ch), rotate180(v, cw, ch))
+            270 -> YuvImage(h, w, rotate270(y, w, h), rotate270(u, cw, ch), rotate270(v, cw, ch))
+            else -> YuvImage(w, h, y, u, v)
+        }
+    }
+
+    /** Reads a plane of [w] x [h] samples, whatever its row and pixel strides. */
+    private fun readPlane(plane: ImageProxy.PlaneProxy, w: Int, h: Int): IntArray {
         val buffer = plane.buffer
         val rowStride = plane.rowStride
         val pixelStride = plane.pixelStride
-        val w = image.width
-        val h = image.height
-        val src = IntArray(w * h)
+        val out = IntArray(w * h)
         val row = ByteArray(rowStride)
         buffer.rewind()
         for (y in 0 until h) {
             val toRead = minOf(rowStride, buffer.remaining())
+            if (toRead <= 0) break
             buffer.get(row, 0, toRead)
             var o = y * w
             var i = 0
             for (x in 0 until w) {
-                src[o++] = row[i].toInt() and 0xFF
+                out[o++] = if (i < toRead) row[i].toInt() and 0xFF else 0
                 i += pixelStride
             }
         }
-        return when (image.imageInfo.rotationDegrees) {
-            90 -> ArrayLumaImage(h, w, IntArray(w * h).also { out ->
-                for (ny in 0 until w) for (nx in 0 until h) out[ny * h + nx] = src[(h - 1 - nx) * w + ny]
-            })
-            180 -> ArrayLumaImage(w, h, IntArray(w * h).also { out ->
-                for (ny in 0 until h) for (nx in 0 until w) out[ny * w + nx] = src[(h - 1 - ny) * w + (w - 1 - nx)]
-            })
-            270 -> ArrayLumaImage(h, w, IntArray(w * h).also { out ->
-                for (ny in 0 until w) for (nx in 0 until h) out[ny * h + nx] = src[nx * w + (w - 1 - ny)]
-            })
-            else -> ArrayLumaImage(w, h, src)
-        }
+        return out
+    }
+
+    private fun rotate90(src: IntArray, w: Int, h: Int) = IntArray(w * h).also { out ->
+        for (ny in 0 until w) for (nx in 0 until h) out[ny * h + nx] = src[(h - 1 - nx) * w + ny]
+    }
+
+    private fun rotate180(src: IntArray, w: Int, h: Int) = IntArray(w * h).also { out ->
+        for (ny in 0 until h) for (nx in 0 until w) out[ny * w + nx] = src[(h - 1 - ny) * w + (w - 1 - nx)]
+    }
+
+    private fun rotate270(src: IntArray, w: Int, h: Int) = IntArray(w * h).also { out ->
+        for (ny in 0 until w) for (nx in 0 until h) out[ny * h + nx] = src[nx * w + (w - 1 - ny)]
     }
 }

@@ -2,7 +2,7 @@ package com.chesscoach.core
 
 import com.chesscoach.core.chess.Board
 import com.chesscoach.core.chess.Square
-import com.chesscoach.core.vision.ArrayLumaImage
+import com.chesscoach.core.vision.LumaImage
 import com.chesscoach.core.vision.BoardLocator
 import com.chesscoach.core.vision.Calibration
 import com.chesscoach.core.vision.GridDetector
@@ -41,16 +41,7 @@ class RealBoardTest {
         return labelled to failures
     }
 
-    private fun load(name: String): ArrayLumaImage {
-        val stream = javaClass.getResourceAsStream("/boards/$name.jpg") ?: error("missing resource $name")
-        val bi = ImageIO.read(stream)
-        val data = IntArray(bi.width * bi.height)
-        for (y in 0 until bi.height) for (x in 0 until bi.width) {
-            val rgb = bi.getRGB(x, y)
-            data[y * bi.width + x] = (((rgb shr 16) and 255) * 77 + ((rgb shr 8) and 255) * 151 + (rgb and 255) * 28) shr 8
-        }
-        return ArrayLumaImage(bi.width, bi.height, data)
-    }
+    private fun load(name: String): LumaImage = TestImages.load(javaClass.getResourceAsStream("/boards/$name.jpg")!!)
 
     private fun cornerError(found: List<Pt>, truth: List<Pt>): Double {
         var best = Double.MAX_VALUE

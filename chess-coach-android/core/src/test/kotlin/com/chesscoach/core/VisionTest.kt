@@ -325,13 +325,5 @@ class VisionTest {
         }
     }
 
-    private fun loadLuma(file: File): ArrayLumaImage {
-        val bi = ImageIO.read(file)
-        val data = IntArray(bi.width * bi.height)
-        for (y in 0 until bi.height) for (x in 0 until bi.width) {
-            val rgb = bi.getRGB(x, y)
-            data[y * bi.width + x] = (((rgb shr 16) and 255) * 77 + ((rgb shr 8) and 255) * 151 + (rgb and 255) * 28) shr 8
-        }
-        return ArrayLumaImage(bi.width, bi.height, data)
-    }
+    private fun loadLuma(file: File): LumaImage = TestImages.load(file)
 }

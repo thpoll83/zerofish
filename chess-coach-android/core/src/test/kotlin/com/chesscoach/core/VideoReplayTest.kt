@@ -1,6 +1,6 @@
 package com.chesscoach.core
 
-import com.chesscoach.core.vision.ArrayLumaImage
+import com.chesscoach.core.vision.LumaImage
 import com.chesscoach.core.vision.LiveTracker
 import java.io.File
 import javax.imageio.ImageIO
@@ -8,15 +8,7 @@ import kotlin.test.Test
 
 /** Replays a folder of video frames (CHESS_FRAMES_DIR, sorted by name) through the live tracker and prints a log. */
 class VideoReplayTest {
-    private fun load(file: File): ArrayLumaImage {
-        val bi = ImageIO.read(file)
-        val data = IntArray(bi.width * bi.height)
-        for (y in 0 until bi.height) for (x in 0 until bi.width) {
-            val rgb = bi.getRGB(x, y)
-            data[y * bi.width + x] = (((rgb shr 16) and 255) * 77 + ((rgb shr 8) and 255) * 151 + (rgb and 255) * 28) shr 8
-        }
-        return ArrayLumaImage(bi.width, bi.height, data)
-    }
+    private fun load(file: File): LumaImage = TestImages.load(file)
 
     @Test
     fun startCheckDiagnosticsIfAvailable() {
