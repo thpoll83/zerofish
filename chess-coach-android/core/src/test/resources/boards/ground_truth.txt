@@ -27,6 +27,6 @@ own_5      118 347  77 624   512 561   382 329
 club_1     170 171  380 391  795 243   511 81
 club_3     190 131  179 378  729 348   599 114
 # board_17: the near edge of the board is outside the frame. board_cc6: low side view, result unverified.
-# club_2, club_5: low side views of boards with a dark printed frame, the grid lands a square off.
-# club_4: the same board seen almost edge-on; not found.
+# club_2, club_4, club_5: boards seen nearly edge-on across the table (far squares about 45 x 10
+# px): the grid lands a square off or is not found. Not yet solved, see README.
 # known failures: board_17 board_cc6 club_2 club_4 club_5

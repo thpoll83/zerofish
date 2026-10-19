@@ -21,6 +21,8 @@ class DetectedGrid(
     val checkerScore: Double,
     val lines: List<ImageLine>,
     val notes: String,
+    /** Fraction of the 49 inner corners that sit on a saddle point of the image. */
+    val cornerSupport: Double = 0.0,
 )
 
 /**
@@ -49,6 +51,9 @@ object GridDetector {
         debugOut: MutableList<ImageLine>? = null,
     ): DetectedGrid? {
         detectFrame(image, debugLines, log, debugOut)?.let { return it }
+        // Seen flat across a table, the board's short converging lines hide below a long table
+        // edge in the Hough transform: look again with a lower peak threshold.
+        detectFrame(image, debugLines, log, null, peakFraction = 0.05f)?.let { return it }
         // A small board in a cluttered room: find where squares are and look only there, which
         // also gives the board the full resolution of the photo. Several places may look like
         // squares (a second board, a checkered bag); the board closest to the centre of the
@@ -56,7 +61,7 @@ object GridDetector {
         val found = ArrayList<DetectedGrid>()
         for (region in BoardFinder.proposeAll(image, log)) {
             val crop = CropLumaImage(image, region.x0, region.y0, region.width, region.height)
-            val g = detectFrame(crop, debugLines, log, null) ?: continue
+            val g = detectFrame(crop, debugLines, log, null) ?: detectFrame(crop, debugLines, log, null, peakFraction = 0.05f) ?: continue
             val dx = region.x0.toDouble()
             val dy = region.y0.toDouble()
             val corners = g.corners.map { Pt(it.x + dx, it.y + dy) }
@@ -64,7 +69,7 @@ object GridDetector {
             found.add(DetectedGrid(
                 corners, g.lineSupport, g.checkerScore,
                 g.lines.map { ImageLine(it.x1 + dx, it.y1 + dy, it.x2 + dx, it.y2 + dy, it.family) },
-                g.notes + ", in region",
+                g.notes + ", in region", g.cornerSupport,
             ))
         }
         if (found.isEmpty()) return null
@@ -84,9 +89,12 @@ object GridDetector {
         debugLines: Boolean,
         log: ((String) -> Unit)?,
         debugOut: MutableList<ImageLine>?,
+        /** Hough peaks below this fraction of the strongest peak are ignored. */
+        peakFraction: Float = 0.12f,
     ): DetectedGrid? {
         val small = downscale(image)
-        val lines = houghLines(small, log) ?: return null
+        val lines = houghLines(small, log, peakFraction) ?: return null
+        val saddles by lazy { BoardFinder.saddlePoints(image, 300) }
         val families = splitFamilies(lines)
         if (families == null) {
             debugOut?.addAll(lines.map { clipLine(it, small, 2) })
@@ -105,8 +113,8 @@ object GridDetector {
         val vpsB = vanishingPoints(famB, s)
         if (vpsA.isEmpty() || vpsB.isEmpty()) return null
 
-        var best: DetectedGrid? = null
-        var bestTotal = Double.NEGATIVE_INFINITY
+        class Scored(val grid: DetectedGrid, val total: Double)
+        val scored = ArrayList<Scored>()
         log?.invoke("VPs A: " + vpsA.joinToString { "(%.2f, %.2f, %.2f)".format(it[0], it[1], it[2]) })
         log?.invoke("VPs B: " + vpsB.joinToString { "(%.2f, %.2f, %.2f)".format(it[0], it[1], it[2]) })
         for (vA in vpsA) for (vB in vpsB) {
@@ -146,38 +154,85 @@ object GridDetector {
                 continue
             }
             val checker = checkerScore(image, geometry)
-            if (checker < 0.3) continue
+            // Seen flat across the table, the squares' alternation is weak (pieces cover the
+            // sampling rings), but the corners between squares are still there.
+            val corners49 = latticeSupport(geometry, saddles)
+            if (checker < 0.3 && corners49 < 0.4) continue
             // Lines coinciding with the grid count for it; a strong line one square outside the
             // board counts against it (the grid would be shifted by a square).
             val aligned = alignmentScore(ordered, lines, small, 0..8)
             val outside = alignmentScore(ordered, lines, small, listOf(-1, 9))
-            log?.invoke("  cand A(p0 %.3f s %.3f) B(p0 %.3f s %.3f): checker %.2f aligned %.1f outside %.1f corners %s".format(a.p0, a.s, b.p0, b.s, checker, aligned, outside, ordered.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }))
             // Boards with a frame about one square wide have a strong edge one square outside the
             // playing area, so a line there is only weak evidence; the ring part of the checker
-            // score is what separates a grid shifted by a whole square from the right one.
+            // score and the saddle points under the inner corners are what separate a grid
+            // shifted by a whole square from the right one.
             val total = aligned + 28.0 * checker - 1.5 * outside
-            if (total > bestTotal) {
-                bestTotal = total
-                best = DetectedGrid(
-                    ordered, a.support + b.support, checker, debug,
-                    "lines %d+%d, checker %.2f".format(a.support, b.support, checker),
-                )
+            log?.invoke("  cand A(p0 %.3f s %.3f) B(p0 %.3f s %.3f): total %.1f checker %.2f aligned %.1f outside %.1f xcorners %.2f corners %s".format(a.p0, a.s, b.p0, b.s, total, checker, aligned, outside, corners49, ordered.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }))
+            scored.add(Scored(DetectedGrid(
+                ordered, a.support + b.support, checker, debug,
+                "lines %d+%d, checker %.2f, corners %.2f".format(a.support, b.support, checker, corners49),
+                corners49,
+            ), total))
+        }
+        }
+        // Several candidates often score nearly alike on lines and alternation: the right grid,
+        // one a square off, one at a slightly wrong spacing. Each of the near-best ones is refined
+        // (snapped to the detected lines), and the one whose inner corners then sit on the most
+        // x-corners of the image wins; with no clear winner there, the line and alternation score
+        // decides as before.
+        val bestTotal = scored.maxOfOrNull { it.total } ?: return null
+        class Final(val grid: DetectedGrid, val total: Double)
+        val finals = scored.filter { it.total >= bestTotal - 3.0 }.sortedByDescending { it.total }.take(6).map { c ->
+            val result = c.grid
+            val refined = refine(result.corners, lines, small, image)
+            var out = result
+            if (refined != null) {
+                val checker = checkerScore(image, BoardGeometry(refined))
+                val before = alignmentScore(result.corners, lines, small, 0..8)
+                val after = alignmentScore(refined, lines, small, 0..8)
+                val support = latticeSupport(BoardGeometry(refined), saddles)
+                log?.invoke("refined checker %.2f alignment %.1f -> %.1f corners %.2f at %s".format(checker, before, after, support, refined.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }))
+                if (checker >= 0.3 && after >= before) {
+                    out = DetectedGrid(refined, result.lineSupport, checker, debug, result.notes + ", refined", support)
+                }
             }
+            Final(out, c.total)
         }
-        }
-        val result = best ?: return null
-        if (result.lineSupport < 10 || result.checkerScore < 0.45) return null
-        val refined = refine(result.corners, lines, small, image)
-        if (refined != null) {
-            val checker = checkerScore(image, BoardGeometry(refined))
-            val before = alignmentScore(result.corners, lines, small, 0..8)
-            val after = alignmentScore(refined, lines, small, 0..8)
-            log?.invoke("refined checker %.2f alignment %.1f -> %.1f corners %s".format(checker, before, after, refined.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }))
-            if (checker >= 0.3 && after >= before) {
-                return DetectedGrid(refined, result.lineSupport, checker, debug, result.notes + ", refined")
-            }
-        }
+        val topSupport = finals.maxOf { it.grid.cornerSupport }
+        val result = finals.filter { it.grid.cornerSupport >= topSupport - 0.05 }.maxByOrNull { it.total }!!.grid
+        if (result.lineSupport < 10) return null
+        if (result.checkerScore < 0.45 && !(result.cornerSupport >= 0.5 && result.checkerScore >= 0.2)) return null
         return result
+    }
+
+    /**
+     * Fraction of the 49 inner corners of the grid that coincide with a saddle point of the image
+     * (within a fifth of the local square size). Pieces hide some corners, so a right grid scores
+     * well under 1; a grid a square off or at the wrong scale scores clearly lower.
+     */
+    fun latticeSupport(geometry: BoardGeometry, saddles: List<Pt>): Double {
+        if (saddles.isEmpty()) return 0.0
+        var total = 0.0
+        val rowHits = IntArray(8)
+        val colHits = IntArray(8)
+        for (i in 1..7) for (j in 1..7) {
+            val p = geometry.toImage(i.toDouble(), j.toDouble())
+            val q = geometry.toImage(i + 1.0, j.toDouble())
+            val r = geometry.toImage(i.toDouble(), j + 1.0)
+            // an eighth of the local square size: tight enough that stray points rarely count
+            val tol = 0.125 * min(hypot(q.x - p.x, q.y - p.y), hypot(r.x - p.x, r.y - p.y))
+            var best = 0.0
+            for (sp in saddles) {
+                val d = hypot(sp.x - p.x, sp.y - p.y)
+                if (d < tol) best = max(best, 1 - d / tol)
+            }
+            total += best
+            if (best > 0.5) { rowHits[j]++; colHits[i]++ }
+        }
+        // A grid at the wrong spacing still meets the true corners along a few of its lines;
+        // a right grid is supported along nearly all of them.
+        val lines = (1..7).count { rowHits[it] >= 3 } + (1..7).count { colHits[it] >= 3 }
+        return 0.5 * total / 49.0 + 0.5 * lines / 14.0
     }
 
     /** Detected lines in unit-normal homogeneous form, in original-image pixel coordinates. */
@@ -350,7 +405,7 @@ object GridDetector {
         return Small(w, h, px, stride)
     }
 
-    private fun houghLines(img: Small, log: ((String) -> Unit)? = null): List<Line>? {
+    private fun houghLines(img: Small, log: ((String) -> Unit)? = null, peakFraction: Float = 0.12f): List<Line>? {
         val w = img.w
         val h = img.h
         val p = img.px
@@ -417,32 +472,11 @@ object GridDetector {
             sm[i] = 0.25f * accu[i - 1] + 0.5f * accu[i] + 0.25f * accu[i + 1]
             if (sm[i] > peakMax) peakMax = sm[i]
         }
-        val minPeak = peakMax * 0.12f
-        val peaks = ArrayList<Line>()
-        for (t in 0 until THETA_BINS) for (r in 2 until rhoBins - 2) {
-            val v = sm[t * rhoBins + r]
-            if (v < minPeak) continue
-            var isMax = true
-            loop@ for (dt in -2..2) for (dr in -3..3) {
-                if (dt == 0 && dr == 0) continue
-                var tt = t + dt
-                var rr = r + dr
-                if (tt < 0) { tt += THETA_BINS; rr = 2 * rhoOff - rr }
-                if (tt >= THETA_BINS) { tt -= THETA_BINS; rr = 2 * rhoOff - rr }
-                if (rr !in 0 until rhoBins) continue
-                val o = sm[tt * rhoBins + rr]
-                if (o > v || (o == v && (dt < 0 || (dt == 0 && dr < 0)))) {
-                    isMax = false; break@loop
-                }
-            }
-            if (isMax) peaks.add(Line(t * PI / THETA_BINS, (r - rhoOff).toDouble(), (v / peakMax).toDouble()))
-        }
-        peaks.sortByDescending { it.weight }
-        val kept = ArrayList<Line>()
-        for (l in peaks) {
-            if (kept.size >= MAX_LINES) break
-            if (kept.none { lineClose(it, l, 3.0 * PI / 180, 6.0) }) kept.add(l)
-        }
+        // A long table edge or wall must not drown the short, converging lines of a board seen
+        // flat: when few peaks clear the usual threshold, a lower one is tried.
+        val minPeak = peakMax * peakFraction
+        val peaks = collectPeaks(sm, rhoBins, rhoOff, minPeak, peakMax)
+        val kept = distinctLines(peaks)
         log?.invoke("hough %dx%d: %d peaks, %d kept".format(w, h, peaks.size, kept.size))
         if (kept.size < 8) return null
         // Hough angles are 1 degree coarse; refine each line through its supporting edge pixels so
@@ -468,6 +502,38 @@ object GridDetector {
             else Line(l.theta, l.rho, sn * polarity * (0.5 + 0.5 * l.weight))
         }.sortedByDescending { it.weight }
         return if (weighted.size >= 8) weighted else null
+    }
+
+    private fun distinctLines(peaks: List<Line>): ArrayList<Line> {
+        val kept = ArrayList<Line>()
+        for (l in peaks.sortedByDescending { it.weight }) {
+            if (kept.size >= MAX_LINES) break
+            if (kept.none { lineClose(it, l, 3.0 * PI / 180, 6.0) }) kept.add(l)
+        }
+        return kept
+    }
+
+    private fun collectPeaks(sm: FloatArray, rhoBins: Int, rhoOff: Int, minPeak: Float, peakMax: Float): ArrayList<Line> {
+        val peaks = ArrayList<Line>()
+        for (t in 0 until THETA_BINS) for (r in 2 until rhoBins - 2) {
+            val v = sm[t * rhoBins + r]
+            if (v < minPeak) continue
+            var isMax = true
+            loop@ for (dt in -2..2) for (dr in -3..3) {
+                if (dt == 0 && dr == 0) continue
+                var tt = t + dt
+                var rr = r + dr
+                if (tt < 0) { tt += THETA_BINS; rr = 2 * rhoOff - rr }
+                if (tt >= THETA_BINS) { tt -= THETA_BINS; rr = 2 * rhoOff - rr }
+                if (rr !in 0 until rhoBins) continue
+                val o = sm[tt * rhoBins + rr]
+                if (o > v || (o == v && (dt < 0 || (dt == 0 && dr < 0)))) {
+                    isMax = false; break@loop
+                }
+            }
+            if (isMax) peaks.add(Line(t * PI / THETA_BINS, (r - rhoOff).toDouble(), (v / peakMax).toDouble()))
+        }
+        return peaks
     }
 
     /** Least-squares line through the edge pixels that support [l] (within 1.5 px, matching orientation). */

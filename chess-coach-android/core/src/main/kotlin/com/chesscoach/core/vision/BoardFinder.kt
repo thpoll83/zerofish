@@ -1,7 +1,12 @@
 package com.chesscoach.core.vision
 
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /**
  * Proposes where the board is in a cluttered photo. Where four squares meet the brightness has a
@@ -24,12 +29,27 @@ object BoardFinder {
 
     fun propose(image: LumaImage, log: ((String) -> Unit)? = null): Region? = proposeAll(image, log).firstOrNull()
 
-    /** Candidate regions, the one with most saddle points first. */
-    fun proposeAll(image: LumaImage, log: ((String) -> Unit)? = null): List<Region> {
+    /**
+     * The strongest saddle points of the image (at most [maxPoints]), in image pixels. On a board
+     * they sit where four squares meet; a grid whose inner corners land on them is well placed.
+     */
+    fun saddlePoints(image: LumaImage, maxPoints: Int = MAX_POINTS): List<Pt> {
+        val found = findSaddles(image, maxPoints) ?: return emptyList()
+        val (kept, w, stride) = found
+        return kept.map { (i, _) -> Pt(((i % w) + 0.5) * stride, ((i / w) + 0.5) * stride) }
+    }
+
+    private class Saddles(val kept: List<Pair<Int, Float>>, val w: Int, val stride: Int) {
+        operator fun component1() = kept
+        operator fun component2() = w
+        operator fun component3() = stride
+    }
+
+    private fun findSaddles(image: LumaImage, maxPoints: Int): Saddles? {
         val stride = max(1, (max(image.width, image.height) + WORK_SIDE - 1) / WORK_SIDE)
         val w = image.width / stride
         val h = image.height / stride
-        if (w < 48 || h < 48) return emptyList()
+        if (w < 48 || h < 48) return null
         val px = FloatArray(w * h)
         val norm = 1f / (stride * stride)
         for (y in 0 until h) for (x in 0 until w) {
@@ -51,22 +71,41 @@ object BoardFinder {
             for (i in -2..2) s += k[i + 2] * tmp[(y + i).coerceIn(0, h - 1) * w + x]
             b[y * w + x] = s / 16f
         }
-        // Saddle response: -det(Hessian), positive where the surface curves up one way and down the other.
+        // X-corner response on a ring of 16 samples around each pixel: where four squares meet,
+        // the ring is two light arcs and two dark arcs, so its second harmonic is strong and its
+        // first harmonic (a plain edge, or the corner of a single square) is weak.
+        val n = 16
+        val radius = 4
+        val dxs = IntArray(n) { (radius * cos(2 * PI * it / n)).roundToInt() }
+        val dys = IntArray(n) { (radius * sin(2 * PI * it / n)).roundToInt() }
+        val c1 = DoubleArray(n) { cos(2 * PI * it / n) }
+        val s1 = DoubleArray(n) { sin(2 * PI * it / n) }
+        val c2 = DoubleArray(n) { cos(4 * PI * it / n) }
+        val s2 = DoubleArray(n) { sin(4 * PI * it / n) }
+        val c4 = DoubleArray(n) { cos(8 * PI * it / n) }
+        val s4 = DoubleArray(n) { sin(8 * PI * it / n) }
         val resp = FloatArray(w * h)
         var maxR = 0f
-        for (y in 2 until h - 2) for (x in 2 until w - 2) {
-            val i = y * w + x
-            val ixx = b[i + 2] - 2 * b[i] + b[i - 2]
-            val iyy = b[i + 2 * w] - 2 * b[i] + b[i - 2 * w]
-            val ixy = (b[i + 2 * w + 2] - b[i + 2 * w - 2] - b[i - 2 * w + 2] + b[i - 2 * w - 2]) / 4f
-            val r = ixy * ixy - ixx * iyy
+        val m = radius + 1
+        for (y in m until h - m) for (x in m until w - m) {
+            var a1 = 0.0; var b1 = 0.0; var a2 = 0.0; var b2 = 0.0; var a4 = 0.0; var b4 = 0.0; var sum = 0.0
+            for (k in 0 until n) {
+                val v = b[(y + dys[k]) * w + x + dxs[k]].toDouble()
+                sum += v
+                a1 += v * c1[k]; b1 += v * s1[k]; a2 += v * c2[k]; b2 += v * s2[k]; a4 += v * c4[k]; b4 += v * s4[k]
+            }
+            // A thin line through the centre also gives two bright spots opposite each other, but
+            // as narrow spikes (strong fourth harmonic) with a bright centre; four square sectors
+            // have neither.
+            val centreOff = kotlin.math.abs(b[y * w + x] - sum / n) * n / 2
+            val r = (hypot(a2, b2) - 1.5 * hypot(a1, b1) - 1.5 * hypot(a4, b4) - centreOff).toFloat()
             if (r > 0f) {
-                resp[i] = r
+                resp[y * w + x] = r
                 if (r > maxR) maxR = r
             }
         }
-        if (maxR <= 0f) return emptyList()
-        val thr = 0.05f * maxR
+        if (maxR <= 0f) return null
+        val thr = 0.02f * maxR
         // local maxima of the response, strongest first
         val maxima = ArrayList<Pair<Int, Float>>()
         for (y in 2 until h - 2) for (x in 2 until w - 2) {
@@ -79,7 +118,13 @@ object BoardFinder {
             if (isMax) maxima.add((y * w + x) to v)
         }
         maxima.sortByDescending { it.second }
-        val kept = maxima.take(MAX_POINTS)
+        return Saddles(maxima.take(maxPoints), w, stride)
+    }
+
+    /** Candidate regions, the one with most saddle points first. */
+    fun proposeAll(image: LumaImage, log: ((String) -> Unit)? = null): List<Region> {
+        val (kept, w, stride) = findSaddles(image, MAX_POINTS) ?: return emptyList()
+        val h = image.height / stride
         val cw = (w + CELL - 1) / CELL
         val ch = (h + CELL - 1) / CELL
         val counts = IntArray(cw * ch)
