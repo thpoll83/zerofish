@@ -102,7 +102,7 @@ object ReplayHarness {
             }
             stats.counts[r.status.name] = (stats.counts[r.status.name] ?: 0) + 1
             val line = "${r.status} ${r.message}" + (r.quality?.let { " [quality %.2f: %s]".format(it.score, it.hint) } ?: "") +
-                (if (r.status == LiveTracker.Status.LEARNED) " [colour shift: ${tracker.projection ?: "none, plain luma"}]" else "") +
+                (if (r.status == LiveTracker.Status.LEARNED) " [colour shift: ${tracker.projection ?: "none, plain luma"}; ${tracker.calibration?.notes?.joinToString(" | ")}]" else "") +
                 (if (r.suggestions.isNotEmpty()) " -> " + r.suggestions.joinToString(" | ") { "${it.description} (%.1f)".format(it.cost) } else "")
             if (r.applied.isNotEmpty()) stats.applied += r.applied.joinToString(" ") { it.uci() } + "@%.1fs".format(t)
             if (line != last || r.applied.isNotEmpty()) log("REPLAY %6.1fs %s %s".format(t, name, line))

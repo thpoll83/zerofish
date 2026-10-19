@@ -19,43 +19,50 @@ import kotlin.test.assertTrue
  */
 class ColorProjectionTest {
     /**
-     * The red folding board with brown and yellow pieces: in luma the pieces cannot be told from
-     * empty squares at all (the margin is far below the 0.08 the tracker needs), and the chroma
-     * channels tell white from black pieces many times better; but the wood grain of its squares
-     * reads as texture in every channel, so no channel separates pieces from empty squares well
-     * enough to be taken. That failure is the squares' grain, not the colour, and is recorded
-     * here so a change to the sampler can be measured against it.
+     * The red folding board with brown and yellow pieces, mid-game, from a low angle: by luma
+     * texture the pieces cannot be told from the empty squares at all (the wood grain of the
+     * squares reads as texture), by the colour distance to the empty squares they can, and the
+     * chroma offset tells white from black pieces better than brightness. The position was read
+     * from the photo square by square; a few squares behind tall pieces are covered by them.
      */
     @Test
-    fun redBoardFailsOnGrainNotColour() {
+    fun redBoardReadsByColourNotTexture() {
         val img = TestImages.load(javaClass.getResourceAsStream("/boards/red_2.jpg")!!)
         // corners a1, h1, h8, a8 of the labelled grid
         val geometry = BoardGeometry(listOf(Pt(227.0, 778.0), Pt(963.0, 397.0), Pt(532.0, 128.0), Pt(3.0, 248.0)))
-        // the position on the photo, read by eye: brown (black) and yellow (white) pieces
         val occupancy = IntArray(64)
-        for (sq in listOf("a8", "a7", "b8", "b7", "c8", "c7", "e8", "d5", "f7", "g7", "g8", "h7", "h8", "g5", "e2", "d2")) occupancy[square(sq)] = 2
-        for (sq in listOf("c3", "g4", "h4", "f3", "f1", "h1", "h2")) occupancy[square(sq)] = 1
-        val luma = ColorProjection.read(img, geometry, occupancy)
-        val chroma = ColorProjection.read(ColorProjection(0.0, 0.0, 1.0, 153.0, 5.0).apply(img), geometry, occupancy)
-        println("red_2: luma reads $luma; V alone reads $chroma")
-        assertTrue(luma.occupancyMargin < 0.08, "luma was expected to fail on this board: $luma")
-        assertTrue(chroma.colourMargin > 3 * luma.colourMargin, "the V channel should tell white from black far better: $chroma vs $luma")
-        val shift = ColorProjection.choose(img, geometry, occupancy) { println("red_2: $it") }
-        assertTrue(shift == null, "no channel should read the grain as clear of pieces, got $shift")
+        for (sq in listOf("a8", "a7", "b8", "b7", "c8", "c7", "e8", "d5", "f7", "g8", "g7", "h8", "h7", "g5", "c1", "d1")) occupancy[square(sq)] = 2
+        for (sq in listOf("a2", "c2", "f3", "f1", "h2", "h1", "g3", "g4", "h4")) occupancy[square(sq)] = 1
+        val f = BoardLocator.locate(img, geometry.corners, Calibration.default(), occupancy, 0, allowRotation = false).features
+        val m = Calibration.Margins.of(f, occupancy)
+        println("red_2: $m")
+        assertTrue(m.occupancyTexture < 0.0, "texture was expected to fail on this board: $m")
+        val byColour = assertNotNull(m.occupancyChroma)
+        assertTrue(byColour > m.occupancyTexture + 0.3, "the colour distance should separate pieces far better than texture: $m")
+        // most pieces and most empty squares must be on the right side of 0.4 by colour
+        val pieces = (0 until 64).filter { occupancy[it] != 0 }.count { f.chromaFraction!![it] >= 0.4 }
+        val empties = (0 until 64).filter { occupancy[it] == 0 }.count { f.chromaFraction!![it] < 0.4 }
+        println("red_2: by colour, %d of 25 pieces and %d of 39 empty squares read right".format(pieces, empties))
+        assertTrue(pieces >= 20 && empties >= 34, "by colour $pieces of 25 pieces and $empties of 39 empties read right")
+        assertTrue((m.colourChroma ?: 0.0) > m.colourLuma, "chroma should tell white from black better than brightness: $m")
+        // no colour shift of the luma channel is needed once the colour cues are in the features
+        println("red_2: shift " + ColorProjection.choose(img, geometry, occupancy))
     }
 
     /**
-     * The plastic roll-up board (club_9): in luma the far rank's pieces do not clear the empty
-     * squares, and a chroma channel does. The tracker learns the starting position through it.
+     * The plastic roll-up board (club_9): by luma texture the far rank's pieces do not clear the
+     * empty squares, by colour distance they do. The tracker learns the starting position, and
+     * the calibration reads occupancy from colour on at least one shade.
      */
     @Test
-    fun rollUpBoardLearnsThroughAColourShift() {
+    fun rollUpBoardLearnsByColour() {
         val img = TestImages.load(javaClass.getResourceAsStream("/boards/club_9.jpg")!!)
         val tracker = com.chesscoach.core.vision.LiveTracker(framesToConfirm = 3, framesToLearn = 3)
         val statuses = (1..3).map { tracker.process(img).status }
         assertTrue(statuses.last() == com.chesscoach.core.vision.LiveTracker.Status.LEARNED, "statuses $statuses")
-        assertNotNull(tracker.projection, "a colour shift was expected for the roll-up board")
-        println("club_9: learned through ${tracker.projection}")
+        val cal = assertNotNull(tracker.calibration)
+        println("club_9: " + cal.notes.joinToString(" | ") + "; shift ${tracker.projection}")
+        assertTrue(cal.occFromChroma.any(), "occupancy was expected to be read from colour on the roll-up board: ${cal.notes}")
     }
 
     @Test

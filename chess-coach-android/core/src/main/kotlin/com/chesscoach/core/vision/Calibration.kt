@@ -12,8 +12,20 @@ data class SquareObservation(val occupied: Double, val white: Double, val occFra
     val unsure: Boolean get() = occupied in 0.3..0.7 || (occupied >= 0.5 && white in 0.3..0.7)
 }
 
-/** Per-square features that do not depend on a fixed camera: see [SquareFeatures.extract]. */
-class SquareFeatures(val occFraction: DoubleArray, val colourScore: DoubleArray) {
+/**
+ * Per-square features that do not depend on a fixed camera: see [SquareFeatures.extract].
+ * [occFraction] and [colourScore] come from luma (texture and brightness); [chromaFraction],
+ * [chromaDu] and [chromaDv] from the colour planes when the frame carries them, else null.
+ */
+class SquareFeatures(
+    val occFraction: DoubleArray,
+    val colourScore: DoubleArray,
+    val chromaFraction: DoubleArray? = null,
+    val chromaDu: DoubleArray? = null,
+    val chromaDv: DoubleArray? = null,
+) {
+    val hasChroma: Boolean get() = chromaFraction != null
+
     companion object {
         /**
          * Builds, for each square shade, an "empty square" template as the per-pixel median over
@@ -21,7 +33,14 @@ class SquareFeatures(val occFraction: DoubleArray, val colourScore: DoubleArray)
          * them at any pixel), then measures how much of each square differs from its template and
          * whether the differing pixels are brighter or darker than the board.
          */
-        fun extract(patches: Array<IntArray>, gradients: Array<IntArray>? = null): SquareFeatures {
+        fun extract(
+            patches: Array<IntArray>,
+            gradients: Array<IntArray>? = null,
+            uPatches: Array<IntArray>? = null,
+            vPatches: Array<IntArray>? = null,
+            /** The position the board is believed to hold (0 empty, else a piece), when known. */
+            expectedOccupancy: IntArray? = null,
+        ): SquareFeatures {
             val n = patches[0].size
             val templates = Array(2) { shade ->
                 val squares = (0 until 64).filter { (if (Square.isLight(it)) 1 else 0) == shade }
@@ -77,7 +96,111 @@ class SquareFeatures(val occFraction: DoubleArray, val colourScore: DoubleArray)
                 }
                 col[sq] = (lum - toneDark) / toneDiff - 0.5
             }
-            return SquareFeatures(occ, col)
+            if (uPatches == null || vPatches == null) return SquareFeatures(occ, col)
+            return withChroma(occ, col, uPatches, vPatches, expectedOccupancy)
+        }
+
+        /**
+         * The same idea in colour: an "empty square" chroma template per shade (per-pixel median
+         * of U and V over the 32 squares of that shade), the distance of every pixel from it,
+         * and the fraction of a square's pixels further away than the board's own chroma noise
+         * allows. Wood grain is a brightness pattern of one hue, so it stays close to the template
+         * in chroma while a piece of another hue does not. The mean chroma offset of the pixels
+         * that differ says which way the piece's colour lies, for telling white from black.
+         */
+        private fun withChroma(occ: DoubleArray, col: DoubleArray, uPatches: Array<IntArray>, vPatches: Array<IntArray>, expected: IntArray?): SquareFeatures {
+            val n = uPatches[0].size
+            val templates = Array(2) { shade ->
+                val squares = (0 until 64).filter { (if (Square.isLight(it)) 1 else 0) == shade }
+                val tmp = IntArray(squares.size)
+                val tu = IntArray(n) { p -> for ((k, sq) in squares.withIndex()) tmp[k] = uPatches[sq][p]; tmp.sort(); (tmp[tmp.size / 2 - 1] + tmp[tmp.size / 2]) / 2 }
+                val tv = IntArray(n) { p -> for ((k, sq) in squares.withIndex()) tmp[k] = vPatches[sq][p]; tmp.sort(); (tmp[tmp.size / 2 - 1] + tmp[tmp.size / 2]) / 2 }
+                tu to tv
+            }
+            // The light's tint drifts across the board (a lamp on one side, a window on the
+            // other), by more than a piece differs from its square on a hard board. Each square's
+            // median offset from the template is fitted, per shade, by a plane over file and rank
+            // through the squares believed empty (pieces stand in rows, which a fit over every
+            // square would take for a gradient), and that fitted tint is the square's own reference.
+            val medU = DoubleArray(64); val medV = DoubleArray(64)
+            for (sq in 0 until 64) {
+                val (tu, tv) = templates[if (Square.isLight(sq)) 1 else 0]
+                medU[sq] = median(IntArray(n) { p -> uPatches[sq][p] - tu[p] })
+                medV[sq] = median(IntArray(n) { p -> vPatches[sq][p] - tv[p] })
+            }
+            val tintU = fitPlanes(medU, expected); val tintV = fitPlanes(medV, expected)
+            // distances of every pixel of every square from its shade's template, tint removed
+            val dist = Array(64) { sq ->
+                val (tu, tv) = templates[if (Square.isLight(sq)) 1 else 0]
+                DoubleArray(n) { p -> val du = uPatches[sq][p] - tu[p] - tintU[sq]; val dv = vPatches[sq][p] - tv[p] - tintV[sq]; kotlin.math.sqrt(du * du + dv * dv) }
+            }
+            // The board's own chroma noise per shade: the median distance over all its pixels
+            // (pieces cover less than half of them). A piece is a pixel well beyond that.
+            val tau = DoubleArray(2) { shade ->
+                val all = (0 until 64).filter { (if (Square.isLight(it)) 1 else 0) == shade }.flatMap { dist[it].asList() }.sorted()
+                maxOf(2.0 * all[all.size / 2], 5.0)
+            }
+            val fraction = DoubleArray(64)
+            val du = DoubleArray(64)
+            val dv = DoubleArray(64)
+            for (sq in 0 until 64) {
+                val shade = if (Square.isLight(sq)) 1 else 0
+                val (tu, tv) = templates[shade]
+                var changed = 0
+                var su = 0.0; var sv = 0.0
+                for (p in 0 until n) {
+                    if (dist[sq][p] > tau[shade]) { changed++; su += uPatches[sq][p] - tu[p] - tintU[sq]; sv += vPatches[sq][p] - tv[p] - tintV[sq] }
+                }
+                fraction[sq] = changed.toDouble() / n
+                if (changed >= n / 20) { du[sq] = su / changed; dv[sq] = sv / changed } else {
+                    // nothing differs: the mean offset of the whole window, near zero
+                    for (p in 0 until n) { su += uPatches[sq][p] - tu[p] - tintU[sq]; sv += vPatches[sq][p] - tv[p] - tintV[sq] }
+                    du[sq] = su / n; dv[sq] = sv / n
+                }
+            }
+            return SquareFeatures(occ, col, fraction, du, dv)
+        }
+
+        /**
+         * Fits, per shade, a plane a + b*file + c*rank to the 32 values of that shade by least
+         * squares, twice: the second pass leaves out the squares whose residual exceeds twice
+         * the median residual (the squares with pieces). Returns the fitted value per square.
+         */
+        private fun fitPlanes(values: DoubleArray, expected: IntArray?): DoubleArray {
+            val out = DoubleArray(64)
+            for (shade in 0..1) {
+                val all = (0 until 64).filter { (if (Square.isLight(it)) 1 else 0) == shade }
+                val known = if (expected != null) all.filter { expected[it] == 0 } else emptyList()
+                var squares = if (known.size >= 6) known else all
+                var coef = plane(squares, values)
+                val residual = DoubleArray(64) { sq -> kotlin.math.abs(values[sq] - (coef[0] + coef[1] * Square.file(sq) + coef[2] * Square.rank(sq))) }
+                val limit = maxOf(2.0 * median(squares.map { residual[it] }.toDoubleArray()), 2.0)
+                val inliers = squares.filter { residual[it] <= limit }
+                if (inliers.size >= 8) { squares = inliers; coef = plane(squares, values) }
+                for (sq in all) out[sq] = coef[0] + coef[1] * Square.file(sq) + coef[2] * Square.rank(sq)
+            }
+            return out
+        }
+
+        /** Least-squares plane a + b*file + c*rank through the given squares' values. */
+        private fun plane(squares: List<Int>, values: DoubleArray): DoubleArray {
+            // normal equations for 3 unknowns
+            val m = Array(3) { DoubleArray(4) }
+            for (sq in squares) {
+                val x = doubleArrayOf(1.0, Square.file(sq).toDouble(), Square.rank(sq).toDouble())
+                for (i in 0..2) { for (j in 0..2) m[i][j] += x[i] * x[j]; m[i][3] += x[i] * values[sq] }
+            }
+            for (i in 0..2) {
+                var pivot = i
+                for (r in i + 1..2) if (kotlin.math.abs(m[r][i]) > kotlin.math.abs(m[pivot][i])) pivot = r
+                val t = m[i]; m[i] = m[pivot]; m[pivot] = t
+                if (kotlin.math.abs(m[i][i]) < 1e-9) return doubleArrayOf(values.filterIndexed { k, _ -> k in squares }.average(), 0.0, 0.0)
+                for (r in 0..2) if (r != i) {
+                    val f = m[r][i] / m[i][i]
+                    for (c in i..3) m[r][c] -= f * m[i][c]
+                }
+            }
+            return DoubleArray(3) { m[it][3] / m[it][it] }
         }
 
         private fun median(a: IntArray): Double {
@@ -93,8 +216,12 @@ class SquareFeatures(val occFraction: DoubleArray, val colourScore: DoubleArray)
 }
 
 /**
- * Decision thresholds on [SquareFeatures], per square shade (index 0 = dark, 1 = light).
- * [default] works for typical boards; [learn] tunes them from a photo of the starting position.
+ * Decision thresholds on [SquareFeatures], per square shade (index 0 = dark, 1 = light), and
+ * which cue each decision is read from: occupancy from luma texture or from the colour distance
+ * to the empty squares, piece colour from brightness or from the chroma offset along the
+ * direction that separates the two sets. [default] reads luma only and works for typical boards;
+ * [learn] tunes the thresholds from a photo of the starting position and picks, per shade, the
+ * cue that separates better there.
  */
 class Calibration(
     val occThreshold: DoubleArray,
@@ -102,64 +229,142 @@ class Calibration(
     val colourThreshold: DoubleArray,
     val colourScale: DoubleArray,
     val notes: List<String>,
+    val occFromChroma: BooleanArray = BooleanArray(2),
+    val colourFromChroma: BooleanArray = BooleanArray(2),
+    /** Unit direction in (du, dv) from the black pieces towards the white ones. */
+    val chromaDir: DoubleArray = doubleArrayOf(0.0, 0.0),
 ) {
     val isUsable: Boolean get() = notes.none { it.startsWith("FAIL") }
 
     fun observe(f: SquareFeatures): Array<SquareObservation> = Array(64) { sq ->
         val shade = if (Square.isLight(sq)) 1 else 0
-        val occ = sigmoid((f.occFraction[sq] - occThreshold[shade]) / occScale[shade])
-        val white = sigmoid((f.colourScore[sq] - colourThreshold[shade]) / colourScale[shade])
-        SquareObservation(occ, white, f.occFraction[sq], f.colourScore[sq])
+        val occFeature = if (occFromChroma[shade] && f.chromaFraction != null) f.chromaFraction[sq] else f.occFraction[sq]
+        val colFeature = if (colourFromChroma[shade] && f.chromaDu != null) chromaColour(f, sq, chromaDir) else f.colourScore[sq]
+        val occ = sigmoid((occFeature - occThreshold[shade]) / occScale[shade])
+        val white = sigmoid((colFeature - colourThreshold[shade]) / colourScale[shade])
+        SquareObservation(occ, white, occFeature, colFeature)
     }
 
     private fun sigmoid(z: Double) = 1.0 / (1.0 + exp(-z))
 
+    /**
+     * How clearly a set of features separates the pieces of a known position from the empty
+     * squares (the fourth-weakest piece against the third-strongest empty square, as the tracker
+     * demands of a starting position) and white pieces from black, by each cue and by the better
+     * one. Used while learning, for the view quality, and for choosing a colour channel.
+     */
+    class Margins(
+        val occupancyTexture: Double,
+        val occupancyChroma: Double?,
+        val colourLuma: Double,
+        val colourChroma: Double?,
+        val chromaDir: DoubleArray,
+    ) {
+        val occupancy: Double get() = maxOf(occupancyTexture, occupancyChroma ?: Double.NEGATIVE_INFINITY)
+        val colour: Double get() = maxOf(colourLuma, colourChroma ?: Double.NEGATIVE_INFINITY)
+
+        override fun toString() = "occupancy %.3f (texture %.3f, colour %s), piece colour %.2f (brightness %.2f, chroma %s)".format(
+            occupancy, occupancyTexture, occupancyChroma?.let { "%.3f".format(it) } ?: "-", colour, colourLuma, colourChroma?.let { "%.2f".format(it) } ?: "-",
+        )
+
+        companion object {
+            fun of(f: SquareFeatures, occupancy: IntArray): Margins {
+                fun occMargin(values: DoubleArray): Double {
+                    val empties = (0 until 64).filter { occupancy[it] == 0 }.map { values[it] }.sorted()
+                    val pieces = (0 until 64).filter { occupancy[it] != 0 }.map { values[it] }.sorted()
+                    return if (pieces.size >= 4 && empties.size >= 3) pieces[3] - empties[empties.size - 3] else 0.0
+                }
+                val whites = (0 until 64).filter { occupancy[it] == 1 }
+                val blacks = (0 until 64).filter { occupancy[it] == 2 }
+                val colourLuma = if (whites.isNotEmpty() && blacks.isNotEmpty()) whites.map { f.colourScore[it] }.average() - blacks.map { f.colourScore[it] }.average() else 0.0
+                var dir = doubleArrayOf(0.0, 0.0)
+                var colourChroma: Double? = null
+                if (f.chromaDu != null && f.chromaDv != null && whites.isNotEmpty() && blacks.isNotEmpty()) {
+                    val dx = whites.map { f.chromaDu[it] }.average() - blacks.map { f.chromaDu[it] }.average()
+                    val dy = whites.map { f.chromaDv[it] }.average() - blacks.map { f.chromaDv[it] }.average()
+                    val len = kotlin.math.hypot(dx, dy)
+                    if (len > 1e-6) {
+                        dir = doubleArrayOf(dx / len, dy / len)
+                        colourChroma = whites.map { chromaColour(f, it, dir) }.average() - blacks.map { chromaColour(f, it, dir) }.average()
+                    }
+                }
+                return Margins(occMargin(f.occFraction), f.chromaFraction?.let { occMargin(it) }, colourLuma, colourChroma, dir)
+            }
+        }
+    }
+
     companion object {
+        /** Chroma units per unit of piece-colour score: an offset of 20 in (U, V) reads as 1.0. */
+        private const val CHROMA_UNIT = 20.0
+
+        /** The chroma offset of a square's differing pixels along [dir], in the same units as the brightness colour score. */
+        fun chromaColour(f: SquareFeatures, sq: Int, dir: DoubleArray): Double =
+            ((f.chromaDu!![sq]) * dir[0] + (f.chromaDv!![sq]) * dir[1]) / CHROMA_UNIT
+
         fun default(): Calibration = Calibration(
             doubleArrayOf(0.22, 0.22), doubleArrayOf(0.07, 0.07),
             doubleArrayOf(-0.35, -0.35), doubleArrayOf(0.25, 0.25),
             listOf("default thresholds"),
         )
 
-        /** Learns thresholds from the features of a photo showing all 32 pieces on their starting squares. */
+        /** Threshold, scale and a note for one cue on one shade, plus how well it separates (gap over spread). */
+        private class Fit(val threshold: Double, val scale: Double, val note: String, val separation: Double, val ok: Boolean)
+
+        private fun fit(empty: List<Double>, occupied: List<Double>, what: String, shadeName: String, warnGap: Double, minScale: Double): Fit {
+            val maxEmpty = empty.max()
+            val minOcc = occupied.min()
+            val meanEmpty = empty.average()
+            val meanOcc = occupied.average()
+            val spread = kotlin.math.sqrt((empty.sumOf { (it - meanEmpty) * (it - meanEmpty) } + occupied.sumOf { (it - meanOcc) * (it - meanOcc) }) / (empty.size + occupied.size)) + 0.01
+            val separation = (meanOcc - meanEmpty) / spread
+            return if (minOcc > maxEmpty) {
+                Fit((maxEmpty + minOcc) / 2, maxOf((minOcc - maxEmpty) / 4, minScale), "OK $what on $shadeName squares: %.2f vs %.2f".format(maxEmpty, minOcc), separation, true)
+            } else {
+                val tag = if (meanOcc > meanEmpty + warnGap) "WARN" else "FAIL"
+                Fit((meanEmpty + meanOcc) / 2, maxOf((meanOcc - meanEmpty) / 4, minScale), "$tag $what on $shadeName squares overlaps: %.2f vs %.2f".format(maxEmpty, minOcc), separation, false)
+            }
+        }
+
+        /**
+         * Learns thresholds from the features of a photo showing all 32 pieces on their starting
+         * squares. Per shade, occupancy is read from luma texture and piece colour from brightness,
+         * the cues proven on wooden and plastic sets over whole games; the colour cues (distance
+         * from the empty squares' chroma, chroma offset between the sets) take over only where the
+         * proven cue fails to separate the two groups on the learning frame and the colour cue
+         * separates them better. A cue that merely looked a little better on the learning frame
+         * applied a wrong move later in a game, so the switch is not made on a small margin.
+         */
         fun learn(f: SquareFeatures): Calibration {
             val notes = ArrayList<String>()
             val occThreshold = DoubleArray(2)
             val occScale = DoubleArray(2)
             val colourThreshold = DoubleArray(2)
             val colourScale = DoubleArray(2)
+            val occFromChroma = BooleanArray(2)
+            val colourFromChroma = BooleanArray(2)
+            val start = IntArray(64) { sq -> when (Square.rank(sq)) { 0, 1 -> 1; 6, 7 -> 2; else -> 0 } }
+            val margins = Margins.of(f, start)
             for (shade in 0..1) {
                 val shadeName = if (shade == 0) "dark" else "light"
                 val squares = (0 until 64).filter { (if (Square.isLight(it)) 1 else 0) == shade }
-                val empty = squares.filter { Square.rank(it) in 2..5 }.map { f.occFraction[it] }
-                val occupied = squares.filter { Square.rank(it) !in 2..5 }.map { f.occFraction[it] }
-                val maxEmpty = empty.max()
-                val minOcc = occupied.min()
-                if (minOcc > maxEmpty) {
-                    occThreshold[shade] = (maxEmpty + minOcc) / 2
-                    occScale[shade] = maxOf((minOcc - maxEmpty) / 4, 0.02)
-                    notes.add("OK occupancy on $shadeName squares: empty <= %.2f, pieces >= %.2f".format(maxEmpty, minOcc))
-                } else {
-                    val meanEmpty = empty.average()
-                    val meanOcc = occupied.average()
-                    occThreshold[shade] = (meanEmpty + meanOcc) / 2
-                    occScale[shade] = maxOf((meanOcc - meanEmpty) / 4, 0.02)
-                    val tag = if (meanOcc > meanEmpty + 0.15) "WARN" else "FAIL"
-                    notes.add("$tag occupancy on $shadeName squares overlaps: empty up to %.2f, pieces from %.2f".format(maxEmpty, minOcc))
+                val emptySq = squares.filter { Square.rank(it) in 2..5 }
+                val pieceSq = squares.filter { Square.rank(it) !in 2..5 }
+                var occ = fit(emptySq.map { f.occFraction[it] }, pieceSq.map { f.occFraction[it] }, "occupancy (texture)", shadeName, 0.15, 0.02)
+                f.chromaFraction?.let { c ->
+                    val byColour = fit(emptySq.map { c[it] }, pieceSq.map { c[it] }, "occupancy (colour)", shadeName, 0.15, 0.02)
+                    if (!occ.ok && byColour.separation > occ.separation) { occ = byColour; occFromChroma[shade] = true }
                 }
-                val whites = squares.filter { Square.rank(it) <= 1 }.map { f.colourScore[it] }
-                val blacks = squares.filter { Square.rank(it) >= 6 }.map { f.colourScore[it] }
-                val meanWhite = whites.average()
-                val meanBlack = blacks.average()
-                colourThreshold[shade] = (meanWhite + meanBlack) / 2
-                colourScale[shade] = maxOf((meanWhite - meanBlack) / 4, 0.08)
-                when {
-                    whites.min() > blacks.max() -> notes.add("OK piece colour on $shadeName squares: white >= %.2f, black <= %.2f".format(whites.min(), blacks.max()))
-                    meanWhite > meanBlack + 0.2 -> notes.add("WARN piece colour on $shadeName squares overlaps slightly")
-                    else -> notes.add("FAIL cannot tell white from black pieces on $shadeName squares (white %.2f vs black %.2f)".format(meanWhite, meanBlack))
+                occThreshold[shade] = occ.threshold; occScale[shade] = occ.scale; notes.add(occ.note)
+                val whiteSq = squares.filter { Square.rank(it) <= 1 }
+                val blackSq = squares.filter { Square.rank(it) >= 6 }
+                var col = fit(blackSq.map { f.colourScore[it] }, whiteSq.map { f.colourScore[it] }, "piece colour (brightness)", shadeName, 0.2, 0.08)
+                if (margins.colourChroma != null) {
+                    val byChroma = fit(blackSq.map { chromaColour(f, it, margins.chromaDir) }, whiteSq.map { chromaColour(f, it, margins.chromaDir) }, "piece colour (chroma)", shadeName, 0.2, 0.08)
+                    if (!col.ok && byChroma.separation > col.separation) { col = byChroma; colourFromChroma[shade] = true }
                 }
+                colourThreshold[shade] = col.threshold; colourScale[shade] = col.scale; notes.add(col.note)
             }
-            return Calibration(occThreshold, occScale, colourThreshold, colourScale, notes)
+            return Calibration(occThreshold, occScale, colourThreshold, colourScale, notes, occFromChroma, colourFromChroma, margins.chromaDir)
         }
     }
 }

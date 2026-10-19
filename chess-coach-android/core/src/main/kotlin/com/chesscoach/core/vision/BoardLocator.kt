@@ -34,7 +34,12 @@ object BoardLocator {
                 return@mapNotNull null
             }
             val patches = SquareSampler.sample(image, g)
-            val features = SquareFeatures.extract(patches, SquareSampler.sampleGradient(image, g))
+            val colour = image as? YuvImage
+            val features = SquareFeatures.extract(
+                patches, SquareSampler.sampleGradient(image, g),
+                colour?.let { SquareSampler.sample(it.uView, g) }, colour?.let { SquareSampler.sample(it.vView, g) },
+                expectedOccupancy,
+            )
             val obs = calibration.observe(features)
             // a1 is dark: squares with even file+rank must be the darker group.
             var dark = 0.0

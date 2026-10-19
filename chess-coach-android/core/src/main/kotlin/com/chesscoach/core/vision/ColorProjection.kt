@@ -20,6 +20,20 @@ class YuvImage(override val width: Int, override val height: Int, val y: IntArra
     override fun luma(x: Int, y: Int): Int = this.y[y * width + x]
     fun u(x: Int, y: Int): Int = u[(y shr 1) * chromaWidth + (x shr 1)]
     fun v(x: Int, y: Int): Int = v[(y shr 1) * chromaWidth + (x shr 1)]
+
+    /** The U plane addressed in full-size coordinates, for the square sampler. */
+    val uView: LumaImage = object : LumaImage {
+        override val width get() = this@YuvImage.width
+        override val height get() = this@YuvImage.height
+        override fun luma(x: Int, y: Int) = u(x, y)
+    }
+
+    /** The V plane addressed in full-size coordinates, for the square sampler. */
+    val vView: LumaImage = object : LumaImage {
+        override val width get() = this@YuvImage.width
+        override val height get() = this@YuvImage.height
+        override fun luma(x: Int, y: Int) = v(x, y)
+    }
 }
 
 /**
@@ -32,7 +46,8 @@ class YuvImage(override val width: Int, override val height: Int, val y: IntArra
 class ColorProjection(val wy: Double, val wu: Double, val wv: Double, val centre: Double, val gain: Double) {
     fun value(y: Int, u: Int, v: Int): Int = (128 + gain * (wy * y + wu * u + wv * v - centre)).toInt().coerceIn(0, 255)
 
-    fun apply(image: YuvImage): ArrayLumaImage {
+    /** The frame with its luma plane replaced by the shifted channel; the chroma stays for the colour features. */
+    fun apply(image: YuvImage): YuvImage {
         val w = image.width
         val out = IntArray(w * image.height)
         for (yy in 0 until image.height) {
@@ -43,7 +58,7 @@ class ColorProjection(val wy: Double, val wu: Double, val wv: Double, val centre
                 out[row + x] = value(image.y[row + x], image.u[ci], image.v[ci])
             }
         }
-        return ArrayLumaImage(w, image.height, out)
+        return YuvImage(w, image.height, out, image.u, image.v)
     }
 
     override fun toString() = "%.0f Y %+.0f U %+.0f V, gain %.2f".format(wy, wu, wv, gain)
@@ -83,14 +98,8 @@ class ColorProjection(val wy: Double, val wu: Double, val wv: Double, val centre
          */
         fun read(image: LumaImage, geometry: BoardGeometry, occupancy: IntArray): Reading {
             val located = BoardLocator.locate(image, geometry.corners, Calibration.default(), occupancy, 0, allowRotation = false)
-            val f = located.features
-            val empties = (0 until 64).filter { occupancy[it] == 0 }.map { f.occFraction[it] }.sorted()
-            val pieces = (0 until 64).filter { occupancy[it] != 0 }.map { f.occFraction[it] }.sorted()
-            val occ = if (pieces.size >= 4 && empties.size >= 3) pieces[3] - empties[empties.size - 3] else 0.0
-            val whites = (0 until 64).filter { occupancy[it] == 1 }.map { f.colourScore[it] }
-            val blacks = (0 until 64).filter { occupancy[it] == 2 }.map { f.colourScore[it] }
-            val colour = if (whites.isNotEmpty() && blacks.isNotEmpty()) whites.average() - blacks.average() else 0.0
-            return Reading(occ, colour)
+            val m = Calibration.Margins.of(located.features, occupancy)
+            return Reading(m.occupancy, m.colour)
         }
 
         /**

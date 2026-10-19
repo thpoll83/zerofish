@@ -288,22 +288,17 @@ class LiveTracker(
         }
         val f = located.features
         // Does this frame look like the starting position? Occupied ranks must clearly differ from
-        // empty ones and white pieces must be brighter than black ones, before any thresholds exist.
-        val empties = (0 until 64).filter { Square.rank(it) in 2..5 }.map { f.occFraction[it] }.sorted()
-        val pieces = (0 until 64).filter { Square.rank(it) !in 2..5 }.map { f.occFraction[it] }.sorted()
-        // The weakest pieces (black on dark squares at the far rank) read low on real boards, so
-        // allow three weak pieces and two phantom pieces: the fourth-weakest piece must still read
-        // clearly above the third-strongest empty square. White must be brighter than black.
-        val emptyHigh = empties[empties.size - 3]
-        val pieceLow = pieces[3]
-        val whites = (0 until 64).filter { Square.rank(it) <= 1 }.map { f.colourScore[it] }.average()
-        val blacks = (0 until 64).filter { Square.rank(it) >= 6 }.map { f.colourScore[it] }.average()
-        val looksLikeStart = pieceLow > emptyHigh + 0.08 && whites > blacks + 0.2
+        // empty ones and white pieces from black ones, before any thresholds exist, by texture or
+        // by colour. The weakest pieces (black on dark squares at the far rank) read low on real
+        // boards, so allow three weak pieces and two phantom pieces: the fourth-weakest piece must
+        // still read clearly above the third-strongest empty square.
+        val margins = Calibration.Margins.of(f, start)
+        val looksLikeStart = margins.occupancy > 0.08 && margins.colour > 0.2
         val q = quality(
             image, grid, located.geometry,
             listOf(
-                ramp(pieceLow - emptyHigh, 0.0, 0.25) to "Pieces hard to tell from empty squares: more light from above",
-                ramp(whites - blacks, 0.1, 0.6) to "White and black pieces look alike: more light, or turn the torch on",
+                ramp(margins.occupancy, 0.0, 0.25) to "Pieces hard to tell from empty squares: more light from above",
+                ramp(margins.colour, 0.1, 0.6) to "White and black pieces look alike: more light, or turn the torch on",
             ),
         )
         if (!looksLikeStart && !startConfirmed) {

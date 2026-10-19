@@ -89,10 +89,24 @@ sampler, and keeps luma unless luma fails outright (pieces do not clear the empt
 channel reads them clearly; a channel that merely read a little better on the learning frame
 lost a game on a wooden board under changing light. The chosen channel, normalised so that white
 pieces read brighter than black ones, is then what the pieces are read through for the whole
-game. The red board defeats every channel at telling pieces from empty squares: the wood grain of
-its squares reads as texture, which is the sampler's cue for a piece; its colour channels do
-tell white from black pieces seven times better than luma. That is recorded in a test for a
-later change to the sampler.
+game.
+
+Colour also enters the square features themselves. Besides the luma cues (texture and brightness
+of the pixels that differ from the empty-square template), every square gets a colour distance:
+an empty-square chroma template per shade (per-pixel median of U and V over the 32 squares of
+that shade), the light's tint fitted per shade as a plane over file and rank through the squares
+believed empty (pieces stand in rows, which a fit over every square would take for a gradient),
+and the fraction of the square's pixels further from the tinted template than twice the board's
+own median chroma distance. Wood grain is a brightness pattern of one hue, so it stays near the
+template in chroma while a piece of another hue does not. The mean chroma offset of the differing
+pixels, projected on the direction from the black set to the white set, tells white from black.
+The calibration learned from the starting position reads occupancy from luma texture and piece
+colour from brightness, the cues proven over whole games on wooden and plastic sets, and lets the
+colour cues take over per shade only where the proven cue fails to separate the two groups on the
+learning frame; a cue that merely looked a little better there applied a wrong move later in a
+game. On the red folding board, by texture no cut separates pieces from empty squares, by colour
+23 of 25 pieces and 36 of 39 empty squares read right from a low angle mid-game; the plastic
+roll-up board reads its light squares by colour. The replay log names the cues chosen.
 
 A frame counts as a hand or a shadow over the board, or a misread grid ("Hold still"), when it
 reads much worse than the board usually does: more unsure squares than usual by ten, or a best
@@ -196,8 +210,9 @@ app/    Android: CameraX live view with overlay, Compose UI (digital board, scre
   confidence. Unclear moves are offered for a tap, and any move can be typed.
 - The scanner was tuned on synthetic scenes and 22 real photos from one public set; other
   boards may need threshold adjustments in `core/.../vision/Calibration.kt` or `GridDetector.kt`.
-  Black pieces on dark squares seen from a low angle give the weakest readings, and a board
-  whose squares carry a strong wood-grain print reads its grain as pieces.
+  Black pieces on dark squares seen from a low angle give the weakest readings; a board whose
+  squares carry a strong wood-grain print is read by colour instead of texture, which needs
+  pieces of a different hue than the squares.
 - Promotions are assumed to be to a queen; type the move for an underpromotion.
 - Threefold repetition is not detected.
 - A fatal engine error (for example a missing network file) terminates the process, as Stockfish
