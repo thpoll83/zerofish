@@ -306,6 +306,11 @@ class VisionTest {
                     println("SURVEY-REGION ${file.name} ${region.saddles} saddles in (${region.x0},${region.y0}) ${region.width}x${region.height}")
                 }
             }
+            if (System.getenv("CHESS_SURVEY_POINTS") != null) {
+                for (p in com.chesscoach.core.vision.BoardFinder.saddlePoints(img)) {
+                    extra += ImageLine(p.x - 5, p.y, p.x + 5, p.y, 2); extra += ImageLine(p.x, p.y - 5, p.x, p.y + 5, 2)
+                }
+            }
             writeOverlay(img, grid?.corners, file.nameWithoutExtension, (grid?.lines ?: emptyList()) + extra)
             println("SURVEY ${file.name} ${img.width}x${img.height} ${ms}ms: " + (grid?.let { "${it.notes} corners=" + it.corners.joinToString { c -> "(%.0f,%.0f)".format(c.x, c.y) } } ?: "NOT FOUND"))
             if (grid != null && System.getenv("CHESS_SURVEY_START") != null) {

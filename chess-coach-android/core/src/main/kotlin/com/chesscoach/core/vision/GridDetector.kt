@@ -72,9 +72,16 @@ object GridDetector {
         var found = first != null
         // A confident first reading is kept as it is; the second look is for weak ones.
         if (first != null && first.checkerScore >= 0.65 && first.cornerSupport >= 0.3) return first
+        fun quality(g: DetectedGrid) = 28 * g.checkerScore + 20 * g.cornerSupport
         for (round in 0 until 4) {
             val again = rectifyAndRedetect(image, current, log) ?: break
             log?.invoke("rectified round $round: ${again.notes} corners ${again.corners.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }}")
+            // A further look that reads worse than the one before has walked off the board (a
+            // square sideways, typically): the earlier reading stays.
+            if (found && quality(again) < quality(current) - 1.0) {
+                log?.invoke("rectified round $round reads worse than the round before: kept the earlier reading")
+                break
+            }
             current = again
             found = true
             if (again.moved < 0.25) break // converged

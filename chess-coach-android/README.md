@@ -22,13 +22,18 @@ suggestion for your side. Undo, typing a move and pausing the camera are there f
 
 When the board is small in the picture (a tournament photo from across the table), the detector
 first looks for places where many x-corners sit close together, which is what the corners between
-four squares look like, and runs again on each such region at full resolution. If several boards
-are found, the one nearest the centre of the picture is used. A weak reading, or the best rejected
+four squares look like, and runs again on each such region at full resolution. A board small in
+the frame and seen flat across a table has rows of squares only a few pixels tall at the usual
+working size of 640 px, so when nothing is found the search is repeated at 1280 px, and corners
+too sparse to fill cells are grouped by distance instead (a point must have three neighbours
+within two cells to pass the grouping on, so stray corners on hands and chairs cannot bridge
+groups). If several boards are found, the one nearest the centre of the picture is used. A weak reading, or the best rejected
 candidate when there is none, is then warped to a square picture with the board seen from above
 (the far ranks of a board seen flat across the table become as large as the near ones), where a
 grid of nine equally spaced lines per axis is fitted to the gradient profiles and the x-corners,
 snapped to the picture's lines and corners, and judged by alternation and corner support; this
-repeats until the reading stops moving. That is how the near edge-on tournament photos are read.
+repeats until the reading stops moving, and a round that reads worse than the one before (the
+grid has walked a square sideways) is dropped. That is how the near edge-on tournament photos are read.
 
 Camera settings on the live screen: zoom from the phone's minimum (below 1x selects the wide-angle
 lens on phones that expose it through zoom), a lens picker when the phone lists several back
@@ -117,9 +122,9 @@ To build with ARMv8.2 dot-product instructions (about 30% faster search on 2018+
 core/   pure Kotlin: chess rules (move generation, SAN, FEN), grid detector, homography,
         square sampling and classification, move inference, UCI parsing. Unit-tested with
         perft, a synthetic renderer of boards with pieces seen from changing viewpoints, and
-        32 photographs of real boards (core/src/test/resources/boards, see NOTICE.md there),
-        five of them of the owner's own board from every side and five crops of tournament
-        boards mid-game seen across the table: the grid must be found within 2.5% of the
+        37 photographs of real boards (core/src/test/resources/boards, see NOTICE.md there),
+        five of them of the owner's own board from every side and ten crops of club, tournament
+        and event boards, most mid-game and seen across the table: the grid must be found within 2.5% of the
         labelled corners on every one of them, the starting position must be read with the right orientation from six, a wooden
         middlegame from one more, and detection must stay under 2 s per photo. A 30 s passage of a real game video (124 frames at 360x640,
         core/src/test/resources/video) is replayed through the live tracker with a simulated

@@ -20,3 +20,10 @@ a public tournament, cut down to the board and the table around it so that no pe
 recognisable. They show vinyl tournament boards with plastic pieces (club_1, club_2) and a wooden
 tournament board with a dark printed frame (club_3 to club_5), all in the middle of a game, from
 across the table at a low angle.
+
+`club_6` to `club_8` are crops of photographs taken at a public event in a shopping centre: a
+wooden tournament board with wooden pieces on a dark table, seen from the side at a low angle,
+with the board small in the original frame. `club_9` is a plastic roll-up board with the starting
+position, seen flat across a table in a tournament hall. `club_10` is a wooden board on the floor
+seen from above. All are cut down to the board and the table around it so that no person is
+recognisable.
