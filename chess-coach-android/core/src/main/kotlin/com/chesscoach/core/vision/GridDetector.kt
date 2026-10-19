@@ -23,6 +23,8 @@ class DetectedGrid(
     val notes: String,
     /** Fraction of the 49 inner corners that sit on a saddle point of the image. */
     val cornerSupport: Double = 0.0,
+    /** After a rectified look: how far, in squares, this reading moved from the one it started from. */
+    val moved: Double = 0.0,
 )
 
 /**
@@ -50,27 +52,62 @@ object GridDetector {
         log: ((String) -> Unit)? = null,
         debugOut: MutableList<ImageLine>? = null,
     ): DetectedGrid? {
-        detectFrame(image, debugLines, log, debugOut)?.let { return it }
-        // Seen flat across a table, the board's short converging lines hide below a long table
-        // edge in the Hough transform: look again with a lower peak threshold.
-        detectFrame(image, debugLines, log, null, peakFraction = 0.05f)?.let { return it }
+        val seeds = ArrayList<DetectedGrid>()
+        val seedOut = arrayOfNulls<DetectedGrid>(1)
+        var first = detectFrame(image, debugLines, log, debugOut, seedOut = seedOut)
+        seedOut[0]?.let { seeds.add(it) }
+        if (first == null) {
+            // Seen flat across a table, the board's short converging lines hide below a long table
+            // edge in the Hough transform: look again with a lower peak threshold.
+            first = detectFrame(image, debugLines, log, null, peakFraction = 0.05f, seedOut = seedOut)
+            seedOut[0]?.let { seeds.add(it) }
+        }
+        if (first == null) first = detectInRegions(image, debugLines, log, seeds)
+        // Rectify and look again: the board as found (even roughly, even a rejected candidate) is
+        // warped to a square picture with a margin, where it is seen from above with every square
+        // the same size, and the detector runs on that picture. The far ranks of a board seen
+        // flat across a table become as large as the near ones, and a grid a square off or at the
+        // wrong spacing still frames the whole board, which is then found properly.
+        var current = first ?: seeds.maxByOrNull { it.cornerSupport + it.checkerScore } ?: return null
+        var found = first != null
+        // A confident first reading is kept as it is; the second look is for weak ones.
+        if (first != null && first.checkerScore >= 0.65 && first.cornerSupport >= 0.3) return first
+        for (round in 0 until 2) {
+            val again = rectifyAndRedetect(image, current, log) ?: break
+            log?.invoke("rectified round $round: ${again.notes} corners ${again.corners.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }}")
+            current = again
+            found = true
+            if (again.moved < 0.25) break // converged
+        }
+        return if (found) current else null
+    }
+
+    private fun detectInRegions(image: LumaImage, debugLines: Boolean, log: ((String) -> Unit)?, seeds: MutableList<DetectedGrid>): DetectedGrid? {
         // A small board in a cluttered room: find where squares are and look only there, which
         // also gives the board the full resolution of the photo. Several places may look like
         // squares (a second board, a checkered bag); the board closest to the centre of the
         // picture wins, as that is the one the user is pointing the camera at.
         val found = ArrayList<DetectedGrid>()
+        val seedOut = arrayOfNulls<DetectedGrid>(1)
         for (region in BoardFinder.proposeAll(image, log)) {
             val crop = CropLumaImage(image, region.x0, region.y0, region.width, region.height)
-            val g = detectFrame(crop, debugLines, log, null) ?: detectFrame(crop, debugLines, log, null, peakFraction = 0.05f) ?: continue
             val dx = region.x0.toDouble()
             val dy = region.y0.toDouble()
+            fun shifted(g: DetectedGrid, note: String) = DetectedGrid(
+                g.corners.map { Pt(it.x + dx, it.y + dy) }, g.lineSupport, g.checkerScore,
+                g.lines.map { ImageLine(it.x1 + dx, it.y1 + dy, it.x2 + dx, it.y2 + dy, it.family) },
+                g.notes + note, g.cornerSupport,
+            )
+            var g = detectFrame(crop, debugLines, log, null, seedOut = seedOut)
+            seedOut[0]?.let { seeds.add(shifted(it, ", in region")) }
+            if (g == null) {
+                g = detectFrame(crop, debugLines, log, null, peakFraction = 0.05f, seedOut = seedOut)
+                seedOut[0]?.let { seeds.add(shifted(it, ", in region")) }
+            }
+            if (g == null) continue
             val corners = g.corners.map { Pt(it.x + dx, it.y + dy) }
             log?.invoke("region (%d,%d) %dx%d: %s, corners %s".format(region.x0, region.y0, region.width, region.height, g.notes, corners.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }))
-            found.add(DetectedGrid(
-                corners, g.lineSupport, g.checkerScore,
-                g.lines.map { ImageLine(it.x1 + dx, it.y1 + dy, it.x2 + dx, it.y2 + dy, it.family) },
-                g.notes + ", in region", g.cornerSupport,
-            ))
+            found.add(shifted(g, ", in region"))
         }
         if (found.isEmpty()) return null
         // Two regions that overlap may yield two readings of the same board: keep the better one.
@@ -84,6 +121,56 @@ object GridDetector {
         return distinct.minByOrNull { val c = centre(it); hypot(c.x - image.width / 2.0, c.y - image.height / 2.0) }
     }
 
+    /** Diagnostics: receives every rectified picture the detector looks at. */
+    var warpSink: ((ArrayLumaImage) -> Unit)? = null
+
+    private const val WARP_SIZE = 800
+    /**
+     * Squares of margin around the board in the rectified picture: two, so that a grid a square
+     * off still has its outside ring inside the picture, where the alternation test can reject it.
+     */
+    private const val WARP_MARGIN = 2.0
+
+    private fun rectifyAndRedetect(image: LumaImage, seed: DetectedGrid, log: ((String) -> Unit)?): DetectedGrid? {
+        val geo = try { BoardGeometry(seed.corners) } catch (e: IllegalArgumentException) { return null }
+        val scale = WARP_SIZE / (8 + 2 * WARP_MARGIN)
+        val data = IntArray(WARP_SIZE * WARP_SIZE)
+        for (v in 0 until WARP_SIZE) for (u in 0 until WARP_SIZE) {
+            val p = geo.toImage(u / scale - WARP_MARGIN, v / scale - WARP_MARGIN)
+            data[v * WARP_SIZE + u] = bilinear(image, p.x, p.y)
+        }
+        val warped = ArrayLumaImage(WARP_SIZE, WARP_SIZE, data)
+        warpSink?.invoke(warped)
+        log?.invoke("rectified view: looking again")
+        val g = detectFrame(warped, false, log, null) ?: detectFrame(warped, false, log, null, peakFraction = 0.05f) ?: return null
+        // The new reading must beat the seed on the same picture, where the seed's board sits at
+        // the expected place; otherwise the seed stands (a wrong new reading is worse than none).
+        val expected = listOf(Pt(0.0, 0.0), Pt(8.0, 0.0), Pt(8.0, 8.0), Pt(0.0, 8.0)).map { Pt((it.x + WARP_MARGIN) * scale, (it.y + WARP_MARGIN) * scale) }
+        val expectedGeo = BoardGeometry(expected)
+        val saddles = BoardFinder.saddlePoints(warped, 300)
+        val seedScore = 28.0 * checkerScore(warped, expectedGeo) + 20.0 * latticeSupport(expectedGeo, saddles)
+        val newScore = 28.0 * g.checkerScore + 20.0 * g.cornerSupport
+        // the seed's homography may mirror the picture, so compare and map back with a fixed winding
+        val foundCorners = orderCorners(g.corners) ?: return null
+        val expectedOrdered = orderCorners(expected) ?: return null
+        val moved = foundCorners.indices.minOf { rot -> foundCorners.indices.maxOf { i -> val a = foundCorners[(i + rot) % 4]; hypot(a.x - expectedOrdered[i].x, a.y - expectedOrdered[i].y) } } / scale
+        log?.invoke("rectified view: found ${g.notes} at ${g.corners.joinToString { "(%.0f,%.0f)".format(it.x, it.y) }}, moved %.2f squares, score %.1f vs seed %.1f".format(moved, newScore, seedScore))
+        if (moved > 0.3 && newScore < seedScore) return null
+        fun back(c: Pt) = geo.toImage(c.x / scale - WARP_MARGIN, c.y / scale - WARP_MARGIN)
+        val backCorners = orderCorners(foundCorners.map { back(it) }) ?: return null
+        return DetectedGrid(backCorners, g.lineSupport, g.checkerScore, seed.lines, g.notes + ", rectified", g.cornerSupport, moved)
+    }
+
+    private fun bilinear(image: LumaImage, x: Double, y: Double): Int {
+        if (x < 0 || y < 0 || x > image.width - 1.0 || y > image.height - 1.0) return 0
+        val x0 = x.toInt(); val y0 = y.toInt()
+        val x1 = min(x0 + 1, image.width - 1); val y1 = min(y0 + 1, image.height - 1)
+        val fx = x - x0; val fy = y - y0
+        val top = image.luma(x0, y0) * (1 - fx) + image.luma(x1, y0) * fx
+        val bottom = image.luma(x0, y1) * (1 - fx) + image.luma(x1, y1) * fx
+        return (top * (1 - fy) + bottom * fy).roundToInt()
+    }
+
     private fun detectFrame(
         image: LumaImage,
         debugLines: Boolean,
@@ -91,7 +178,10 @@ object GridDetector {
         debugOut: MutableList<ImageLine>?,
         /** Hough peaks below this fraction of the strongest peak are ignored. */
         peakFraction: Float = 0.12f,
+        /** Receives the best candidate even when it is rejected, as a seed for another look. */
+        seedOut: Array<DetectedGrid?>? = null,
     ): DetectedGrid? {
+        seedOut?.set(0, null)
         val small = downscale(image)
         val lines = houghLines(small, log, peakFraction) ?: return null
         val saddles by lazy { BoardFinder.saddlePoints(image, 300) }
@@ -200,6 +290,7 @@ object GridDetector {
         }
         val topSupport = finals.maxOf { it.grid.cornerSupport }
         val result = finals.filter { it.grid.cornerSupport >= topSupport - 0.05 }.maxByOrNull { it.total }!!.grid
+        seedOut?.set(0, result)
         if (result.lineSupport < 10) return null
         if (result.checkerScore < 0.45 && !(result.cornerSupport >= 0.5 && result.checkerScore >= 0.2)) return null
         return result

@@ -286,6 +286,13 @@ class VisionTest {
         val dir = System.getenv("CHESS_PHOTO_DIR")?.let { File(it) } ?: return
         for (file in dir.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png") }!!.sortedBy { it.name }) {
             val img = loadLuma(file)
+            var warpIndex = 0
+            GridDetector.warpSink = { w ->
+                val out = java.awt.image.BufferedImage(w.width, w.height, java.awt.image.BufferedImage.TYPE_INT_RGB)
+                for (y in 0 until w.height) for (x in 0 until w.width) { val v = w.luma(x, y); out.setRGB(x, y, (v shl 16) or (v shl 8) or v) }
+                val od = File("build/test-overlays").apply { mkdirs() }
+                ImageIO.write(out, "png", File(od, "${file.nameWithoutExtension}-warp${warpIndex++}.png"))
+            }
             val t0 = System.currentTimeMillis()
             val verbose = System.getenv("CHESS_SURVEY_LOG")?.let { file.name.startsWith(it) } ?: false
             val grid = GridDetector.detect(img, log = if (verbose) { m -> println("LOG ${file.name} $m") } else null)
