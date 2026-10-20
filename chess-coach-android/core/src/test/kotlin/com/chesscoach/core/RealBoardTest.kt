@@ -183,6 +183,10 @@ class RealBoardTest {
             Triple("own_5", Pt(77.0, 624.0), 2),
             Triple("travel_3", Pt(159.0, 538.0), 3),
             Triple("travel_4", Pt(108.0, 572.0), 2),
+            // the red folding board with yellow and brown pieces from a low seat behind White, from
+            // the app's own debug log: yellow on cream reads by colour, brown on cream by tone, and
+            // the third rank lies in the pawns' bodies
+            Triple("red_4", Pt(107.0, 580.0), 6),
         )
         val problems = ArrayList<String>()
         for ((name, a1, maxWrong) in cases) {
@@ -195,11 +199,11 @@ class RealBoardTest {
             val foundA1 = located.geometry.corners[0]
             val a1Err = hypot(foundA1.x - a1.x, foundA1.y - a1.y)
             if (a1Err > 0.05 * maxOf(img.width, img.height)) problems += "$name: a1 found at (%.0f,%.0f), expected (%.0f,%.0f)".format(foundA1.x, foundA1.y, a1.x, a1.y)
-            val cal = Calibration.learn(located.features)
+            val cal = Calibration.learn(located.features, Calibration.coveredAtStart(located.geometry))
             val obs = cal.observe(located.features)
             val expected = Board.start().occupancy()
             val wrong = (0 until 64).filter { obs[it].label != expected[it] }
-            println("$name: a1 error %.0f px, ${wrong.size} squares misread [${wrong.joinToString { Square.name(it) }}]".format(a1Err))
+            println("$name: a1 error %.0f px, ${wrong.size} squares misread [${wrong.joinToString { Square.name(it) }}] ${cal.notes}".format(a1Err))
             if (wrong.size > maxWrong) problems += "$name: ${wrong.size} squares misread (allowed $maxWrong): " + wrong.joinToString { Square.name(it) }
         }
         if (problems.isNotEmpty()) fail(problems.joinToString("\n"))

@@ -209,6 +209,15 @@ Pure Kotlin, no OpenCV:
 
 Orientation comes from the dark a1 rule plus the known position (and the rotation used last time).
 
+The starting position is judged with the squares hidden behind the pieces counted as empties,
+and, where that fails, without them: from a low seat behind White the third rank lies in the
+pawns' bodies and reads as occupied whatever stands there (e3, f3, g3 at 0.94 to 1.00 on the
+red board), which made every cue look as if it failed and the view quality read 0.28. Those
+squares still count when the thresholds are set, so that they read below them as far as the
+pieces allow; left out, the thresholds fell until every hidden square read as a piece. The
+learned frame from the owner's first debug bundle is in the test set as `red_4`: it now reads
+0.63, learns by itself, and every square reads right.
+
 ## Debug log
 
 The app keeps a log of what the tracker saw and decided (on by default; Settings > Debug log)
@@ -230,11 +239,17 @@ whether they are brighter or darker gives the piece colour. Squares with a piece
 them and the camera are weighted down, and squares that changed since the last scan support the
 candidate move that touches them.
 
-One cue reads first (luma: pixels of another tone, or edges, whichever says more; colour where
-that fails), and the other cues stand by as backups: the tone fraction, the edge fraction and
+One cue reads first (luma: pixels of another tone, or edges, whichever says more), and where
+that fails on a shade, the larger of the luma and the colour reading per square is tried
+before colour alone: on the red folding board yellow pieces on cream squares are invisible to
+the luma cues (a2 reads 0.20) and plain to the colour cue (0.97), brown pieces on the same
+squares the reverse, so neither cue alone separates and the larger of the two does. The other
+cues stand by as backups: the tone fraction, the edge fraction and
 the colour distance each get their own threshold per shade on the learning frame, and a backup
 is trusted only where it splits the starting position's pieces from its empty squares cleanly,
-by a gap of at least 0.08 (0.04 for edges) and 2.5 times the noise. When the first reading is
+by a gap of at least 0.08 (0.04 for edges) and 2.5 times the noise, and edges only when the
+pieces' edges reach 0.1 (flat test pieces at 0.06 fitted a threshold so low that an empty
+square's jitter passed for a piece). When the first reading is
 unsure (between 0.3 and 0.7), the confident backups decide if they agree; when it is confident
 and a trusted backup contradicts it, the square keeps its side but weakly (0.4 or 0.6), so the
 move search leans on the other squares. The square nearest the camera is lit brighter than the

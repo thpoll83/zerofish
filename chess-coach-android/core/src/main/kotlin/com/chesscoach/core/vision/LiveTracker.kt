@@ -280,8 +280,9 @@ class LiveTracker(
     private fun farTwin(a: Candidate, b: Candidate, geometry: BoardGeometry): Boolean {
         val i = a.moves.indices.firstOrNull { a.moves[it] != b.moves[it] } ?: return false
         val near = b.moves[i].to
-        val (df, dr) = geometry.coverStep(Square.file(near), Square.rank(near))
-        return Square.file(a.moves[i].to) - Square.file(near) == df && Square.rank(a.moves[i].to) - Square.rank(near) == dr
+        val fileDiff = Square.file(a.moves[i].to) - Square.file(near)
+        val rankDiff = Square.rank(a.moves[i].to) - Square.rank(near)
+        return geometry.coverSteps(Square.file(near), Square.rank(near)).any { (df, dr) -> fileDiff == df && rankDiff == dr }
     }
 
     /** True when [a] and [b] differ only in one move's destination, by the step a piece's body covers in the picture. */
@@ -291,11 +292,9 @@ class LiveTracker(
         if (differing.size != 1) return false
         val ma = a.moves[differing[0]]; val mb = b.moves[differing[0]]
         if (ma.from != mb.from) return false
-        val (df, dr) = geometry.coverStep(Square.file(ma.to), Square.rank(ma.to))
-        if (df == 0 && dr == 0) return false
         val fileDiff = Square.file(mb.to) - Square.file(ma.to)
         val rankDiff = Square.rank(mb.to) - Square.rank(ma.to)
-        return (fileDiff == df && rankDiff == dr) || (fileDiff == -df && rankDiff == -dr)
+        return geometry.coverSteps(Square.file(ma.to), Square.rank(ma.to)).any { (df, dr) -> (fileDiff == df && rankDiff == dr) || (fileDiff == -df && rankDiff == -dr) }
     }
 
     /** Forget the pending move evidence, for example after the user corrected the position by hand. */
@@ -472,7 +471,11 @@ class LiveTracker(
         // by colour. The weakest pieces (black on dark squares at the far rank) read low on real
         // boards, so allow three weak pieces and two phantom pieces: the fourth-weakest piece must
         // still read clearly above the third-strongest empty square.
-        val margins = Calibration.Margins.of(f, start)
+        // judged with the squares hidden behind the pieces counted as empties, and, where that
+        // fails, without them (see Calibration.learn)
+        val covered = Calibration.coveredAtStart(located.geometry)
+        val plain = Calibration.Margins.of(f, start)
+        val margins = if (plain.occupancy > 0.08) plain else Calibration.Margins.of(f, start, covered).let { if (it.occupancy > plain.occupancy) it else plain }
         val looksLikeStart = margins.occupancy > 0.08 && margins.colour > 0.2
         val q = quality(
             image, grid, located.geometry,
@@ -494,7 +497,7 @@ class LiveTracker(
         if (learnStreak < framesToLearn) {
             return FrameResult(Status.LEARNING, located.geometry, located.observations, null, learnStreak, emptyList(), "Learning your pieces ($learnStreak/$framesToLearn)", quality = q)
         }
-        val cal = Calibration.learn(f)
+        val cal = Calibration.learn(f, covered)
         calibration = cal
         previousPatches = located.patches
         board = Board.start()

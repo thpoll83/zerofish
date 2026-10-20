@@ -41,7 +41,35 @@ class BoardGeometry(val corners: List<Pt>) {
      * diagonal, and a queen on f3 then fills g4 as well. Each component is taken when it is at
      * least four tenths of the larger one. (0, 0) when the board is seen from above.
      */
-    fun coverStep(file: Int, rank: Int): Pair<Int, Int> {
+    fun coverStep(file: Int, rank: Int): Pair<Int, Int> = coverSteps(file, rank).firstOrNull() ?: (0 to 0)
+
+    /**
+     * The steps a body on the square falls onto: the straight one along the dominant axis
+     * first, then the diagonal when the other component is at least four tenths of it (a body
+     * is wide, and from a seat off to the side it covers both). Empty when seen from above.
+     */
+    fun coverSteps(file: Int, rank: Int): List<Pair<Int, Int>> {
+        val (df, dr) = coverStepRaw(file, rank)
+        if (df == 0 && dr == 0) return emptyList()
+        if (df == 0 || dr == 0) return listOf(df to dr)
+        val dominant = if (dominantIsFile(file, rank)) (df to 0) else (0 to dr)
+        return listOf(dominant, df to dr)
+    }
+
+    private fun dominantIsFile(file: Int, rank: Int): Boolean {
+        val c = toImage(file + 0.5, rank + 0.5)
+        val dfp = toImage(file + 0.51, rank + 0.5)
+        val drp = toImage(file + 0.5, rank + 0.51)
+        val a = (dfp.x - c.x) * 100; val b = (drp.x - c.x) * 100
+        val cc = (dfp.y - c.y) * 100; val d = (drp.y - c.y) * 100
+        val det = a * d - b * cc
+        if (kotlin.math.abs(det) < 1e-9) return false
+        val vf = (0.0 * d - b * -1.0) / det
+        val vr = (a * -1.0 - cc * 0.0) / det
+        return kotlin.math.abs(vf) > kotlin.math.abs(vr)
+    }
+
+    private fun coverStepRaw(file: Int, rank: Int): Pair<Int, Int> {
         if (nearSide == NearSide.NONE) return 0 to 0
         val c = toImage(file + 0.5, rank + 0.5)
         val df = toImage(file + 0.51, rank + 0.5)

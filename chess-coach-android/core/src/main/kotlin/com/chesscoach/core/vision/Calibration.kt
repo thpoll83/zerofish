@@ -285,6 +285,8 @@ class Calibration(
     val notes: List<String>,
     val occFromChroma: BooleanArray = BooleanArray(2),
     val colourFromChroma: BooleanArray = BooleanArray(2),
+    /** Per shade: occupancy is the larger of the luma and the colour reading (each cue sees the pieces the other misses). */
+    val occWithChroma: BooleanArray = BooleanArray(2),
     /** Unit direction in (du, dv) from the black pieces towards the white ones. */
     val chromaDir: DoubleArray = doubleArrayOf(0.0, 0.0),
     /** Occupancy cues besides the one read first, each fitted on the learning frame; see [reconcile]. */
@@ -306,7 +308,11 @@ class Calibration(
 
     fun observe(f: SquareFeatures): Array<SquareObservation> = Array(64) { sq ->
         val shade = if (Square.isLight(sq)) 1 else 0
-        val occFeature = if (occFromChroma[shade] && f.chromaFraction != null) f.chromaFraction[sq] else f.occFraction[sq]
+        val occFeature = when {
+            occWithChroma[shade] && f.chromaFraction != null -> maxOf(f.occFraction[sq], f.chromaFraction[sq])
+            occFromChroma[shade] && f.chromaFraction != null -> f.chromaFraction[sq]
+            else -> f.occFraction[sq]
+        }
         val colFeature = if (colourFromChroma[shade] && f.chromaDu != null) chromaColour(f, sq, chromaDir) else f.colourScore[sq]
         val primary = sigmoid((occFeature - occThreshold[shade]) / occScale[shade])
         val opinions = backups.mapNotNull { b -> if (!b.ok[shade]) null else b.value(f, sq)?.let { sigmoid((it - b.threshold[shade]) / b.scale[shade]) } }
@@ -353,8 +359,10 @@ class Calibration(
         val colourLuma: Double,
         val colourChroma: Double?,
         val chromaDir: DoubleArray,
+        /** By the larger of the luma and the colour reading per square. */
+        val occupancyBoth: Double? = null,
     ) {
-        val occupancy: Double get() = maxOf(occupancyTexture, occupancyChroma ?: Double.NEGATIVE_INFINITY)
+        val occupancy: Double get() = maxOf(occupancyTexture, occupancyChroma ?: Double.NEGATIVE_INFINITY, occupancyBoth ?: Double.NEGATIVE_INFINITY)
         val colour: Double get() = maxOf(colourLuma, colourChroma ?: Double.NEGATIVE_INFINITY)
 
         override fun toString() = "occupancy %.3f (texture %.3f, colour %s), piece colour %.2f (brightness %.2f, chroma %s)".format(
@@ -362,9 +370,10 @@ class Calibration(
         )
 
         companion object {
-            fun of(f: SquareFeatures, occupancy: IntArray): Margins {
+            /** [ignore] marks squares left out as empties: those hidden behind a piece from the camera read as occupied whatever stands there. */
+            fun of(f: SquareFeatures, occupancy: IntArray, ignore: BooleanArray? = null): Margins {
                 fun occMargin(values: DoubleArray): Double {
-                    val empties = (0 until 64).filter { occupancy[it] == 0 }.map { values[it] }.sorted()
+                    val empties = (0 until 64).filter { occupancy[it] == 0 && ignore?.get(it) != true }.map { values[it] }.sorted()
                     val pieces = (0 until 64).filter { occupancy[it] != 0 }.map { values[it] }.sorted()
                     return if (pieces.size >= 4 && empties.size >= 3) pieces[3] - empties[empties.size - 3] else 0.0
                 }
@@ -382,7 +391,8 @@ class Calibration(
                         colourChroma = whites.map { chromaColour(f, it, dir) }.average() - blacks.map { chromaColour(f, it, dir) }.average()
                     }
                 }
-                return Margins(occMargin(f.occFraction), f.chromaFraction?.let { occMargin(it) }, colourLuma, colourChroma, dir)
+                val both = f.chromaFraction?.let { c -> occMargin(DoubleArray(64) { maxOf(f.occFraction[it], c[it]) }) }
+                return Margins(occMargin(f.occFraction), f.chromaFraction?.let { occMargin(it) }, colourLuma, colourChroma, dir, both)
             }
         }
     }
@@ -428,7 +438,28 @@ class Calibration(
          * separates them better. A cue that merely looked a little better on the learning frame
          * applied a wrong move later in a game, so the switch is not made on a small margin.
          */
-        fun learn(f: SquareFeatures): Calibration {
+        /**
+         * The squares of the starting position that a piece hides from the camera: the first
+         * and second square beyond each piece along the step its body covers in the picture.
+         * From a low seat behind White, the third rank lies in the pawns' bodies and reads as
+         * occupied whatever stands there, and counted as empty it would make every cue look as
+         * if it failed.
+         */
+        fun coveredAtStart(geometry: BoardGeometry): BooleanArray {
+            val start = IntArray(64) { sq -> when (Square.rank(sq)) { 0, 1 -> 1; 6, 7 -> 2; else -> 0 } }
+            val covered = BooleanArray(64)
+            for (sq in 0 until 64) {
+                if (start[sq] == 0) continue
+                for ((df, dr) in geometry.coverSteps(Square.file(sq), Square.rank(sq))) for (k in 1..2) {
+                    val ff = Square.file(sq) + k * df
+                    val rr = Square.rank(sq) + k * dr
+                    if (ff in 0..7 && rr in 0..7) covered[Square.of(ff, rr)] = true
+                }
+            }
+            return covered
+        }
+
+        fun learn(f: SquareFeatures, covered: BooleanArray? = null): Calibration {
             val notes = ArrayList<String>()
             val occThreshold = DoubleArray(2)
             val occScale = DoubleArray(2)
@@ -436,32 +467,52 @@ class Calibration(
             val colourScale = DoubleArray(2)
             val occFromChroma = BooleanArray(2)
             val colourFromChroma = BooleanArray(2)
+            val occWithChroma = BooleanArray(2)
             val start = IntArray(64) { sq -> when (Square.rank(sq)) { 0, 1 -> 1; 6, 7 -> 2; else -> 0 } }
-            val margins = Margins.of(f, start)
+            val margins = Margins.of(f, start, covered)
             val backups = listOf(Cue.TONE, Cue.EDGE, Cue.CHROMA).map { BackupCue(it, DoubleArray(2), DoubleArray(2), BooleanArray(2)) }
             for (shade in 0..1) {
                 val shadeName = if (shade == 0) "dark" else "light"
                 val squares = (0 until 64).filter { (if (Square.isLight(it)) 1 else 0) == shade }
-                val emptySq = squares.filter { Square.rank(it) in 2..5 }
                 val pieceSq = squares.filter { Square.rank(it) !in 2..5 }
+                // The empty squares of the middle ranks set the threshold, the ones hidden behind
+                // the pieces included: such squares read as occupied to a degree, and the threshold
+                // between the means keeps as many of them below it as the pieces allow. (Leaving
+                // them out lowered the threshold until every hidden square read as a piece.)
+                val emptySq = squares.filter { Square.rank(it) in 2..5 }
                 var occ = fit(emptySq.map { f.occFraction[it] }, pieceSq.map { f.occFraction[it] }, "occupancy (texture)", shadeName, 0.15, 0.02)
                 f.chromaFraction?.let { c ->
-                    val byColour = fit(emptySq.map { c[it] }, pieceSq.map { c[it] }, "occupancy (colour)", shadeName, 0.15, 0.02)
-                    if (!occ.ok && byColour.separation > occ.separation) { occ = byColour; occFromChroma[shade] = true }
+                    // Yellow pieces on cream squares are invisible to the luma cues and plain to the
+                    // colour cue; brown pieces on the same squares the reverse. Where the luma cue
+                    // fails, the larger of the two readings per square is tried before colour alone.
+                    if (!occ.ok) {
+                        val byColour = fit(emptySq.map { c[it] }, pieceSq.map { c[it] }, "occupancy (colour)", shadeName, 0.15, 0.02)
+                        val both = DoubleArray(64) { maxOf(f.occFraction[it], c[it]) }
+                        val byBoth = fit(emptySq.map { both[it] }, pieceSq.map { both[it] }, "occupancy (texture or colour)", shadeName, 0.15, 0.02)
+                        val better = listOf(byBoth to 2, byColour to 1).filter { (fit, _) -> fit.separation > occ.separation }
+                            .maxWithOrNull(compareBy({ (fit, _) -> if (fit.ok) 1 else 0 }, { (fit, _) -> fit.separation }))
+                        if (better != null) {
+                            occ = better.first
+                            if (better.second == 2) occWithChroma[shade] = true else occFromChroma[shade] = true
+                        }
+                    }
                 }
                 occThreshold[shade] = occ.threshold; occScale[shade] = occ.scale; notes.add(occ.note)
                 // The other cues, each on its own, stand by for squares the first one misreads;
                 // only a cue that separates the two groups cleanly here is trusted to contradict it.
                 val okBackups = ArrayList<String>()
                 for (b in backups) {
-                    if (b.cue == Cue.CHROMA && occFromChroma[shade]) continue
+                    if (b.cue == Cue.CHROMA && (occFromChroma[shade] || occWithChroma[shade])) continue
                     val values = (0 until 64).map { b.value(f, it) }
                     if (values.any { it == null }) continue
                     val (gap, minScale) = if (b.cue == Cue.EDGE) 0.06 to 0.01 else 0.15 to 0.02
                     val bf = fit(emptySq.map { values[it]!! }, pieceSq.map { values[it]!! }, "backup", shadeName, gap, minScale)
                     // a clean split alone is not trust: the gap must be wide against the cue's
                     // noise (a split of 0.17 against 0.19 on one frame contradicted every frame after)
-                    val trusted = bf.ok && bf.minOcc - bf.maxEmpty >= (if (b.cue == Cue.EDGE) 0.04 else 0.08) && bf.separation >= 2.5
+                    // (and the pieces must register plainly: edges of 0.06 on flat pieces fitted a
+                    // threshold so low that an empty square's jitter passed for a piece)
+                    val trusted = bf.ok && bf.minOcc - bf.maxEmpty >= (if (b.cue == Cue.EDGE) 0.04 else 0.08) && bf.separation >= 2.5 &&
+                        (b.cue != Cue.EDGE || bf.minOcc >= 0.1)
                     b.threshold[shade] = bf.threshold; b.scale[shade] = bf.scale; b.ok[shade] = trusted
                     okBackups.add("%s %s (%.2f vs %.2f, separation %.1f)".format(b.cue.name.lowercase(), if (trusted) "ok" else "no", bf.maxEmpty, bf.minOcc, bf.separation))
                 }
@@ -475,7 +526,7 @@ class Calibration(
                 }
                 colourThreshold[shade] = col.threshold; colourScale[shade] = col.scale; notes.add(col.note)
             }
-            return Calibration(occThreshold, occScale, colourThreshold, colourScale, notes, occFromChroma, colourFromChroma, margins.chromaDir, backups)
+            return Calibration(occThreshold, occScale, colourThreshold, colourScale, notes, occFromChroma, colourFromChroma, occWithChroma, margins.chromaDir, backups)
         }
     }
 }
