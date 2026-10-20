@@ -163,14 +163,16 @@ none to two). Frames in flight still count towards the three, since in a fast ga
 is confirmed on the first still frame after the hand and a frame lost there leaves the
 tracker a move behind; a queen on its way to d4 read as "e5 d5" for three frames in a row
 before that. Measured both ways, with taps only when asked and with taps six frames after an
-offer shows: video 1 follows 14 moves by itself and 4 by a tap, or 11 and 7, with none wrong.
+offer shows: video 1 follows 14 moves by itself and 4 by a tap, or 15 and 3, with none wrong.
 
 The offers are single moves, the first move of each explanation, since the user confirms one
 move at a time and the next is read from the new position; and they stay until a move is
 applied, by the camera or by the user. On a still board that flickers, buttons that came and
-went could not be tapped. The replay harness taps the right offer six frames after it shows,
-as a player who confirms every unsure move does, rather than only when the tracker gives up
-and asks; in this fast game every delay compounds, and that is the behaviour measured.
+went could not be tapped. The replay harness taps the right offer eight frames (two seconds)
+after it shows, as a player who confirms every unsure move does, rather than only when the
+tracker gives up and asks; in this fast game every delay compounds, and that is the behaviour
+measured. Six frames took moves the tracker was about to apply by itself (11 by itself and 7
+taps on video 1); at eight it follows 15 by itself with 3 taps, and the same at ten or twelve.
 
 A frame counts as a hand or a shadow over the board, or a misread grid ("Hold still"), when it
 reads much worse than the board usually does: more unsure squares than usual by ten, or a best

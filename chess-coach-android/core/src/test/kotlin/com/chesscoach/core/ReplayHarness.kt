@@ -37,8 +37,10 @@ object ReplayHarness {
      * @param truth the game's moves from the starting position (beginning with [jump] if given).
      * @param detail time window in seconds in which every scored candidate is logged.
      * @param tapAfter frames of reading after which the user, seeing the right move among the
-     *   offers, taps it: a player who confirms every unsure move does so as soon as the button
-     *   shows, not only when the tracker gives up and asks. Null taps only when asked.
+     *   offers, taps it: a player who confirms every unsure move does so once the button has
+     *   shown for a moment (eight frames, two seconds), not only when the tracker gives up and
+     *   asks. Six frames took moves the tracker was about to apply by itself. Null taps only
+     *   when asked.
      */
     fun run(
         frames: List<Pair<String, () -> LumaImage>>,
@@ -46,7 +48,7 @@ object ReplayHarness {
         jump: List<String>? = null,
         truth: List<String>? = null,
         detail: ClosedRange<Double>? = null,
-        tapAfter: Int? = System.getenv("CHESS_REPLAY_TAP_AFTER")?.toIntOrNull() ?: 6,
+        tapAfter: Int? = System.getenv("CHESS_REPLAY_TAP_AFTER")?.toIntOrNull() ?: 8,
         log: (String) -> Unit = {},
     ): Stats {
         var readingFrames = 0
