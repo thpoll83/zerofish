@@ -36,6 +36,9 @@ object ReplayHarness {
      * @param jump moves to put on the tracker once it has learned (the passage starts mid-game).
      * @param truth the game's moves from the starting position (beginning with [jump] if given).
      * @param detail time window in seconds in which every scored candidate is logged.
+     * @param tapAfter frames of reading after which the user, seeing the right move among the
+     *   offers, taps it: a player who confirms every unsure move does so as soon as the button
+     *   shows, not only when the tracker gives up and asks. Null taps only when asked.
      */
     fun run(
         frames: List<Pair<String, () -> LumaImage>>,
@@ -43,8 +46,10 @@ object ReplayHarness {
         jump: List<String>? = null,
         truth: List<String>? = null,
         detail: ClosedRange<Double>? = null,
+        tapAfter: Int? = System.getenv("CHESS_REPLAY_TAP_AFTER")?.toIntOrNull() ?: 6,
         log: (String) -> Unit = {},
     ): Stats {
+        var readingFrames = 0
         val tracker = LiveTracker(framesToConfirm = 3, framesToLearn = 3)
         val stats = Stats()
         val bareTruth = truth?.map { bare(it) }
@@ -87,7 +92,8 @@ object ReplayHarness {
                             tracker.setBoard(truthBoard())
                         }
                     }
-                    if (r.status == LiveTracker.Status.AMBIGUOUS) {
+                    readingFrames = if (r.reading || r.status == LiveTracker.Status.AMBIGUOUS) readingFrames + 1 else 0
+                    if (r.status == LiveTracker.Status.AMBIGUOUS || (tapAfter != null && readingFrames >= tapAfter && r.suggestions.isNotEmpty())) {
                         val pick = r.suggestions
                             .filter { c -> c.sans.map { bare(it) } == bareTruth.drop(truthIdx).take(c.sans.size) }
                             .maxByOrNull { it.moves.size }

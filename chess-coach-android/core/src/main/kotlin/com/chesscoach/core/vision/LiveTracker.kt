@@ -180,6 +180,9 @@ class LiveTracker(
     /** Quiet frames in a row before an unexplained period is considered over. */
     private val quietFramesToSettle = 6
 
+    /** Squares changed since the last frame above which something is in motion over the board. */
+    private val maxMovingSquares = 5
+
     /**
      * "No move" costs of recent quiet frames. Their median is how well a frame fits when nothing
      * is wrong; a move is only applied when the position after it fits nearly that well, otherwise
@@ -229,6 +232,7 @@ class LiveTracker(
     private fun baseline(): Double? =
         if (quietCosts.size < baselineMinSamples) null else quietCosts.sorted()[quietCosts.size / 2]
 
+
     private fun noteQuiet(noMoveCost: Double) {
         quietCosts.addLast(noMoveCost)
         while (quietCosts.size > baselineWindow) quietCosts.removeFirst()
@@ -259,8 +263,26 @@ class LiveTracker(
     /** How far the best explanation must lead the runner-up, per frame, to be applied without asking. */
     private val applyMargin = 0.3
 
-    /** The lead needed between cover twins (see [coverTwins]). */
-    private val twinMargin = 0.8
+    /** The lead the far one of two cover twins needs (see [coverTwins]). */
+    private val twinMargin = 1.5
+
+    /** True when [longer] is [shorter] with one or more moves appended. */
+    private fun extends(longer: Candidate, shorter: Candidate): Boolean =
+        longer.moves.size > shorter.moves.size && longer.moves.take(shorter.moves.size) == shorter.moves
+
+    /** The destination of [b]'s move where it differs from [a]'s: the near square of two cover twins. */
+    private fun nearSquare(a: Candidate, b: Candidate): Int {
+        val i = a.moves.indices.first { a.moves[it] != b.moves[it] }
+        return b.moves[i].to
+    }
+
+    /** True when [a]'s differing destination lies one cover step beyond [b]'s: the square a body on [b]'s square would fill. */
+    private fun farTwin(a: Candidate, b: Candidate, geometry: BoardGeometry): Boolean {
+        val i = a.moves.indices.firstOrNull { a.moves[it] != b.moves[it] } ?: return false
+        val near = b.moves[i].to
+        val (df, dr) = geometry.coverStep(Square.file(near), Square.rank(near))
+        return Square.file(a.moves[i].to) - Square.file(near) == df && Square.rank(a.moves[i].to) - Square.rank(near) == dr
+    }
 
     /** True when [a] and [b] differ only in one move's destination, by the step a piece's body covers in the picture. */
     private fun coverTwins(a: Candidate, b: Candidate, geometry: BoardGeometry): Boolean {
@@ -284,8 +306,15 @@ class LiveTracker(
         offers.clear()
     }
 
+    /**
+     * Offers the first move of each explanation: the user confirms one move at a time, and
+     * once it is applied the next one is read from the new position (or offered in turn). A
+     * button for a pair of moves was easy to misread and tap.
+     */
     private fun offer(candidates: List<Candidate>, always: Boolean = false) {
-        for (c in candidates) {
+        for (full in candidates) {
+            if (full.moves.isEmpty()) continue
+            val c = if (full.moves.size == 1) full else Candidate(listOf(full.moves[0]), full.cost, listOf(full.sans[0]))
             if (offers.containsKey(c.description)) continue
             if (!always && offers.size >= maxOffers) continue
             offers[c.description] = c
@@ -503,6 +532,11 @@ class LiveTracker(
             return FrameResult(Status.UNSTABLE, located.geometry, raw, null, pendingCount, emptyList(), "Hold still, hand or shadow over the board")
         }
         val obs = smooth(raw)
+        // Squares that changed since the last frame: a hand carrying a piece moves six to ten of
+        // them between two frames, a settled board none to two (handheld jitter). A frame with
+        // a hand in flight counts for nothing towards confirming a move: a queen on its way to
+        // d4 read as "e5 d5" for three frames in a row.
+        val moving = lastPatches?.let { prev -> ChangeDetector.scores(prev, located.patches).count { it > 0.5 } > maxMovingSquares } ?: false
         lastPatches = located.patches
         lastRotation = located.rotation
         val change = previousPatches?.let { ChangeDetector.scores(it, located.patches) }
@@ -541,7 +575,10 @@ class LiveTracker(
                     }
                 }
             }
-            if (quiet >= quietFramesToSettle) resetPending()
+            // Settled again: the pending evidence is forgotten, but the offers stay until a move
+            // is applied. On a still board that flickers, buttons that came and went could not be
+            // tapped; the user settles any doubt by tapping or typing, so nothing is taken back.
+            if (quiet >= quietFramesToSettle) { pending = emptyList(); pendingCount = 0; unsettled = 0; quiet = 0 }
             val asking = unsettled >= framesBeforeAsking && offers.isNotEmpty()
             return if (asking) FrameResult(Status.AMBIGUOUS, located.geometry, obs, best, pendingCount, emptyList(), "Not sure what was played. Tap the right one, or type it.", suggestions(), candidates = result.candidates)
             else FrameResult(Status.TRACKING, located.geometry, obs, best, 0, emptyList(), if (unsettled > 0) "Reading the move..." else "Tracking", suggestions(), candidates = result.candidates, reading = unsettled > 0)
@@ -557,12 +594,25 @@ class LiveTracker(
         // and the square behind it in the picture (a queen on f3 seen from a low angle fills g4
         // as well, and occupancy alone cannot tell the two apart); there the best must lead by
         // [twinMargin], or the user settles it.
-        val runnerUp = result.candidates.getOrNull(1)
-        val needed = if (runnerUp != null && coverTwins(best, runnerUp, located.geometry)) twinMargin else applyMargin
-        if (result.margin >= needed) {
+        // The rival is the first explanation that is not the best one with a further move
+        // appended: "b3" against "b3 Ng8", where the second ply is a ghost from a flickering
+        // square, is no contest about b3, and waiting for one to lose the frame in which the
+        // move could still be confirmed left the tracker behind the game.
+        val runnerUp = result.candidates.drop(1).firstOrNull { !extends(it, best) }
+        val margin = runnerUp?.let { it.cost - best.cost } ?: Double.POSITIVE_INFINITY
+        // Between cover twins the body of a piece on the near square fills the far square, never
+        // the other way round. So the far twin (Qg4 against Qf3) is applied only when the near
+        // square itself reads empty (a pawn on e4 leaves e3 bare) or the far twin leads by a
+        // wide margin; while the near square reads occupied, the piece may well stand there.
+        val blockedByTwin = result.candidates.any { c ->
+            c !== best && c.cost - best.cost < twinMargin && coverTwins(best, c, located.geometry) && farTwin(best, c, located.geometry) &&
+                obs[nearSquare(best, c)].occupied >= 0.5
+        }
+        if (margin >= applyMargin && !moving && !blockedByTwin) {
             if (best.moves == pending) pendingCount++ else {
                 pending = best.moves; pendingCount = 1
             }
+            // the remembered baseline is from the position before the move: a looser fit
             val base = baseline()
             val fits = base == null || best.cost <= base + applySlack
             if (pendingCount >= framesToConfirm && fits) {
@@ -602,7 +652,7 @@ class LiveTracker(
                 "Not sure what was played. Tap the right one, or type it.", suggestions(), result.candidates,
             )
         }
-        val msg = if (result.margin >= needed) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
+        val msg = if (margin >= applyMargin && !blockedByTwin) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
         else "Maybe ${best.description} (%.2f) or ${runnerUp?.description} (%.2f); unchanged %.2f".format(best.cost, runnerUp?.cost ?: 0.0, noMove?.cost ?: 0.0)
         return FrameResult(Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(), msg, suggestions(), candidates = result.candidates, reading = true)
     }

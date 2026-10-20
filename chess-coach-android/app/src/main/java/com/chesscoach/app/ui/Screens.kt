@@ -1,5 +1,12 @@
 package com.chesscoach.app.ui
 
+import android.content.Intent
+import androidx.core.content.FileProvider
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
@@ -128,6 +135,37 @@ private fun SetupScreen(state: UiState, vm: GameViewModel) {
             Text("A dot per square with what the camera read (white, black, empty) and a yellow ring where it is unsure. Always shown until the pieces are learned.", style = MaterialTheme.typography.bodySmall)
         }
     }
+    Spacer(Modifier.height(16.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Switch(checked = state.debugLog, onCheckedChange = { vm.setDebugLog(it) })
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text("Debug log", fontWeight = FontWeight.Bold)
+            Text(
+                "Records what the camera read and decided, with the frame behind each decision (" + state.debugSummary.ifBlank { "empty" } + "). " +
+                    "Share the bundle to have a problem looked at. The frames show your board and whatever is around it.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
+        OutlinedButton(onClick = {
+            scope.launch {
+                val zip = withContext(Dispatchers.IO) { vm.buildDebugBundle() }
+                val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", zip)
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/zip"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra(Intent.EXTRA_SUBJECT, zip.name)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(Intent.createChooser(send, "Share the debug bundle"))
+            }
+        }) { Text("Share debug bundle") }
+        OutlinedButton(onClick = { vm.clearDebugLog() }) { Text("Clear") }
+    }
     Spacer(Modifier.height(24.dp))
     Button(onClick = { vm.resumeLive() }, modifier = Modifier.fillMaxWidth()) { Text("Back to the board") }
     Spacer(Modifier.height(8.dp))
@@ -248,8 +286,31 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
                 }
             }
         }
+        if (state.liveLearned) {
+            // The moves of the game in one row that scrolls sideways, the latest highlighted and
+            // in view; it sits right under the picture, outside the scrolling part, so nothing
+            // below can push it off the screen.
+            val scroll = rememberScrollState()
+            LaunchedEffect(state.history.size) { scroll.animateScrollTo(scroll.maxValue) }
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(scroll).padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (state.history.isEmpty()) Text("No moves yet", style = MaterialTheme.typography.bodySmall, color = Palette.textDim)
+                state.history.forEachIndexed { i, h ->
+                    if (i % 2 == 0) Text("${i / 2 + 1}.", style = MaterialTheme.typography.bodySmall, color = Palette.textDim)
+                    val last = i == state.history.size - 1
+                    Text(
+                        figurine(h.san, i % 2 == 0),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (last) Palette.onAccent else Palette.text,
+                        modifier = (if (last) Modifier.background(Palette.accent, RoundedCornerShape(4.dp)) else Modifier).padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+                }
+            }
+        }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 4.dp)) {
-            // The move buttons come first, right under the zoom, so that the status text (one
+            // The move buttons come first, right under the moves, so that the status text (one
             // line or two) cannot push them about; they are compact rectangles framed in the
             // colour of their arrow, in as many rows as needed.
             if (choices.isNotEmpty()) {
@@ -287,23 +348,6 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
                 Button(onClick = { vm.confirmStart() }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) { Text("Pieces are set up (starting position)") }
             }
             Advice(state, vm)
-            if (state.history.isNotEmpty()) {
-                // The moves in one row that scrolls sideways, the latest one highlighted and in view.
-                val scroll = rememberScrollState()
-                LaunchedEffect(state.history.size) { scroll.animateScrollTo(scroll.maxValue) }
-                Row(Modifier.horizontalScroll(scroll).padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    state.history.forEachIndexed { i, h ->
-                        if (i % 2 == 0) Text("${i / 2 + 1}.", style = MaterialTheme.typography.bodySmall, color = Palette.textDim)
-                        val last = i == state.history.size - 1
-                        Text(
-                            figurine(h.san, i % 2 == 0),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (last) Palette.onAccent else Palette.text,
-                            modifier = (if (last) Modifier.background(Palette.accent, RoundedCornerShape(4.dp)) else Modifier).padding(horizontal = 6.dp, vertical = 2.dp),
-                        )
-                    }
-                }
-            }
             val status = if (state.liveLearned) state.liveStatus else
                 (state.liveHint?.let { "$it. " } ?: "") + "Green grid: the board as found. Dots: pieces as read. Yellow ring: unsure square."
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -330,7 +374,7 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
         AlertDialog(
             onDismissRequest = { showEntry = false },
             title = { Text("Enter the move played") },
-            text = { OutlinedTextField(value = entry, onValueChange = { entry = it }, label = { Text("e.g. Nf3, g1f3, or several: Nc6 Qg4 Bb4+") }, singleLine = true) },
+            text = { OutlinedTextField(value = entry, onValueChange = { entry = it }, label = { Text("e.g. Nf3, g1f3, or several: Nc6 Qf3 Bb4+") }, singleLine = true) },
             confirmButton = { TextButton(onClick = { vm.enterMove(entry); entry = ""; showEntry = false }) { Text("Apply") } },
             dismissButton = { TextButton(onClick = { showEntry = false }) { Text("Cancel") } },
         )

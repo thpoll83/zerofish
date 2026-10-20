@@ -1,6 +1,7 @@
 package com.chesscoach.core
 
 import com.chesscoach.core.chess.Board
+import com.chesscoach.core.chess.Color
 import com.chesscoach.core.vision.LiveTracker
 import com.chesscoach.core.vision.Pt
 import kotlin.test.Test
@@ -90,7 +91,8 @@ class LiveTrackerTest {
         assertEquals(LiveTracker.Phase.TRACKING, t.phase)
         // Three plies happen before the camera gets a clean look (Nf3 Nf6 Ng5): no two-move
         // explanation fits, so after a couple of seconds suggestions must appear, and after a
-        // little longer the three-move search must find the truth among them.
+        // little longer the three-move search must find the truth and offer its first move.
+        // Once that is tapped, the other two are read from the new position.
         var b = b0
         for (san in listOf("Nf3", "Nf6", "Ng5")) b = b.play(b.parseMove(san)!!)
         var suggestions: List<com.chesscoach.core.vision.Candidate> = emptyList()
@@ -98,13 +100,24 @@ class LiveTrackerTest {
         for (i in 0 until 24) {
             val r = t.process(frame(b, 200 + i, jitter = 2.0))
             if (r.status == LiveTracker.Status.AMBIGUOUS) { sawAmbiguous = true; suggestions = r.suggestions }
-            if (r.suggestions.any { it.description == "Nf3 Nf6 Ng5" }) { suggestions = r.suggestions; break }
+            if (sawAmbiguous && r.suggestions.any { it.description == "Nf3" }) { suggestions = r.suggestions; break }
         }
         assertTrue(sawAmbiguous, "never asked the user")
-        val truth = suggestions.firstOrNull { it.description == "Nf3 Nf6 Ng5" }
-        assertTrue(truth != null, "truth not offered; offered: ${suggestions.map { it.description }}")
-        t.accept(truth!!)
-        assertEquals(b, t.board)
+        assertTrue(suggestions.all { it.moves.size == 1 }, "offers must be single moves: ${suggestions.map { it.description }}")
+        val first = suggestions.firstOrNull { it.description == "Nf3" }
+        assertTrue(first != null, "truth's first move not offered; offered: ${suggestions.map { it.description }}")
+        t.accept(first!!)
+        val log = ArrayList<String>()
+        for (i in 0 until 24) {
+            if (t.board == b) break
+            val r = t.process(frame(b, 230 + i, jitter = 2.0))
+            log += "${r.status}:${r.message}"
+            // the rest is applied by itself or offered one move at a time
+            val plies = (t.board.fullmoveNumber - 1) * 2 + (if (t.board.sideToMove == Color.BLACK) 1 else 0)
+            val expected = listOf("Nf6", "Ng5").drop(plies - 1).firstOrNull()
+            r.suggestions.firstOrNull { it.description == expected }?.let { t.accept(it) }
+        }
+        assertEquals(b, t.board, "the remaining moves were not read: $log")
         // after accepting, a quiet board is quiet again
         repeat(3) { assertEquals(LiveTracker.Status.TRACKING, t.process(frame(b, 300 + it, jitter = 2.0)).status) }
     }

@@ -17,7 +17,7 @@ including three-move sequences. The buttons keep the best-scoring explanations o
 seconds, so they do not change from frame to frame; tapping one applies it and resynchronises the
 tracker. A move is only applied on its own when the board afterwards fits about as well as a quiet
 board did before it; if it fits clearly worse, another change went unnoticed and the move is offered
-as a button instead. "Type move" accepts several moves separated by spaces, such as `Nc6 Qg4 Bb4+`. The screen shows the annotated camera frame, the digital board and Stockfish's
+as a button instead. "Type move" accepts several moves separated by spaces, such as `Nc6 Qf3 Bb4+`. The screen shows the annotated camera frame, the digital board and Stockfish's
 suggestion for your side. Undo, typing a move and pausing the camera are there for corrections.
 
 When the board is small in the picture (a tournament photo from across the table), the detector
@@ -148,9 +148,26 @@ Two explanations that differ only in one destination square and the square behin
 picture are cover twins: a queen on f3 seen from a low angle fills g4 as well, and occupancy
 alone cannot tell Qf3 from Qg4. The step a piece's body covers is read from the board's
 homography (straight up in the picture, mapped to the board; from a seat off to the side it
-is a diagonal). Between twins the best explanation must lead by 0.8 per frame instead of 0.3
-to be applied by itself; otherwise both are offered and the user settles it. On the game
-video that turns a wrongly applied Qg4 into a question, and costs no automatic move elsewhere.
+is a diagonal). A body fills the far square, never the other way round, so the far twin (Qg4
+against Qf3, e4 against e3) is applied by itself only when the near square reads empty (a pawn
+on e4 leaves e3 bare) or when it leads by 1.5; while the near square reads occupied the piece
+may well stand there, and both are offered for the user to settle. On the game video that
+turns a wrongly applied Qg4 into a question and leaves every pawn's double step automatic.
+
+A move is confirmed by three frames in a row that read it best, each leading the first real
+alternative by 0.3; an explanation that is the best one with a further move appended ("b3
+Ng8" against "b3", the second ply a ghost from a flickering square) is no alternative, as it
+agrees about b3. A frame with something in motion over the board (more than five squares
+changed since the frame before: a hand carrying a piece moves six to ten, a settled board
+none to two) counts for nothing towards the three; a queen on its way to d4 read as "e5 d5"
+for three frames in a row before that.
+
+The offers are single moves, the first move of each explanation, since the user confirms one
+move at a time and the next is read from the new position; and they stay until a move is
+applied, by the camera or by the user. On a still board that flickers, buttons that came and
+went could not be tapped. The replay harness taps the right offer six frames after it shows,
+as a player who confirms every unsure move does, rather than only when the tracker gives up
+and asks; in this fast game every delay compounds, and that is the behaviour measured.
 
 A frame counts as a hand or a shadow over the board, or a misread grid ("Hold still"), when it
 reads much worse than the board usually does: more unsure squares than usual by ten, or a best
@@ -186,6 +203,17 @@ Pure Kotlin, no OpenCV:
    homography by least squares.
 
 Orientation comes from the dark a1 rule plus the known position (and the rotation used last time).
+
+## Debug log
+
+The app keeps a log of what the tracker saw and decided (on by default; Settings > Debug log)
+in its own files, no permission needed: one line per frame in the replay harness's format
+(status, message, the best explanations with their costs, the offers, the unsure count, the
+grid corners), and the camera frame itself, as the tracker saw it, whenever something was
+decided: the pieces learned, a move applied, a question asked, an offer added, the grid moved,
+a tap, a typed move or an undo; plus every twentieth frame as a sample. At most 400 frames are
+kept. "Share debug bundle" zips the lot for sending; the frames show the board and whatever is
+around it, so look before sharing. The bundle replays through the harness like a video.
 
 ## Reading the squares
 

@@ -13,6 +13,7 @@ import com.chesscoach.core.vision.LiveTracker
 import com.chesscoach.core.vision.LumaImage
 import com.chesscoach.core.vision.Pt
 import com.chesscoach.core.vision.SquareObservation
+import com.chesscoach.core.vision.YuvImage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -50,6 +51,9 @@ data class UiState(
     val viewMode: ViewMode = ViewMode.CAMERA,
     /** Draw what the camera read on every square (dots and rings) during the game too. */
     val showDebugOverlay: Boolean = false,
+    /** Keep a log of the tracker's decisions with the frames behind them, for a shareable bundle. */
+    val debugLog: Boolean = true,
+    val debugSummary: String = "",
     // live mode
     val liveStatus: String = "Point the camera at the board",
     val liveFrameWidth: Int = 0,
@@ -106,6 +110,13 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     @Volatile private var liveBusy = false
     private var lastFrameAt = 0L
 
+    /** The decisions and the frames behind them; see [DebugRecorder]. */
+    private val recorder = DebugRecorder(app)
+    private var frameNo = 0
+    @Volatile private var lastFrame: YuvImage? = null
+    private var lastOfferCount = 0
+    private var wasAsking = false
+
     /**
      * The tracker runs one frame at a time on its own thread, below normal priority: the camera
      * preview and the screen come first, and a frame read a little later costs nothing.
@@ -119,8 +130,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             it.copy(
                 camera = CameraSettings(cameraId = prefs.getString("cameraId", null), zoom = prefs.getFloat("zoom", 1f)),
                 showDebugOverlay = prefs.getBoolean("debugOverlay", false),
+                debugLog = prefs.getBoolean("debugLog", true),
             )
         }
+        recorder.enabled = _state.value.debugLog
+        recorder.log("APP started")
         viewModelScope.launch {
             try {
                 // Leave two cores to the camera, the tracker and the screen: Stockfish on every core made the
@@ -168,8 +182,36 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putBoolean("debugOverlay", on).apply()
     }
 
+    fun setDebugLog(on: Boolean) {
+        recorder.enabled = on
+        _state.update { it.copy(debugLog = on) }
+        prefs.edit().putBoolean("debugLog", on).apply()
+        if (on) recorder.log("LOG on")
+    }
+
+    fun refreshDebugSummary() = _state.update { it.copy(debugSummary = recorder.summary()) }
+
+    /** Zips the log and its frames for sharing; call off the main thread. */
+    fun buildDebugBundle(): java.io.File {
+        recorder.log("BUNDLE shared; game so far: ${_state.value.moveListText()}")
+        return recorder.bundle()
+    }
+
+    fun clearDebugLog() {
+        recorder.clear()
+        recorder.log("LOG cleared")
+        refreshDebugSummary()
+    }
+
+    /** A user action worth a line and the frame it was taken on. */
+    private fun note(tag: String, line: String) {
+        recorder.log("$line | board ${_state.value.board.toFen()}")
+        lastFrame?.let { recorder.frame(frameNo, tag, it) }
+    }
+
     /** The user says all pieces stand on their starting squares: learn from the next frames regardless. */
     fun confirmStart() {
+        note("confirm", "CONFIRM START by the user")
         synchronized(tracker) { tracker.confirmStart() }
         _state.update { it.copy(liveStatus = "Learning your pieces from the starting position...") }
     }
@@ -188,6 +230,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             }
             b = b.play(m)
         }
+        note("tap", "TAP ${c.description} (%.1f) of ${_state.value.liveSuggestions.joinToString(" | ") { "${it.description} (%.1f)".format(it.cost) }}".format(c.cost))
         synchronized(tracker) { if (tracker.board == _state.value.board) tracker.accept(c) else tracker.setBoard(b) }
         _state.update { it.copy(liveSuggestions = emptyList(), pickPath = emptyList(), liveCandidate = null, liveAsking = false) }
         for (m in c.moves) applyMove(m)
@@ -225,6 +268,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 val r = synchronized(tracker) { tracker.process(frame) }
                 val corners = r.geometry?.corners ?: emptyList()
+                (frame as? YuvImage)?.let { lastFrame = it }
+                record(frame, r, corners)
                 _state.update {
                     // a hand over the board or a lost grid must not take the offered moves away
                     val keep = r.status == LiveTracker.Status.UNSTABLE || r.status == LiveTracker.Status.NO_BOARD
@@ -258,6 +303,39 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 liveBusy = false
             }
         }
+    }
+
+    /**
+     * One log line per frame in the replay harness's format, and the frame itself whenever
+     * something was decided: the pieces learned, a move applied, a question asked, an offer
+     * added, the grid moved; plus every twentieth frame as a sample of the quiet times.
+     */
+    private fun record(frame: LumaImage, r: LiveTracker.FrameResult, corners: List<Pt>) {
+        frameNo++
+        if (!_state.value.debugLog) return
+        val tag = when {
+            r.status == LiveTracker.Status.LEARNED -> "learned"
+            r.status == LiveTracker.Status.MOVE_PLAYED -> "played"
+            r.status == LiveTracker.Status.AMBIGUOUS && !wasAsking -> "asked"
+            r.suggestions.size > lastOfferCount -> "offer"
+            r.status == LiveTracker.Status.UNSTABLE && r.message.contains("moved") -> "moved"
+            frameNo % 20 == 0 -> "sample"
+            else -> null
+        }
+        wasAsking = r.status == LiveTracker.Status.AMBIGUOUS
+        lastOfferCount = r.suggestions.size
+        val saved = if (tag != null) (frame as? YuvImage)?.let { recorder.frame(frameNo, tag, it) } else null
+        val sb = StringBuilder("f%05d %s %s".format(frameNo, r.status, r.message))
+        r.quality?.let { sb.append(" [quality %.2f: %s]".format(it.score, it.hint)) }
+        if (r.status == LiveTracker.Status.LEARNED) {
+            synchronized(tracker) { sb.append(" [colour shift: ${tracker.projection ?: "none, plain luma"}; ${tracker.calibration?.notes?.joinToString(" | ")}]") }
+        }
+        if (r.candidates.isNotEmpty()) sb.append(" | top: ").append(r.candidates.take(4).joinToString(" | ") { "${it.description} (%.2f)".format(it.cost) })
+        if (r.suggestions.isNotEmpty()) sb.append(" | offers: ").append(r.suggestions.joinToString(" | ") { "${it.description} (%.1f)".format(it.cost) })
+        r.observations?.let { obs -> sb.append(" | unsure ${obs.count { it.unsure }}") }
+        if (corners.size == 4) sb.append(" | grid ").append(corners.joinToString(" ") { "%.0f,%.0f".format(it.x, it.y) })
+        if (saved != null) sb.append(" | image $saved")
+        recorder.log(sb.toString())
     }
 
     override fun onCleared() {
@@ -304,7 +382,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         _state.value.suggestion?.bestMove?.let { applyMove(it) }
     }
 
-    /** Applies one or more typed moves ("Nf3", "g1f3", or a sequence like "Nc6 Qg4 Bb4+"). */
+    /** Applies one or more typed moves ("Nf3", "g1f3", or a sequence like "Nc6 Qf3 Bb4+"). */
     fun enterMove(text: String) {
         val tokens = text.trim().split(Regex("\\s+")).filter { it.isNotBlank() && !it.matches(Regex("\\d+\\.+")) }
         val moves = ArrayList<Move>()
@@ -319,6 +397,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             b = b.play(m)
         }
         if (moves.isEmpty()) return
+        note("typed", "TYPED ${text.trim()} while offered ${_state.value.liveSuggestions.joinToString(" | ") { it.description }}")
         for (m in moves) applyMove(m)
         _state.update { it.copy(liveSuggestions = emptyList(), pickPath = emptyList()) }
         synchronized(tracker) { tracker.setBoard(_state.value.board) }
@@ -327,6 +406,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     fun undo() {
         val s = _state.value
         val last = s.history.lastOrNull() ?: return
+        note("undo", "UNDO ${last.san}")
         stopAnalysis()
         _state.update { it.copy(board = last.before, history = it.history.dropLast(1), suggestion = null, message = null, liveSuggestions = emptyList(), pickPath = emptyList()) }
         synchronized(tracker) { tracker.setBoard(last.before) }
@@ -334,13 +414,14 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun newGame() {
+        recorder.log("NEW GAME by the user; game so far: ${_state.value.moveListText()}")
         stopAnalysis()
         startLive()
     }
 
     fun backToSetup() {
         stopAnalysis()
-        _state.update { it.copy(phase = Phase.SETUP, message = null) }
+        _state.update { it.copy(phase = Phase.SETUP, message = null, debugSummary = recorder.summary()) }
     }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
