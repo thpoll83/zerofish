@@ -2,7 +2,7 @@
 # f0001-f0003 show the starting position (the tracker learns the pieces from them); f0170-f0302 are seconds 42 to 75.
 fps 4
 jump d4 Nf6 e3 d5 b3 c5 c4 dxc4 bxc4 cxd4 exd4 e6
-truth d4 Nf6 e3 d5 b3 c5 c4 dxc4 bxc4 cxd4 exd4 e6 Be3 Nc6 Qg4 Bb4+ Bd2 Qxd4
+truth d4 Nf6 e3 d5 b3 c5 c4 dxc4 bxc4 cxd4 exd4 e6 Be3 Nc6 Qf3 Bb4+ Bd2 Qxd4
 f0001.jpg
 f0002.jpg
 f0003.jpg
