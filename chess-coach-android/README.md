@@ -114,13 +114,30 @@ squares next to tall pieces read as pieces by texture, so neither cue alone sepa
 occlusion-aware sampling window is the next step for that angle). The plastic roll-up board
 reads its light squares by colour. The replay log names the cues chosen.
 
-The grid is locked once the starting position has verified it. The grid finder works afresh on
-every frame, and on a board whose frame matches its dark squares it lands a square off or turned
-by a quarter now and then; such a grid reads a move that was not played and misses the one that
-was. A detection within 0.35 squares of the lock only nudges it (the camera drifts slowly on a
-stand), one further away is ignored, and only six such frames in a row (the camera moved) make
-the detection the new lock; a frame without any grid is read through the lock for up to eight
-frames.
+The grid is locked once the starting position has verified it. The grid finder, working
+afresh, lands a square off or turned by a quarter now and then on a board whose frame matches
+its dark squares; such a grid reads a move that was not played and misses the one that was.
+Once locked, each frame first looks for the board where it was: the lock is pulled onto the
+x-corners found around it (the same refinement a found grid gets, with matching radii of 0.3
+square and less), and the result must still alternate and have at least 30 percent of its inner
+corners on x-corners. That follows the few pixels a touch moves the phone by, cannot land a
+square off or turned, and costs about an eighth of a full search (29 ms against 237 ms per
+1280 px frame on a desktop JVM), which is what makes the frame rate. The full search runs only
+when tracking fails (the camera moved further, a hand covers the corners). A found grid within
+0.35 squares of the lock nudges it by a fifth of the difference; one further away disputes it:
+the frame is read through the lock but settles nothing ("Hold still, the board moved"), and
+the same new grid seen three frames in a row while the board is not seen at the lock becomes
+the lock. The orientation is never chosen again, as a board does not turn by a quarter between
+two frames; a frame without any grid is read through the lock for up to eight frames.
+
+Empty squares with nothing standing in front of them get their own empty picture: on quiet
+frames the square's luma, gradient and chroma patches are blended (three tenths new) into a
+per-square template, and the square is then read against its own picture instead of the
+shade's median, so grain, a glare spot or a printed coordinate on that square no longer reads
+as a piece and the square cannot flip between piece and empty without a hand. A square is
+remembered only while it reads empty (below 0.2) and only when no piece stands in front of it
+towards the camera: a piece's body would go into the picture, and the square would read as
+occupied just when that piece moved away. The templates are dropped when the lock moves.
 
 A frame counts as a hand or a shadow over the board, or a misread grid ("Hold still"), when it
 reads much worse than the board usually does: more unsure squares than usual by ten, or a best

@@ -138,15 +138,55 @@ object GridDetector {
      */
     private const val WARP_MARGIN = 2.0
 
+    /** The board of [geo] with [WARP_MARGIN] squares around it, seen from above in a [size] by [size] picture. */
+    private fun rectify(image: LumaImage, geo: BoardGeometry, size: Int): ArrayLumaImage {
+        val scale = size / (8 + 2 * WARP_MARGIN)
+        val data = IntArray(size * size)
+        for (v in 0 until size) for (u in 0 until size) {
+            val p = geo.toImage(u / scale - WARP_MARGIN, v / scale - WARP_MARGIN)
+            data[v * size + u] = bilinear(image, p.x, p.y)
+        }
+        return ArrayLumaImage(size, size, data)
+    }
+
+    /**
+     * The grid close to [seed], the corners read on the last frame: the seed is pulled onto the
+     * x-corners found around it, as a found grid is refined, and verified by the alternation of
+     * its squares and by how many of its inner corners sit on x-corners. It follows the few
+     * pixels a touch moves the phone by, frame after frame, at a fraction of the cost of
+     * [detect]; it cannot land a square off or turned, as the corners are matched within
+     * [TRACK_RADIUS] of a square. Null when the board is not where it was (the camera moved
+     * further, a hand covers the corners), and the caller searches afresh.
+     */
+    fun track(image: LumaImage, seed: List<Pt>, log: ((String) -> Unit)? = null): DetectedGrid? {
+        val seedGeo = try { BoardGeometry(seed) } catch (e: IllegalArgumentException) { return null }
+        val square = (0 until 4).map { i -> val p = seed[i]; val q = seed[(i + 1) % 4]; hypot(p.x - q.x, p.y - q.y) }.average() / 8
+        // x-corners are looked for around the board only
+        val x0 = (seed.minOf { it.x } - square).toInt().coerceIn(0, image.width - 1)
+        val y0 = (seed.minOf { it.y } - square).toInt().coerceIn(0, image.height - 1)
+        val x1 = (seed.maxOf { it.x } + square).toInt().coerceIn(x0 + 1, image.width)
+        val y1 = (seed.maxOf { it.y } + square).toInt().coerceIn(y0 + 1, image.height)
+        val crop = CropLumaImage(image, x0, y0, x1 - x0, y1 - y0)
+        val saddles = BoardFinder.saddlePoints(crop, 200).map { Pt(it.x + x0, it.y + y0) }
+        val corners = snapToCorners(image, seed, saddles, TRACK_RADII) ?: return null
+        val geometry = try { BoardGeometry(corners) } catch (e: IllegalArgumentException) { return null }
+        val support = latticeSupport(geometry, saddles)
+        if (support < 0.3) { log?.invoke("tracked grid has too few corners on x-corners: %.2f".format(support)); return null }
+        val checker = checkerScore(image, geometry)
+        if (checker < 0.3) { log?.invoke("tracked grid does not alternate: %.2f".format(checker)); return null }
+        // the refinement orders the corners afresh: measured in the rotation that matches the seed
+        val moved = (0 until 4).minOf { rot -> seed.indices.maxOf { i -> val c = corners[(i + rot) % 4]; hypot(c.x - seed[i].x, c.y - seed[i].y) } } / square
+        log?.invoke("tracked: moved %.2f squares, checker %.2f, corners %.2f".format(moved, checker, support))
+        return DetectedGrid(corners, 18, checker, emptyList(), "tracked, checker %.2f, corners %.2f".format(checker, support), support, moved)
+    }
+
+    /** How far, in squares, a tracked grid may move between two frames: the matching radii of its refinement. */
+    private val TRACK_RADII = doubleArrayOf(0.3, 0.2, 0.15)
+
     private fun rectifyAndRedetect(image: LumaImage, seed: DetectedGrid, log: ((String) -> Unit)?): DetectedGrid? {
         val geo = try { BoardGeometry(seed.corners) } catch (e: IllegalArgumentException) { return null }
         val scale = WARP_SIZE / (8 + 2 * WARP_MARGIN)
-        val data = IntArray(WARP_SIZE * WARP_SIZE)
-        for (v in 0 until WARP_SIZE) for (u in 0 until WARP_SIZE) {
-            val p = geo.toImage(u / scale - WARP_MARGIN, v / scale - WARP_MARGIN)
-            data[v * WARP_SIZE + u] = bilinear(image, p.x, p.y)
-        }
-        val warped = ArrayLumaImage(WARP_SIZE, WARP_SIZE, data)
+        val warped = rectify(image, geo, WARP_SIZE)
         warpSink?.invoke(warped)
         log?.invoke("rectified view: looking again")
         val axis = axisAlignedGrid(warped, scale, log)
@@ -294,10 +334,12 @@ object GridDetector {
      * fitted to the matches by least squares, a few times over. A grid whose spacing or skew is
      * off by less than half a square converges onto the true one.
      */
-    private fun snapToCorners(image: LumaImage, corners: List<Pt>, saddles: List<Pt>): List<Pt>? {
+    private val SNAP_RADII = doubleArrayOf(0.45, 0.35, 0.25, 0.2, 0.15)
+
+    private fun snapToCorners(image: LumaImage, corners: List<Pt>, saddles: List<Pt>, radii: DoubleArray = SNAP_RADII): List<Pt>? {
         if (saddles.size < 8) return null
         var current = corners
-        for (radius in doubleArrayOf(0.45, 0.35, 0.25, 0.2, 0.15)) {
+        for (radius in radii) {
             val geometry = try { BoardGeometry(current) } catch (e: IllegalArgumentException) { return null }
             val src = ArrayList<Pt>()
             val dst = ArrayList<Pt>()

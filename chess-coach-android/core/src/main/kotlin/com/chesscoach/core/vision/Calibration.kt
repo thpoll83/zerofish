@@ -13,6 +13,37 @@ data class SquareObservation(val occupied: Double, val white: Double, val occFra
 }
 
 /**
+ * What each square looked like the last time it was known to be empty, as sampled through the
+ * locked grid: luma, gradient and chroma patches. A square compared with its own empty picture
+ * differs only where something stands on it; its wood grain, print and shadow cancel exactly,
+ * which the shade-wide template cannot do. A square occupied from the start has no picture until
+ * it is vacated, but every square a piece arrives on was empty just before.
+ */
+class SquareTemplates {
+    val luma = arrayOfNulls<IntArray>(64)
+    val gradient = arrayOfNulls<IntArray>(64)
+    val u = arrayOfNulls<IntArray>(64)
+    val v = arrayOfNulls<IntArray>(64)
+
+    fun has(sq: Int) = luma[sq] != null
+
+    /** Records or refreshes a square's empty picture; a refresh blends in [blend] of the new one. */
+    fun remember(sq: Int, lumaPatch: IntArray, gradientPatch: IntArray, uPatch: IntArray?, vPatch: IntArray?, blend: Double) {
+        luma[sq] = mix(luma[sq], lumaPatch, blend)
+        gradient[sq] = mix(gradient[sq], gradientPatch, blend)
+        u[sq] = uPatch?.let { mix(u[sq], it, blend) }
+        v[sq] = vPatch?.let { mix(v[sq], it, blend) }
+    }
+
+    fun clear() {
+        for (i in 0 until 64) { luma[i] = null; gradient[i] = null; u[i] = null; v[i] = null }
+    }
+
+    private fun mix(old: IntArray?, new: IntArray, blend: Double): IntArray =
+        if (old == null || old.size != new.size) new.copyOf() else IntArray(new.size) { (old[it] + blend * (new[it] - old[it])).toInt() }
+}
+
+/**
  * Per-square features that do not depend on a fixed camera: see [SquareFeatures.extract].
  * [occFraction] and [colourScore] come from luma (texture and brightness); [chromaFraction],
  * [chromaDu] and [chromaDv] from the colour planes when the frame carries them, else null.
@@ -40,6 +71,8 @@ class SquareFeatures(
             vPatches: Array<IntArray>? = null,
             /** The position the board is believed to hold (0 empty, else a piece), when known. */
             expectedOccupancy: IntArray? = null,
+            /** Each square's own empty picture where one is known; it replaces the shade template there. */
+            own: SquareTemplates? = null,
         ): SquareFeatures {
             val n = patches[0].size
             val templates = Array(2) { shade ->
@@ -60,7 +93,8 @@ class SquareFeatures(
             val d = DoubleArray(n)
             val pieceLum = ArrayList<Int>(n)
             for (sq in 0 until 64) {
-                val t = templates[if (Square.isLight(sq)) 1 else 0]
+                val ownLuma = own?.luma?.get(sq)?.takeIf { it.size == n }
+                val t = ownLuma ?: templates[if (Square.isLight(sq)) 1 else 0]
                 val patch = patches[sq]
                 for (p in 0 until n) d[p] = (patch[p] - t[p]).toDouble()
                 // Illumination offset from the pixels that still look like board (|d| small), so a
@@ -80,9 +114,11 @@ class SquareFeatures(
                 var edgeFraction = 0.0
                 if (gradients != null) {
                     val g = gradients[sq]
+                    // against the square's own empty picture, only edges it did not have count
+                    val g0 = own?.gradient?.get(sq)?.takeIf { it.size == n }
                     val edgeTau = 0.2 * toneDiff
                     var edges = 0
-                    for (p in 0 until n) if (g[p] > edgeTau) edges++
+                    for (p in 0 until n) if (g[p] - (g0?.get(p) ?: 0) > edgeTau) edges++
                     edgeFraction = edges.toDouble() / n
                 }
                 occ[sq] = maxOf(changed.toDouble() / n, minOf(1.0, 2.5 * edgeFraction))
@@ -97,7 +133,7 @@ class SquareFeatures(
                 col[sq] = (lum - toneDark) / toneDiff - 0.5
             }
             if (uPatches == null || vPatches == null) return SquareFeatures(occ, col)
-            return withChroma(occ, col, uPatches, vPatches, expectedOccupancy)
+            return withChroma(occ, col, uPatches, vPatches, expectedOccupancy, own)
         }
 
         /**
@@ -108,7 +144,7 @@ class SquareFeatures(
          * in chroma while a piece of another hue does not. The mean chroma offset of the pixels
          * that differ says which way the piece's colour lies, for telling white from black.
          */
-        private fun withChroma(occ: DoubleArray, col: DoubleArray, uPatches: Array<IntArray>, vPatches: Array<IntArray>, expected: IntArray?): SquareFeatures {
+        private fun withChroma(occ: DoubleArray, col: DoubleArray, uPatches: Array<IntArray>, vPatches: Array<IntArray>, expected: IntArray?, own: SquareTemplates?): SquareFeatures {
             val n = uPatches[0].size
             val templates = Array(2) { shade ->
                 val squares = (0 until 64).filter { (if (Square.isLight(it)) 1 else 0) == shade }
@@ -129,10 +165,21 @@ class SquareFeatures(
                 medV[sq] = median(IntArray(n) { p -> vPatches[sq][p] - tv[p] })
             }
             val tintU = fitPlanes(medU, expected); val tintV = fitPlanes(medV, expected)
-            // distances of every pixel of every square from its shade's template, tint removed
+            // distances of every pixel of every square from its shade's template, tint removed; a
+            // square with its own empty picture is measured against that instead, with the
+            // median offset of its pixels removed (the light may have changed since)
+            val ownU = Array(64) { sq -> own?.u?.get(sq)?.takeIf { it.size == n } }
+            val ownV = Array(64) { sq -> own?.v?.get(sq)?.takeIf { it.size == n } }
             val dist = Array(64) { sq ->
-                val (tu, tv) = templates[if (Square.isLight(sq)) 1 else 0]
-                DoubleArray(n) { p -> val du = uPatches[sq][p] - tu[p] - tintU[sq]; val dv = vPatches[sq][p] - tv[p] - tintV[sq]; kotlin.math.sqrt(du * du + dv * dv) }
+                val ou = ownU[sq]; val ov = ownV[sq]
+                if (ou != null && ov != null) {
+                    val offU = median(IntArray(n) { p -> uPatches[sq][p] - ou[p] })
+                    val offV = median(IntArray(n) { p -> vPatches[sq][p] - ov[p] })
+                    DoubleArray(n) { p -> val du = uPatches[sq][p] - ou[p] - offU; val dv = vPatches[sq][p] - ov[p] - offV; kotlin.math.sqrt(du * du + dv * dv) }
+                } else {
+                    val (tu, tv) = templates[if (Square.isLight(sq)) 1 else 0]
+                    DoubleArray(n) { p -> val du = uPatches[sq][p] - tu[p] - tintU[sq]; val dv = vPatches[sq][p] - tv[p] - tintV[sq]; kotlin.math.sqrt(du * du + dv * dv) }
+                }
             }
             // The board's own chroma noise per shade: the median distance over all its pixels
             // (pieces cover less than half of them). A piece is a pixel well beyond that.

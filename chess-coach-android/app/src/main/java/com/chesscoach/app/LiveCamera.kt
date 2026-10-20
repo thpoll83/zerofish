@@ -83,7 +83,7 @@ fun LiveCameraView(
     onFrame: (LumaImage) -> Unit,
     arrows: List<MoveArrow> = emptyList(),
     onSquareTap: ((Int) -> Unit)? = null,
-    minIntervalMs: Long = 250,
+    minIntervalMs: Long = 200,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current

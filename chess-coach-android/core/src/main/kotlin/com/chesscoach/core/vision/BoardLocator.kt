@@ -9,6 +9,9 @@ class Located(
     val features: SquareFeatures,
     val observations: Array<SquareObservation>,
     val rotation: Int,
+    val gradients: Array<IntArray>,
+    val uPatches: Array<IntArray>?,
+    val vPatches: Array<IntArray>?,
 )
 
 /**
@@ -24,6 +27,8 @@ object BoardLocator {
         expectedOccupancy: IntArray?,
         previousRotation: Int?,
         allowRotation: Boolean = true,
+        /** Each square's own empty picture where known (only valid with a locked grid, so only without rotation). */
+        templates: SquareTemplates? = null,
     ): Located {
         val rotations = if (allowRotation) listOf(0, 1, 2, 3) else listOf(0)
         val candidates = rotations.mapNotNull { rot ->
@@ -35,11 +40,10 @@ object BoardLocator {
             }
             val patches = SquareSampler.sample(image, g)
             val colour = image as? YuvImage
-            val features = SquareFeatures.extract(
-                patches, SquareSampler.sampleGradient(image, g),
-                colour?.let { SquareSampler.sample(it.uView, g) }, colour?.let { SquareSampler.sample(it.vView, g) },
-                expectedOccupancy,
-            )
+            val gradients = SquareSampler.sampleGradient(image, g)
+            val uPatches = colour?.let { SquareSampler.sample(it.uView, g) }
+            val vPatches = colour?.let { SquareSampler.sample(it.vView, g) }
+            val features = SquareFeatures.extract(patches, gradients, uPatches, vPatches, expectedOccupancy, if (allowRotation) null else templates)
             val obs = calibration.observe(features)
             // a1 is dark: squares with even file+rank must be the darker group.
             var dark = 0.0
@@ -60,7 +64,7 @@ object BoardLocator {
                 if (whites.isNotEmpty() && blacks.isNotEmpty()) cost -= 16.0 * (whites.average() - blacks.average())
             }
             if (previousRotation != null && rot == previousRotation) cost -= 1.0
-            Located(g, patches, features, obs, rot) to cost
+            Located(g, patches, features, obs, rot, gradients, uPatches, vPatches) to cost
         }
         require(candidates.isNotEmpty()) { "No valid orientation" }
         return candidates.minByOrNull { it.second }!!.first

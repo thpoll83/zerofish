@@ -76,20 +76,37 @@ class LiveTracker(
 
     /**
      * The board's corners (a1, h1, h8, a8) as verified by the starting position. The grid
-     * finder works afresh on every frame, and on a board whose frame matches its dark squares
-     * it lands a square off or turned by a quarter now and then; such a grid reads a move that
-     * was not played. Once locked, a detection within [lockTolerance] squares of the lock only
-     * nudges it (the camera drifts slowly on a stand), one further away is ignored, and only
-     * [framesToRelock] such frames in a row (the camera moved) make the detection the new lock.
-     * A frame without any grid is read through the lock for up to [framesWithoutGrid] frames.
+     * finder, working afresh, lands a square off or turned by a quarter now and then on a board
+     * whose frame matches its dark squares, and such a grid reads a move that was not played.
+     * Once locked, each frame first looks for the board where it was ([GridDetector.track]:
+     * the lock pulled onto the x-corners around it, which follows the few pixels a touch moves
+     * the phone by and cannot land a square off); as long as that succeeds the board has not
+     * moved, and the lock follows it by [lockFollow] of the difference. Only when it fails
+     * (the camera moved further, a hand covers the corners) does the full search run. A found
+     * grid within [lockTolerance] squares of the lock nudges it; one further away puts the
+     * grid in dispute: the frame is still read through the lock, but nothing it shows is
+     * applied or remembered, and when the same new grid (within the tolerance of itself) is
+     * seen [framesToRelock] frames in a row while the board is not seen at the lock, the
+     * camera was moved and it becomes the lock. The orientation is never chosen again: a board
+     * does not turn by a quarter between two frames, and the grid's corners are matched to the
+     * lock's by the rotation that fits best. A frame without any grid is read through the lock
+     * for up to [framesWithoutGrid] frames.
      */
     private var locked: List<Pt>? = null
+    private var awayCandidate: List<Pt>? = null
+
+    /** Each square's own empty picture, gathered on quiet frames through the locked grid. */
+    private val templates = SquareTemplates()
+    private val templateBlend = 0.3
     private var awayFrames = 0
     private var missingFrames = 0
     private val lockTolerance = 0.35
-    private val framesToRelock = 6
+    private val framesToRelock = 3
     private val framesWithoutGrid = 8
     private val lockFollow = 0.2
+
+    /** True while a detection elsewhere disputes the lock: the frame's reading settles nothing. */
+    private var disputed = false
 
     /**
      * The square readings of the last stable frame, blended into each new frame's readings: a
@@ -270,8 +287,10 @@ class LiveTracker(
         calibration = null
         projection = null
         locked = null
+        awayCandidate = null
         awayFrames = 0
         missingFrames = 0
+        templates.clear()
         learnStreak = 0
         startConfirmed = false
         previousPatches = null
@@ -280,48 +299,84 @@ class LiveTracker(
     }
 
     fun process(image: LumaImage): FrameResult {
+        val lock = locked
+        if (phase == Phase.TRACKING && lock != null) {
+            // the board where it was: most frames end here, at a fraction of a search's cost
+            val tracked = GridDetector.track(image, lock)
+            if (tracked != null && !disputed) return track(image, null, tracked)
+            return track(image, GridDetector.detect(image, debugLines = false), tracked)
+        }
         val grid = GridDetector.detect(image, debugLines = false)
         return when (phase) {
             Phase.LEARNING -> if (grid == null) FrameResult(Status.NO_BOARD, null, null, null, 0, emptyList(), "Looking for the board") else learn(image, grid)
-            Phase.TRACKING -> track(image, grid)
+            Phase.TRACKING -> track(image, grid, null)
         }
     }
 
     /**
      * The corners to read this frame through, and whether the orientation may be chosen anew:
-     * the lock, nudged towards a detection that agrees with it, or the detection itself when
-     * there is no lock or the camera has moved. Null when there is nothing to read.
+     * the lock, following the board [tracked] at it or nudged towards a found [grid] that
+     * agrees with it, or the grid itself when there is no lock or the camera has moved. Null
+     * when there is nothing to read.
      */
-    private fun cornersForFrame(grid: DetectedGrid?): Pair<List<Pt>, Boolean>? {
+    private fun cornersForFrame(grid: DetectedGrid?, tracked: DetectedGrid?): Pair<List<Pt>, Boolean>? {
         val lock = locked
+        disputed = false
         if (lock == null) return grid?.let { it.corners to true }
+        if (tracked != null) {
+            // the board is still where it was: whatever a search found elsewhere was a slip
+            missingFrames = 0
+            awayFrames = 0
+            awayCandidate = null
+            return follow(lock, alignTo(tracked.corners, lock).first) to false
+        }
         if (grid == null) {
             missingFrames++
-            if (missingFrames > framesWithoutGrid) { locked = null; return null }
+            if (missingFrames > framesWithoutGrid) { locked = null; templates.clear(); return null }
             return lock to false
         }
         missingFrames = 0
-        val square = (0 until 4).map { i -> val p = lock[i]; val q = lock[(i + 1) % 4]; hypot(p.x - q.x, p.y - q.y) }.average() / 8
-        // the detection's corners come in an arbitrary rotation: match them to the lock
+        val square = squareSize(lock)
+        val (aligned, dist) = alignTo(grid.corners, lock)
+        disputed = dist > lockTolerance * square
+        if (!disputed) {
+            awayFrames = 0
+            awayCandidate = null
+            return follow(lock, aligned) to false
+        }
+        // A grid elsewhere: counted only while it is the same grid frame after frame.
+        val candidate = awayCandidate
+        if (candidate != null && alignTo(aligned, candidate).second <= lockTolerance * square) awayFrames++ else { awayCandidate = aligned; awayFrames = 1 }
+        if (awayFrames >= framesToRelock) {
+            awayFrames = 0
+            awayCandidate = null
+            disputed = false
+            locked = aligned  // in the lock's orientation: the board has not turned
+            templates.clear() // the squares are sampled elsewhere now
+            return aligned to false
+        }
+        return lock to false
+    }
+
+    /** The lock moved by [lockFollow] of the way towards [target] (in the lock's corner order), which becomes the lock. */
+    private fun follow(lock: List<Pt>, target: List<Pt>): List<Pt> {
+        val nudged = List(4) { i -> Pt(lock[i].x + lockFollow * (target[i].x - lock[i].x), lock[i].y + lockFollow * (target[i].y - lock[i].y)) }
+        locked = nudged
+        return nudged
+    }
+
+    private fun squareSize(corners: List<Pt>): Double =
+        (0 until 4).map { i -> val p = corners[i]; val q = corners[(i + 1) % 4]; hypot(p.x - q.x, p.y - q.y) }.average() / 8
+
+    /** [corners] rotated cyclically to match [reference] best, with the largest corner distance that remains. */
+    private fun alignTo(corners: List<Pt>, reference: List<Pt>): Pair<List<Pt>, Double> {
         var bestRot = 0
         var bestDist = Double.MAX_VALUE
         for (rot in 0 until 4) {
-            val d = (0 until 4).maxOf { i -> val p = grid.corners[(i + rot) % 4]; hypot(p.x - lock[i].x, p.y - lock[i].y) }
+            val d = (0 until 4).maxOf { i -> val p = corners[(i + rot) % 4]; hypot(p.x - reference[i].x, p.y - reference[i].y) }
             if (d < bestDist) { bestDist = d; bestRot = rot }
         }
-        if (bestDist <= lockTolerance * square) {
-            awayFrames = 0
-            val nudged = List(4) { i -> val p = grid.corners[(i + bestRot) % 4]; Pt(lock[i].x + lockFollow * (p.x - lock[i].x), lock[i].y + lockFollow * (p.y - lock[i].y)) }
-            locked = nudged
-            return nudged to false
-        }
-        awayFrames++
-        if (awayFrames >= framesToRelock) {
-            awayFrames = 0
-            locked = null
-            return grid.corners to true
-        }
-        return lock to false
+        return List(4) { i -> corners[(i + bestRot) % 4] } to bestDist
     }
 
     /** The frame as the pieces are read: through the colour shift when one was chosen. */
@@ -380,6 +435,7 @@ class LiveTracker(
         locked = located.geometry.corners
         awayFrames = 0
         missingFrames = 0
+        templates.clear()
         resetPending()
         val obs = cal.observe(f)
         usualUnsure = obs.count { it.unsure }.toDouble()
@@ -387,12 +443,18 @@ class LiveTracker(
         return FrameResult(Status.LEARNED, located.geometry, obs, null, 0, emptyList(), "Ready. Play on the board.", quality = q)
     }
 
-    private fun track(image: LumaImage, grid: DetectedGrid?): FrameResult {
+    private fun track(image: LumaImage, grid: DetectedGrid?, tracked: DetectedGrid?): FrameResult {
         val cal = calibration ?: return FrameResult(Status.NO_BOARD, null, null, null, 0, emptyList(), "No calibration")
-        val (corners, allowRotation) = cornersForFrame(grid)
+        val (corners, allowRotation) = cornersForFrame(grid, tracked)
             ?: return FrameResult(Status.NO_BOARD, null, null, null, 0, emptyList(), "Looking for the board")
-        val located = BoardLocator.locate(view(image), corners, cal, board.occupancy(), rotation, allowRotation)
+        val located = BoardLocator.locate(view(image), corners, cal, board.occupancy(), rotation, allowRotation, templates)
         if (locked == null) locked = located.geometry.corners
+        if (disputed) {
+            // the grid finder sees the board elsewhere: until that is settled, this frame counts
+            // for nothing, like a hand over the board
+            smoothed = null
+            return FrameResult(Status.UNSTABLE, located.geometry, located.observations, null, pendingCount, emptyList(), "Hold still, the board moved")
+        }
         val raw = located.observations
         val unsure = raw.count { it.unsure }
         if (unsure > maxOf(14.0, usualUnsure + unsureSlack)) {
@@ -420,7 +482,22 @@ class LiveTracker(
             // unexplained period; a single one (a bad frame) keeps the offers on the screen.
             quiet++
             // only settled frames define the baseline: a weakly seen move would otherwise raise it
-            if (unsettled == 0) noMove?.let { noteQuiet(it.cost); usualCost = 0.9 * usualCost + 0.1 * it.cost }
+            if (unsettled == 0) {
+                noMove?.let { noteQuiet(it.cost); usualCost = 0.9 * usualCost + 0.1 * it.cost }
+                // and only settled frames show the empty squares as they are: remember them.
+                // Only squares with nothing in front of them: the body of a piece in front would
+                // go into the picture, and the square would read as occupied once that piece
+                // moved away, which is just when the move needs it read right. And only squares
+                // that read empty now: a piece the tracker has not yet seen on a square must not
+                // be blended into that square's empty picture, or it would never be seen.
+                if (!allowRotation) {
+                    val occupancy = board.occupancy()
+                    val side = located.geometry.nearSide
+                    for (sq in 0 until 64) if (occupancy[sq] == 0 && raw[sq].occupied < 0.2 && MoveInference.reliability(occupancy, sq, side) >= 1.0) {
+                        templates.remember(sq, located.patches[sq], located.gradients[sq], located.uPatches?.get(sq), located.vPatches?.get(sq), templateBlend)
+                    }
+                }
+            }
             if (quiet >= quietFramesToSettle) resetPending()
             val asking = unsettled >= framesBeforeAsking && offers.isNotEmpty()
             return if (asking) FrameResult(Status.AMBIGUOUS, located.geometry, obs, best, pendingCount, emptyList(), "Not sure what was played. Tap the right one, or type it.", suggestions(), candidates = result.candidates)
