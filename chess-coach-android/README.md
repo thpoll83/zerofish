@@ -157,10 +157,13 @@ turns a wrongly applied Qg4 into a question and leaves every pawn's double step 
 A move is confirmed by three frames in a row that read it best, each leading the first real
 alternative by 0.3; an explanation that is the best one with a further move appended ("b3
 Ng8" against "b3", the second ply a ghost from a flickering square) is no alternative, as it
-agrees about b3. A frame with something in motion over the board (more than five squares
-changed since the frame before: a hand carrying a piece moves six to ten, a settled board
-none to two) counts for nothing towards the three; a queen on its way to d4 read as "e5 d5"
-for three frames in a row before that.
+agrees about b3. A move is applied only on a still frame: one with at most five squares
+changed since the frame before (a hand carrying a piece moves six to ten, a settled board
+none to two). Frames in flight still count towards the three, since in a fast game the move
+is confirmed on the first still frame after the hand and a frame lost there leaves the
+tracker a move behind; a queen on its way to d4 read as "e5 d5" for three frames in a row
+before that. Measured both ways, with taps only when asked and with taps six frames after an
+offer shows: video 1 follows 14 moves by itself and 4 by a tap, or 11 and 7, with none wrong.
 
 The offers are single moves, the first move of each explanation, since the user confirms one
 move at a time and the next is read from the new position; and they stay until a move is

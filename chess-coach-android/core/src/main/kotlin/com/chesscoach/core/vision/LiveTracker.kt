@@ -534,8 +534,11 @@ class LiveTracker(
         val obs = smooth(raw)
         // Squares that changed since the last frame: a hand carrying a piece moves six to ten of
         // them between two frames, a settled board none to two (handheld jitter). A frame with
-        // a hand in flight counts for nothing towards confirming a move: a queen on its way to
-        // d4 read as "e5 d5" for three frames in a row.
+        // a hand in flight may agree with the frames before, but a move is applied only on a
+        // still frame: a queen on its way to d4 read as "e5 d5" for three frames in a row.
+        // (Frames in flight must still count towards the agreement: in a fast game the move
+        // is confirmed on the first still frame after the hand, and a frame lost there leaves
+        // the tracker a move behind.)
         val moving = lastPatches?.let { prev -> ChangeDetector.scores(prev, located.patches).count { it > 0.5 } > maxMovingSquares } ?: false
         lastPatches = located.patches
         lastRotation = located.rotation
@@ -608,14 +611,14 @@ class LiveTracker(
             c !== best && c.cost - best.cost < twinMargin && coverTwins(best, c, located.geometry) && farTwin(best, c, located.geometry) &&
                 obs[nearSquare(best, c)].occupied >= 0.5
         }
-        if (margin >= applyMargin && !moving && !blockedByTwin) {
+        if (margin >= applyMargin && !blockedByTwin) {
             if (best.moves == pending) pendingCount++ else {
                 pending = best.moves; pendingCount = 1
             }
             // the remembered baseline is from the position before the move: a looser fit
             val base = baseline()
             val fits = base == null || best.cost <= base + applySlack
-            if (pendingCount >= framesToConfirm && fits) {
+            if (pendingCount >= framesToConfirm && fits && !moving) {
                 val applied = pending
                 val before = board
                 for (m in applied) board = board.play(m)
