@@ -38,6 +38,6 @@ cream squares, a red frame, and brown and yellow plastic pieces, on a dinner tab
 red_2 in the middle of a game from a low angle across the table, cropped so that no person is in
 them; red_3 after 1.e4 d6 2.d3 e5 3.Nc3 from White's seat (position known from the moves);
 red_4 the starting position from a low seat behind White, the learned frame of the app's own
-debug log, cropped to the board.
+debug log, cropped to the board; red_5 the same seat and log a few seconds later, after 1.e4.
 In grayscale the brown pieces are as dark as the red squares and the yellow pieces as light as
 the cream ones, which makes it the hardest board of the set to read.

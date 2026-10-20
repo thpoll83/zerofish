@@ -105,14 +105,7 @@ class SquareFeatures(
                 // Illumination offset from the pixels that still look like board (|d| small), so a
                 // piece covering most of the window cannot pull the reference towards itself.
                 val boardLike = d.filter { kotlin.math.abs(it) < tau }
-                val offset = if (boardLike.size >= n / 5) median(boardLike.toDoubleArray()).coerceIn(-0.1 * toneDiff, 0.1 * toneDiff) else 0.0
-                var changed = 0
-                pieceLum.clear()
-                for (p in 0 until n) {
-                    val v = d[p] - offset
-                    if (kotlin.math.abs(v) > tau) changed++
-                    if (kotlin.math.abs(v) > 0.5 * tau) pieceLum.add(patch[p])
-                }
+                var offset = if (boardLike.size >= n / 5) median(boardLike.toDoubleArray()).coerceIn(-0.1 * toneDiff, 0.1 * toneDiff) else 0.0
                 // Texture: a piece brings edges (outline, highlights) even when its tone matches the
                 // square, as a black piece on a dark square does. Empty squares are smooth. The
                 // gradient is measured in the image, which still works for squares a few pixels tall.
@@ -126,6 +119,22 @@ class SquareFeatures(
                     for (p in 0 until n) if (g[p] - (g0?.get(p) ?: 0) > edgeTau) edges++
                     edgeFraction = edges.toDouble() / n
                 }
+                var changed = 0
+                for (p in 0 until n) if (kotlin.math.abs(d[p] - offset) > tau) changed++
+                // A square nearest the camera catches the light and is brighter than its shade's
+                // template by more than a piece is allowed to shift it, all over and without a
+                // single edge in it. That is a reflection, not a piece: a piece brings edges, and
+                // a dark piece cannot brighten a square. The whole shift is then taken as lighting.
+                if (gradients != null && edgeFraction < 0.02 && changed > n / 2) {
+                    val full = median(d)
+                    if (full > tau) {
+                        var still = 0
+                        for (p in 0 until n) if (kotlin.math.abs(d[p] - full) > tau) still++
+                        if (still <= n / 5) { offset = full; changed = still }
+                    }
+                }
+                pieceLum.clear()
+                for (p in 0 until n) if (kotlin.math.abs(d[p] - offset) > 0.5 * tau) pieceLum.add(patch[p])
                 tone[sq] = changed.toDouble() / n
                 edge[sq] = edgeFraction
                 occ[sq] = maxOf(tone[sq], minOf(1.0, 2.5 * edgeFraction))

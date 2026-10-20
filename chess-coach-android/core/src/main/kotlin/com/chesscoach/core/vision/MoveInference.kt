@@ -33,17 +33,23 @@ object MoveInference {
         obs: Array<SquareObservation>,
         nearSide: NearSide = NearSide.NONE,
         occluders: IntArray = expectedOccupancy,
+        /** The pieces' heights (see [Board.heights]) in the two positions, when known: a king hides far more than a pawn. */
+        occluderHeights: IntArray? = null,
+        expectedHeights: IntArray? = occluderHeights,
     ): Double {
         var total = 0.0
         for (sq in 0 until 64) {
             val o = obs[sq]
             // a square hidden behind a piece in either the old or the new position counts less;
             // taking the minimum keeps a candidate from buying credibility with its own pieces
-            val w = minOf(reliability(occluders, sq, nearSide), reliability(expectedOccupancy, sq, nearSide))
+            val w = minOf(reliability(occluders, sq, nearSide, occluderHeights), reliability(expectedOccupancy, sq, nearSide, expectedHeights))
+            // A body in front can only make a square read as occupied, never as empty: an
+            // "occupied" reading behind a piece counts less, an "empty" reading counts in full
+            // (a vacated square behind the king is still plainly bare when it reads so).
             when (expectedOccupancy[sq]) {
                 0 -> total += w * o.occupied
-                1 -> total += w * ((1 - o.occupied) + o.occupied * (1 - o.white))
-                else -> total += w * ((1 - o.occupied) + o.occupied * o.white)
+                1 -> total += (1 - o.occupied) + w * o.occupied * (1 - o.white)
+                else -> total += (1 - o.occupied) + w * o.occupied * o.white
             }
         }
         return total
@@ -52,13 +58,17 @@ object MoveInference {
     /**
      * How much to trust the camera's reading of [sq]: a piece standing between the square and the
      * camera hides part of it, so its reading counts less (0.5 when the next square towards the
-     * camera is occupied, 0.8 when only the one behind that is).
+     * camera is occupied, 0.8 when only the one behind that is). With [heights] known, a pawn in
+     * front hides less (0.6, and nothing two squares on) and a queen or king more (0.35 and
+     * 0.65): from a low seat the king's body fills e2 after e2-e4, and the vacated square's
+     * reading must count for little or the move is never seen.
      */
-    fun reliability(occupancy: IntArray, sq: Int, nearSide: NearSide): Double {
+    fun reliability(occupancy: IntArray, sq: Int, nearSide: NearSide, heights: IntArray? = null): Double {
         if (nearSide == NearSide.NONE) return 1.0
         val f = sq and 7
         val r = sq shr 3
         fun occ(ff: Int, rr: Int): Boolean = ff in 0..7 && rr in 0..7 && occupancy[rr * 8 + ff] != 0
+        fun height(ff: Int, rr: Int): Int = heights?.get(rr * 8 + ff) ?: 2
         val (df, dr) = when (nearSide) {
             NearSide.RANK_1 -> 0 to -1
             NearSide.RANK_8 -> 0 to 1
@@ -67,8 +77,8 @@ object MoveInference {
             NearSide.NONE -> 0 to 0
         }
         return when {
-            occ(f + df, r + dr) -> 0.5
-            occ(f + 2 * df, r + 2 * dr) -> 0.8
+            occ(f + df, r + dr) -> when (height(f + df, r + dr)) { 1 -> 0.6; 3 -> 0.35; else -> 0.5 }
+            occ(f + 2 * df, r + 2 * dr) -> when (height(f + 2 * df, r + 2 * dr)) { 1 -> 1.0; 3 -> 0.65; else -> 0.8 }
             else -> 1.0
         }
     }
@@ -98,16 +108,17 @@ object MoveInference {
     ): InferenceResult {
         val out = ArrayList<Candidate>()
         val base = board.occupancy()
-        fun total(after: IntArray, plies: Int): Double =
-            cost(after, obs, nearSide, base) + plies * PLY_PENALTY + (if (change != null) changeCost(base, after, change) else 0.0)
-        out.add(Candidate(emptyList(), total(base, 0), emptyList()))
+        val baseHeights = board.heights()
+        fun total(after: IntArray, afterHeights: IntArray, plies: Int): Double =
+            cost(after, obs, nearSide, base, baseHeights, afterHeights) + plies * PLY_PENALTY + (if (change != null) changeCost(base, after, change) else 0.0)
+        out.add(Candidate(emptyList(), total(base, baseHeights, 0), emptyList()))
         fun expand(b: Board, moves: List<Move>, sans: List<String>, depth: Int) {
             if (depth >= maxPlies) return
             for (m in b.legalMoves()) {
                 val next = b.play(m)
                 val ms = moves + m
                 val ss = sans + b.san(m)
-                out.add(Candidate(ms, total(next.occupancy(), ms.size), ss))
+                out.add(Candidate(ms, total(next.occupancy(), next.heights(), ms.size), ss))
                 expand(next, ms, ss, depth + 1)
             }
         }

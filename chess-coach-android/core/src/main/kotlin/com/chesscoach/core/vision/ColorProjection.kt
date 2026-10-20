@@ -80,15 +80,29 @@ class ColorProjection(val wy: Double, val wu: Double, val wv: Double, val centre
         private const val LUMA_FAILS_BELOW = 0.08
         private const val SHIFT_READS_FROM = 0.15
 
+        /**
+         * Luma that reads the position but leaves a square hidden behind a piece reading as
+         * clearly as a piece (a gap this far below zero) fits soft thresholds; it gives way to
+         * a channel in which every piece beats every hidden square, so that the thresholds fit
+         * clean. A near tie in luma is left alone: a channel that merely fitted a little
+         * cleaner on the learning frame lost a game on a wooden board.
+         */
+        private const val LUMA_UNCLEAN_BELOW = -0.05
+        private const val SHIFT_CLEAN_FROM = 0.0
+
         /** How a channel reads the board, judged as the tracker judges a starting position. */
-        class Reading(val occupancyMargin: Double, val colourMargin: Double) {
+        class Reading(val occupancyMargin: Double, val colourMargin: Double, val cleanGap: Double = 0.0) {
             /**
              * One number: pieces apart from empty squares first, white apart from black second.
              * The colour margin counts up to the level the tracker is comfortable with (0.6), so
              * a channel cannot buy a worse occupancy reading with ever more colour contrast.
              */
             val score: Double get() = occupancyMargin + 0.3 * colourMargin.coerceIn(-0.6, 0.6)
-            override fun toString() = "occupancy %.3f, colour %.3f".format(occupancyMargin, colourMargin)
+            /** Whether the thresholds would split pieces from every empty square, hidden ones included, on both shades (see [cleanGap]). */
+            val clean: Boolean get() = cleanGap >= SHIFT_CLEAN_FROM
+            /** Whether a hidden square reads as clearly as a piece, so the thresholds would be soft. */
+            val unclean: Boolean get() = cleanGap < LUMA_UNCLEAN_BELOW
+            override fun toString() = "occupancy %.3f, colour %.3f, clean gap %.3f".format(occupancyMargin, colourMargin, cleanGap)
         }
 
         /**
@@ -99,7 +113,25 @@ class ColorProjection(val wy: Double, val wu: Double, val wv: Double, val centre
         fun read(image: LumaImage, geometry: BoardGeometry, occupancy: IntArray): Reading {
             val located = BoardLocator.locate(image, geometry.corners, Calibration.default(), occupancy, 0, allowRotation = false)
             val m = Calibration.Margins.of(located.features, occupancy)
-            return Reading(m.occupancy, m.colour)
+            return Reading(m.occupancy, m.colour, cleanGap(located.features.occFraction, occupancy))
+        }
+
+        /**
+         * The smaller, over the two shades, of the gap between the weakest piece and the
+         * strongest empty square of the middle ranks, the squares hidden behind the pieces
+         * included: what [Calibration.learn] fits its thresholds on. Negative when a hidden
+         * square reads as a piece, which leaves the thresholds soft (see [Calibration.learn]).
+         */
+        private fun cleanGap(occ: DoubleArray, occupancy: IntArray): Double {
+            var gap = Double.MAX_VALUE
+            for (shade in 0..1) {
+                val squares = (0 until 64).filter { (if (Square.isLight(it)) 1 else 0) == shade }
+                val empties = squares.filter { occupancy[it] == 0 && Square.rank(it) in 2..5 }
+                val pieces = squares.filter { occupancy[it] != 0 }
+                if (empties.isEmpty() || pieces.isEmpty()) return 0.0
+                gap = minOf(gap, pieces.minOf { occ[it] } - empties.maxOf { occ[it] })
+            }
+            return gap
         }
 
         /**
@@ -114,13 +146,18 @@ class ColorProjection(val wy: Double, val wu: Double, val wv: Double, val centre
         fun choose(image: YuvImage, geometry: BoardGeometry, occupancy: IntArray, log: ((String) -> Unit)? = null): ColorProjection? {
             val luma = read(image, geometry, occupancy)
             log?.invoke("luma reads $luma")
-            if (luma.occupancyMargin >= LUMA_FAILS_BELOW) return null
+            // Luma that reads the position is kept unless it leaves a hidden square among the
+            // pieces (soft thresholds, see Calibration.learn); then it gives way only to a
+            // channel that reads clearly and fits clean thresholds by a clear gap.
+            if (luma.occupancyMargin >= LUMA_FAILS_BELOW && !luma.unclean) return null
+            val needClean = luma.occupancyMargin >= LUMA_FAILS_BELOW
             var best: ColorProjection? = null
-            var bestScore = maxOf(luma.score, SHIFT_READS_FROM)
+            var bestScore = if (needClean) SHIFT_READS_FROM else maxOf(luma.score, SHIFT_READS_FROM)
             for (d in directions) {
                 val p = normalised(image, geometry, occupancy, d) ?: continue
                 val r = read(p.apply(image), geometry, occupancy)
                 log?.invoke("$p reads $r")
+                if (needClean && !r.clean) continue
                 if (r.occupancyMargin >= SHIFT_READS_FROM && r.score > bestScore) { best = p; bestScore = r.score }
             }
             return best

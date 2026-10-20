@@ -511,7 +511,7 @@ class LiveTracker(
         resetPending()
         val obs = cal.observe(f)
         usualUnsure = obs.count { it.unsure }.toDouble()
-        usualCost = MoveInference.cost(board.occupancy(), obs, located.geometry.nearSide)
+        usualCost = MoveInference.cost(board.occupancy(), obs, located.geometry.nearSide, occluderHeights = board.heights())
         return FrameResult(Status.LEARNED, located.geometry, obs, null, 0, emptyList(), "Ready. Play on the board.", quality = q)
     }
 

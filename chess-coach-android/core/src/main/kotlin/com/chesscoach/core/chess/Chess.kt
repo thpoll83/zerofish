@@ -151,6 +151,16 @@ class Board private constructor(
 
     fun cellsCopy(): IntArray = cells.copyOf()
 
+    /** How tall the piece on each square is: 0 empty, 1 a pawn, 2 a knight, bishop or rook, 3 a queen or king. */
+    fun heights(): IntArray = IntArray(64) { sq ->
+        when (Piece.typeOf(cells[sq])) {
+            Piece.NONE -> 0
+            Piece.PAWN -> 1
+            Piece.QUEEN, Piece.KING -> 3
+            else -> 2
+        }
+    }
+
     /** 0 = empty, 1 = white piece, 2 = black piece, for each square. */
     fun occupancy(): IntArray = IntArray(64) { sq ->
         when {

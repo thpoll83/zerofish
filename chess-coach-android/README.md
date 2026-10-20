@@ -89,9 +89,14 @@ tracker therefore tries twelve channels made from luma and chroma (each chroma p
 their sums and differences with luma), reads the starting position through each with the square
 sampler, and keeps luma unless luma fails outright (pieces do not clear the empty squares) and a
 channel reads them clearly; a channel that merely read a little better on the learning frame
-lost a game on a wooden board under changing light. The chosen channel, normalised so that white
-pieces read brighter than black ones, is then what the pieces are read through for the whole
-game.
+lost a game on a wooden board under changing light. Luma that reads the position but leaves a
+square hidden behind a piece reading as clearly as a piece (by 0.05 or more) would fit soft
+thresholds, so it gives way to a channel in which every piece beats every hidden square, when
+one reads clearly; a near tie in luma is left alone, as on the second game video. On the red
+board from a low seat the squares behind the pawns read 0.94 to 0.99 in luma against pieces
+from 0.90, and 0.64 against 0.94 through the chosen channel. The chosen channel, normalised so
+that white pieces read brighter than black ones, is then what the pieces are read through for
+the whole game.
 
 Colour also enters the square features themselves. Besides the luma cues (texture and brightness
 of the pixels that differ from the empty-square template), every square gets a colour distance:
@@ -235,9 +240,23 @@ Each square is sampled through the homography on the half facing away from the c
 the piece in front hides least. An "empty square" template per shade is built from the photo
 itself as the per-pixel median over the 32 squares of that shade (pieces never cover more than
 half of them at any pixel). The fraction of pixels that differ from the template gives occupancy;
-whether they are brighter or darker gives the piece colour. Squares with a piece standing between
-them and the camera are weighted down, and squares that changed since the last scan support the
-candidate move that touches them.
+whether they are brighter or darker gives the piece colour. A square brighter than its shade's
+template all over, by more than a piece is allowed to shift it, and without a single edge in it,
+is a square catching the light, not a piece (a piece brings edges, and a dark piece cannot
+brighten a square): the whole shift is taken as lighting and the square reads empty. That is
+the square nearest the camera on the game video (d1, 0.89 by tone and no edges once the queen
+had left) and two squares of the third rank on the red board, which had made luma fail there.
+Squares with a piece standing between them and the camera are weighted down, and squares that
+changed since the last scan support the candidate move that touches them.
+
+How much a hidden square's reading counts depends on what hides it: behind a pawn it keeps
+0.6 of its weight (and all of it two squares on), behind a knight, bishop or rook 0.5 (0.8),
+behind a queen or king 0.35 (0.65); the weight is the lower of the two positions a candidate
+compares, so a candidate cannot buy credibility with its own pieces. Only an "occupied" reading
+is discounted that way: a body in front can make a square read as occupied, never as empty, so
+a square expected to hold a piece and reading bare counts in full. From a low seat behind White
+the king's body fills e2 after 1.e4, and the move is read from the pawn on e4 and the bare
+e3; with e2 trusted the first move of the red-board game was never seen.
 
 One cue reads first (luma: pixels of another tone, or edges, whichever says more), and where
 that fails on a shade, the larger of the luma and the colour reading per square is tried
@@ -252,11 +271,8 @@ pieces' edges reach 0.1 (flat test pieces at 0.06 fitted a threshold so low that
 square's jitter passed for a piece). When the first reading is
 unsure (between 0.3 and 0.7), the confident backups decide if they agree; when it is confident
 and a trusted backup contradicts it, the square keeps its side but weakly (0.4 or 0.6), so the
-move search leans on the other squares. The square nearest the camera is lit brighter than the
-shade's typical square by more than a piece's tolerance, so empty d1 read as a white piece by
-tone after the queen had left, while its edges said empty; with the backup heard the queen's
-move is found. A black piece on a dark square is the mirror case, empty by tone and a piece by
-edges.
+move search leans on the other squares. A black piece on a dark square is empty by tone and a
+piece by edges.
 
 Tips: even light without hard shadows, a matte board, and an angle of 40 degrees or steeper.
 At low angles tall pieces hide the squares behind them; the confirm screen then lists alternatives.

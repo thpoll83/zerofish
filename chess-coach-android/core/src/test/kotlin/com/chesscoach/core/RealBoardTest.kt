@@ -2,6 +2,7 @@ package com.chesscoach.core
 
 import com.chesscoach.core.chess.Board
 import com.chesscoach.core.chess.Square
+import com.chesscoach.core.vision.LiveTracker
 import com.chesscoach.core.vision.LumaImage
 import com.chesscoach.core.vision.BoardLocator
 import com.chesscoach.core.vision.Calibration
@@ -10,6 +11,7 @@ import com.chesscoach.core.vision.Pt
 import javax.imageio.ImageIO
 import kotlin.math.hypot
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -207,6 +209,32 @@ class RealBoardTest {
             if (wrong.size > maxWrong) problems += "$name: ${wrong.size} squares misread (allowed $maxWrong): " + wrong.joinToString { Square.name(it) }
         }
         if (problems.isNotEmpty()) fail(problems.joinToString("\n"))
+    }
+
+    /**
+     * The first move of the owner's game on the red board, from the app's own debug log: the
+     * tracker learns the pieces from the starting position (red_4) and must then read 1.e4 on
+     * red_5 by itself. From this low seat the king's body fills e2 and e3 after the pawn has
+     * left, the cream squares nearest the camera catch the light, and the squares behind the
+     * pawns read as pieces in luma; all three had hidden the move.
+     */
+    @Test
+    fun followsTheFirstMoveOnTheOwnersBoard() {
+        val t = LiveTracker()
+        val start = load("red_4")
+        var learned = false
+        repeat(6) { val r = t.process(start); println("red_4 ${r.status} ${r.message}"); if (r.status == LiveTracker.Status.LEARNED) { learned = true; return@repeat } }
+        assertTrue(learned, "the starting position on red_4 was not learned: " + t.calibration?.notes)
+        val after = load("red_5")
+        val expected = Board.start().play(Board.start().parseMove("e4")!!)
+        var frames = 0
+        while (t.board != expected && frames < 8) {
+            val r = t.process(after)
+            frames++
+            println("red_5 ${r.status} ${r.message} -> " + r.candidates.take(3).joinToString(" | ") { "${it.description} (%.2f)".format(it.cost) })
+            assertTrue(r.applied.isEmpty() || t.board == expected, "wrong move applied on red_5: ${r.message}")
+        }
+        assertEquals(expected, t.board, "1.e4 was not read on red_5 within $frames frames")
     }
 
     /**
