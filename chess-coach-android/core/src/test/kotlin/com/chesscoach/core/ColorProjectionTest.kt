@@ -50,6 +50,38 @@ class ColorProjectionTest {
     }
 
     /**
+     * The same red board after 1.e4 d6 2.d3 e5 3.Nc3, from White's seat: the position is known
+     * exactly from the moves, so this photo measures the cues without any reading by eye. The
+     * orientation must come out right (a1 at the near-left corner). By colour every yellow piece
+     * and nearly every empty square reads right, but the brown pieces at the far side are too
+     * small in the chroma planes to clear the board's own noise; by texture every brown piece
+     * reads right, but ten empty squares next to tall pieces or in their shadow read as pieces.
+     * Neither cue alone separates pieces from empty squares here, which is recorded for the
+     * occlusion-aware sampling that this board needs from this angle.
+     */
+    @Test
+    fun redBoardAfterThreeMovesReadsYellowByColourAndBrownByTexture() {
+        val img = TestImages.load(javaClass.getResourceAsStream("/boards/red_3.jpg")!!)
+        var board = Board.start()
+        for (san in listOf("e4", "d6", "d3", "e5", "Nc3")) board = board.play(board.parseMove(san)!!)
+        val occupancy = board.occupancy()
+        val detected = listOf(Pt(263.0, 650.0), Pt(549.0, 386.0), Pt(296.0, 236.0), Pt(12.0, 327.0))
+        val located = BoardLocator.locate(img, detected, Calibration.default(), occupancy, null)
+        val a1 = located.geometry.corners[0]
+        assertTrue(kotlin.math.hypot(a1.x - 263.0, a1.y - 650.0) < 20, "a1 should be the near-left corner, got $a1")
+        val f = located.features
+        println("red_3: " + Calibration.Margins.of(f, occupancy))
+        val yellowByColour = (0 until 64).filter { occupancy[it] == 1 }.count { f.chromaFraction!![it] >= 0.4 }
+        val brownByTexture = (0 until 64).filter { occupancy[it] == 2 }.count { f.occFraction[it] >= 0.6 }
+        val emptyByColour = (0 until 64).filter { occupancy[it] == 0 }.count { f.chromaFraction!![it] < 0.4 }
+        println("red_3: %d of 16 yellow pieces by colour, %d of 16 brown pieces by texture, %d of 32 empty squares by colour".format(yellowByColour, brownByTexture, emptyByColour))
+        assertTrue(yellowByColour >= 15, "yellow pieces by colour: $yellowByColour of 16")
+        assertTrue(brownByTexture >= 15, "brown pieces by texture: $brownByTexture of 16")
+        assertTrue(emptyByColour >= 27, "empty squares by colour: $emptyByColour of 32")
+        assertTrue((Calibration.Margins.of(f, occupancy).colourChroma ?: 0.0) > 0.2, "chroma should tell white from black")
+    }
+
+    /**
      * The plastic roll-up board (club_9): by luma texture the far rank's pieces do not clear the
      * empty squares, by colour distance they do. The tracker learns the starting position, and
      * the calibration reads occupancy from colour on at least one shade.

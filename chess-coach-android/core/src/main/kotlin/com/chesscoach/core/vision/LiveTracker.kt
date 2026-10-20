@@ -75,6 +75,23 @@ class LiveTracker(
     private var learnStreak = 0
 
     /**
+     * The board's corners (a1, h1, h8, a8) as verified by the starting position. The grid
+     * finder works afresh on every frame, and on a board whose frame matches its dark squares
+     * it lands a square off or turned by a quarter now and then; such a grid reads a move that
+     * was not played. Once locked, a detection within [lockTolerance] squares of the lock only
+     * nudges it (the camera drifts slowly on a stand), one further away is ignored, and only
+     * [framesToRelock] such frames in a row (the camera moved) make the detection the new lock.
+     * A frame without any grid is read through the lock for up to [framesWithoutGrid] frames.
+     */
+    private var locked: List<Pt>? = null
+    private var awayFrames = 0
+    private var missingFrames = 0
+    private val lockTolerance = 0.35
+    private val framesToRelock = 6
+    private val framesWithoutGrid = 8
+    private val lockFollow = 0.2
+
+    /**
      * The square readings of the last stable frame, blended into each new frame's readings: a
      * piece does not change between two frames unless a hand came in between, so a square that
      * reads as a piece in one frame and empty in the next is noise, not a move. A hand over the
@@ -252,6 +269,9 @@ class LiveTracker(
         phase = Phase.LEARNING
         calibration = null
         projection = null
+        locked = null
+        awayFrames = 0
+        missingFrames = 0
         learnStreak = 0
         startConfirmed = false
         previousPatches = null
@@ -261,11 +281,47 @@ class LiveTracker(
 
     fun process(image: LumaImage): FrameResult {
         val grid = GridDetector.detect(image, debugLines = false)
-            ?: return FrameResult(Status.NO_BOARD, null, null, null, 0, emptyList(), "Looking for the board")
         return when (phase) {
-            Phase.LEARNING -> learn(image, grid)
+            Phase.LEARNING -> if (grid == null) FrameResult(Status.NO_BOARD, null, null, null, 0, emptyList(), "Looking for the board") else learn(image, grid)
             Phase.TRACKING -> track(image, grid)
         }
+    }
+
+    /**
+     * The corners to read this frame through, and whether the orientation may be chosen anew:
+     * the lock, nudged towards a detection that agrees with it, or the detection itself when
+     * there is no lock or the camera has moved. Null when there is nothing to read.
+     */
+    private fun cornersForFrame(grid: DetectedGrid?): Pair<List<Pt>, Boolean>? {
+        val lock = locked
+        if (lock == null) return grid?.let { it.corners to true }
+        if (grid == null) {
+            missingFrames++
+            if (missingFrames > framesWithoutGrid) { locked = null; return null }
+            return lock to false
+        }
+        missingFrames = 0
+        val square = (0 until 4).map { i -> val p = lock[i]; val q = lock[(i + 1) % 4]; hypot(p.x - q.x, p.y - q.y) }.average() / 8
+        // the detection's corners come in an arbitrary rotation: match them to the lock
+        var bestRot = 0
+        var bestDist = Double.MAX_VALUE
+        for (rot in 0 until 4) {
+            val d = (0 until 4).maxOf { i -> val p = grid.corners[(i + rot) % 4]; hypot(p.x - lock[i].x, p.y - lock[i].y) }
+            if (d < bestDist) { bestDist = d; bestRot = rot }
+        }
+        if (bestDist <= lockTolerance * square) {
+            awayFrames = 0
+            val nudged = List(4) { i -> val p = grid.corners[(i + bestRot) % 4]; Pt(lock[i].x + lockFollow * (p.x - lock[i].x), lock[i].y + lockFollow * (p.y - lock[i].y)) }
+            locked = nudged
+            return nudged to false
+        }
+        awayFrames++
+        if (awayFrames >= framesToRelock) {
+            awayFrames = 0
+            locked = null
+            return grid.corners to true
+        }
+        return lock to false
     }
 
     /** The frame as the pieces are read: through the colour shift when one was chosen. */
@@ -321,6 +377,9 @@ class LiveTracker(
         phase = Phase.TRACKING
         startConfirmed = false
         smoothed = null
+        locked = located.geometry.corners
+        awayFrames = 0
+        missingFrames = 0
         resetPending()
         val obs = cal.observe(f)
         usualUnsure = obs.count { it.unsure }.toDouble()
@@ -328,9 +387,12 @@ class LiveTracker(
         return FrameResult(Status.LEARNED, located.geometry, obs, null, 0, emptyList(), "Ready. Play on the board.", quality = q)
     }
 
-    private fun track(image: LumaImage, grid: DetectedGrid): FrameResult {
+    private fun track(image: LumaImage, grid: DetectedGrid?): FrameResult {
         val cal = calibration ?: return FrameResult(Status.NO_BOARD, null, null, null, 0, emptyList(), "No calibration")
-        val located = BoardLocator.locate(view(image), grid.corners, cal, board.occupancy(), rotation)
+        val (corners, allowRotation) = cornersForFrame(grid)
+            ?: return FrameResult(Status.NO_BOARD, null, null, null, 0, emptyList(), "Looking for the board")
+        val located = BoardLocator.locate(view(image), corners, cal, board.occupancy(), rotation, allowRotation)
+        if (locked == null) locked = located.geometry.corners
         val raw = located.observations
         val unsure = raw.count { it.unsure }
         if (unsure > maxOf(14.0, usualUnsure + unsureSlack)) {

@@ -1,6 +1,7 @@
 package com.chesscoach.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -246,7 +248,62 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
                 }
             }
         }
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 6.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 4.dp)) {
+            // The move buttons come first, right under the zoom, so that the status text (one
+            // line or two) cannot push them about; they are compact rectangles framed in the
+            // colour of their arrow, in as many rows as needed.
+            if (choices.isNotEmpty()) {
+                val whiteFirst = state.board.sideToMove == Color.WHITE
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    choices.forEachIndexed { i, c ->
+                        Text(
+                            figurines(c, whiteFirst),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .border(2.dp, ArrowColors.choice(i), RoundedCornerShape(4.dp))
+                                .clickable { vm.acceptLiveCandidate(c) }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                        )
+                    }
+                    Text(
+                        "Other",
+                        style = MaterialTheme.typography.bodyMedium, color = Palette.accentText,
+                        modifier = Modifier.border(2.dp, Palette.cardLine, RoundedCornerShape(4.dp)).clickable { showEntry = true }.padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
+                Text(
+                    when {
+                        nextPly > 0 -> "And then? Tap the next square or move."
+                        state.liveAsking -> "Not sure what was played: tap the move, or the square the piece went to."
+                        else -> "Reading the move; tap it if you know it."
+                    },
+                    style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+            if (!state.liveLearned && state.liveCorners.size == 4) {
+                // The app recognises the starting position by itself when the pieces read clearly.
+                // When they do not (black pieces on dark squares of a glossy board), the user says
+                // so, and the pieces are learned from where they are known to stand.
+                Button(onClick = { vm.confirmStart() }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) { Text("Pieces are set up (starting position)") }
+            }
+            Advice(state, vm)
+            if (state.history.isNotEmpty()) {
+                // The moves in one row that scrolls sideways, the latest one highlighted and in view.
+                val scroll = rememberScrollState()
+                LaunchedEffect(state.history.size) { scroll.animateScrollTo(scroll.maxValue) }
+                Row(Modifier.horizontalScroll(scroll).padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    state.history.forEachIndexed { i, h ->
+                        if (i % 2 == 0) Text("${i / 2 + 1}.", style = MaterialTheme.typography.bodySmall, color = Palette.textDim)
+                        val last = i == state.history.size - 1
+                        Text(
+                            figurine(h.san, i % 2 == 0),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (last) Palette.onAccent else Palette.text,
+                            modifier = (if (last) Modifier.background(Palette.accent, RoundedCornerShape(4.dp)) else Modifier).padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
+            }
             val status = if (state.liveLearned) state.liveStatus else
                 (state.liveHint?.let { "$it. " } ?: "") + "Green grid: the board as found. Dots: pieces as read. Yellow ring: unsure square."
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -261,48 +318,11 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
                 )
             }
             state.message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-            if (choices.isNotEmpty()) {
-                Text(
-                    when {
-                        nextPly > 0 -> "And then? Tap the next square or move:"
-                        state.liveAsking -> "Not sure what was played. Tap the square the piece went to, or the move:"
-                        else -> "Reading the move. If you know it, tap it:"
-                    },
-                    style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp),
-                )
-                // Compact buttons in as many rows as needed, never scrolling: the tracker only
-                // appends to the list, so a button keeps its place and colour until the move is settled.
-                val whiteFirst = state.board.sideToMove == Color.WHITE
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    choices.forEachIndexed { i, c ->
-                        OutlinedButton(
-                            onClick = { vm.acceptLiveCandidate(c) },
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                            modifier = Modifier.height(34.dp),
-                        ) {
-                            Box(Modifier.size(9.dp).background(ArrowColors.choice(i), CircleShape))
-                            Spacer(Modifier.width(5.dp))
-                            Text(figurines(c, whiteFirst), style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                    TextButton(onClick = { showEntry = true }, contentPadding = PaddingValues(horizontal = 6.dp), modifier = Modifier.height(34.dp)) { Text("Other") }
-                }
-            }
-            if (!state.liveLearned && state.liveCorners.size == 4) {
-                // The app recognises the starting position by itself when the pieces read clearly.
-                // When they do not (black pieces on dark squares of a glossy board), the user says
-                // so, and the pieces are learned from where they are known to stand.
-                Button(onClick = { vm.confirmStart() }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) { Text("Pieces are set up (starting position)") }
-            }
-            Advice(state, vm)
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
                 TextButton(onClick = { showEntry = true }, enabled = state.liveLearned && result == GameResult.ONGOING, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Type move") }
                 TextButton(onClick = { vm.undo() }, enabled = state.history.isNotEmpty(), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Undo") }
                 TextButton(onClick = { vm.newGame() }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("New game") }
                 TextButton(onClick = { vm.backToSetup() }, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Settings") }
-            }
-            if (state.history.isNotEmpty()) {
-                Text(state.moveListText(), style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }

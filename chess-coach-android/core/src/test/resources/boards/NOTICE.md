@@ -33,8 +33,9 @@ with a glossy black plastic frame that is as dark as its dark squares, with the 
 from four viewpoints (White far and near, from above and from a low angle), on a desk next to a
 laptop. Downscaled to 1000 px.
 
-The `red_*.jpg` files are crops of photographs the repository owner took of a folding board with
-red and cream squares, a red frame, and brown and yellow plastic pieces, in the middle of a game
-on a dinner table, from a low angle across the table; cut down so that no person is in them.
+The `red_*.jpg` files are photographs the repository owner took of a folding board with red and
+cream squares, a red frame, and brown and yellow plastic pieces, on a dinner table: red_1 and
+red_2 in the middle of a game from a low angle across the table, cropped so that no person is in
+them; red_3 after 1.e4 d6 2.d3 e5 3.Nc3 from White's seat (position known from the moves).
 In grayscale the brown pieces are as dark as the red squares and the yellow pieces as light as
 the cream ones, which makes it the hardest board of the set to read.
