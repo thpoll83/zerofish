@@ -139,6 +139,14 @@ remembered only while it reads empty (below 0.2) and only when no piece stands i
 towards the camera: a piece's body would go into the picture, and the square would read as
 occupied just when that piece moved away. The templates are dropped when the lock moves.
 
+Two explanations that differ only in one destination square and the square behind it in the
+picture are cover twins: a queen on f3 seen from a low angle fills g4 as well, and occupancy
+alone cannot tell Qf3 from Qg4. The step a piece's body covers is read from the board's
+homography (straight up in the picture, mapped to the board; from a seat off to the side it
+is a diagonal). Between twins the best explanation must lead by 0.8 per frame instead of 0.3
+to be applied by itself; otherwise both are offered and the user settles it. On the game
+video that turns a wrongly applied Qg4 into a question, and costs no automatic move elsewhere.
+
 A frame counts as a hand or a shadow over the board, or a misread grid ("Hold still"), when it
 reads much worse than the board usually does: more unsure squares than usual by ten, or a best
 explanation costlier than the usual quiet reading by ten, where "usual" is measured on the learning
@@ -183,6 +191,19 @@ half of them at any pixel). The fraction of pixels that differ from the template
 whether they are brighter or darker gives the piece colour. Squares with a piece standing between
 them and the camera are weighted down, and squares that changed since the last scan support the
 candidate move that touches them.
+
+One cue reads first (luma: pixels of another tone, or edges, whichever says more; colour where
+that fails), and the other cues stand by as backups: the tone fraction, the edge fraction and
+the colour distance each get their own threshold per shade on the learning frame, and a backup
+is trusted only where it splits the starting position's pieces from its empty squares cleanly,
+by a gap of at least 0.08 (0.04 for edges) and 2.5 times the noise. When the first reading is
+unsure (between 0.3 and 0.7), the confident backups decide if they agree; when it is confident
+and a trusted backup contradicts it, the square keeps its side but weakly (0.4 or 0.6), so the
+move search leans on the other squares. The square nearest the camera is lit brighter than the
+shade's typical square by more than a piece's tolerance, so empty d1 read as a white piece by
+tone after the queen had left, while its edges said empty; with the backup heard the queen's
+move is found. A black piece on a dark square is the mirror case, empty by tone and a piece by
+edges.
 
 Tips: even light without hard shadows, a matte board, and an angle of 40 degrees or steeper.
 At low angles tall pieces hide the squares behind them; the confirm screen then lists alternatives.

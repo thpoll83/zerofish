@@ -240,6 +240,26 @@ class LiveTracker(
     /** An explanation is offered only while it fits within this of the best one on that frame. */
     private val offerWindow = 1.5
 
+    /** How far the best explanation must lead the runner-up, per frame, to be applied without asking. */
+    private val applyMargin = 0.3
+
+    /** The lead needed between cover twins (see [coverTwins]). */
+    private val twinMargin = 0.8
+
+    /** True when [a] and [b] differ only in one move's destination, by the step a piece's body covers in the picture. */
+    private fun coverTwins(a: Candidate, b: Candidate, geometry: BoardGeometry): Boolean {
+        if (a.moves.size != b.moves.size || a.moves.isEmpty()) return false
+        val differing = a.moves.indices.filter { a.moves[it] != b.moves[it] }
+        if (differing.size != 1) return false
+        val ma = a.moves[differing[0]]; val mb = b.moves[differing[0]]
+        if (ma.from != mb.from) return false
+        val (df, dr) = geometry.coverStep(Square.file(ma.to), Square.rank(ma.to))
+        if (df == 0 && dr == 0) return false
+        val fileDiff = Square.file(mb.to) - Square.file(ma.to)
+        val rankDiff = Square.rank(mb.to) - Square.rank(ma.to)
+        return (fileDiff == df && rankDiff == dr) || (fileDiff == -df && rankDiff == -dr)
+    }
+
     /** Forget the pending move evidence, for example after the user corrected the position by hand. */
     fun resetPending() {
         pending = emptyList(); pendingCount = 0
@@ -509,8 +529,14 @@ class LiveTracker(
         // From the first second on, the likeliest explanations are offered as buttons while the
         // reading goes on: the user may know the move and need not wait for the question.
         if (unsettled >= framesBeforeOffering) offer(result.candidates.filter { it.moves.isNotEmpty() && it.cost <= best.cost + offerWindow }.take(3))
-        // three agreeing frames are required anyway, so a modest per-frame margin is enough
-        if (result.margin >= 0.3) {
+        // Three agreeing frames are required anyway, so a modest per-frame margin is enough.
+        // Except between cover twins: two explanations alike but for one destination square
+        // and the square behind it in the picture (a queen on f3 seen from a low angle fills g4
+        // as well, and occupancy alone cannot tell the two apart); there the best must lead by
+        // [twinMargin], or the user settles it.
+        val runnerUp = result.candidates.getOrNull(1)
+        val needed = if (runnerUp != null && coverTwins(best, runnerUp, located.geometry)) twinMargin else applyMargin
+        if (result.margin >= needed) {
             if (best.moves == pending) pendingCount++ else {
                 pending = best.moves; pendingCount = 1
             }
@@ -551,8 +577,7 @@ class LiveTracker(
                 "Not sure what was played. Tap the right one, or type it.", suggestions(), result.candidates,
             )
         }
-        val runnerUp = result.candidates.getOrNull(1)
-        val msg = if (result.margin >= 0.3) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
+        val msg = if (result.margin >= needed) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
         else "Maybe ${best.description} (%.2f) or ${runnerUp?.description} (%.2f); unchanged %.2f".format(best.cost, runnerUp?.cost ?: 0.0, noMove?.cost ?: 0.0)
         return FrameResult(Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(), msg, suggestions(), candidates = result.candidates, reading = true)
     }

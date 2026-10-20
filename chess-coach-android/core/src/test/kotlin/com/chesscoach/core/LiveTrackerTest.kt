@@ -46,7 +46,9 @@ class LiveTrackerTest {
         assertEquals(b, t.board)
         // steady frames afterwards do nothing
         repeat(3) { assertTrue(t.process(frame(b, 40 + it, jitter = 3.0)).applied.isEmpty()) }
-        // reply e5, then Nf3: each move must be applied within five frames
+        // reply e5, then Nf3: each move must be applied within five frames, except that e5
+        // and e6 are cover twins (the pawn on e5 fills e6 in the picture): there the move
+        // must be offered within five frames and is applied by a tap
         for (san in listOf("e5", "Nf3", "Nc6", "Bb5")) {
             b = b.play(b.parseMove(san)!!)
             val log = ArrayList<String>()
@@ -55,6 +57,10 @@ class LiveTrackerTest {
                 val r = t.process(frame(b, 50 + 10 * log.size + i, jitter = 3.0))
                 log += "${r.status}:${r.message}"
                 if (t.board == b) { done = true; break }
+                if (san == "e5") {
+                    val offered = r.suggestions.firstOrNull { it.sans == listOf("e5") }
+                    if (offered != null) { t.accept(offered); done = t.board == b; break }
+                }
             }
             assertTrue(done, "$san not applied within 5 frames: $log")
         }

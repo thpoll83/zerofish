@@ -35,6 +35,31 @@ class BoardGeometry(val corners: List<Pt>) {
     fun toImage(file: Double, rank: Double): Pt = homography.map(file, rank)
 
     /**
+     * The step, in squares (file, rank), from a square to the one a piece standing on it falls
+     * onto in the picture: straight up in the image, mapped to the board at that square. From
+     * White's seat looking along the files it is (0, 1); from a seat off to the side it is a
+     * diagonal, and a queen on f3 then fills g4 as well. Each component is taken when it is at
+     * least four tenths of the larger one. (0, 0) when the board is seen from above.
+     */
+    fun coverStep(file: Int, rank: Int): Pair<Int, Int> {
+        if (nearSide == NearSide.NONE) return 0 to 0
+        val c = toImage(file + 0.5, rank + 0.5)
+        val df = toImage(file + 0.51, rank + 0.5)
+        val dr = toImage(file + 0.5, rank + 0.51)
+        // image = J * board; solve J * v = (0, -1) for the board direction of image-up
+        val a = (df.x - c.x) * 100; val b = (dr.x - c.x) * 100
+        val cc = (df.y - c.y) * 100; val d = (dr.y - c.y) * 100
+        val det = a * d - b * cc
+        if (kotlin.math.abs(det) < 1e-9) return 0 to 0
+        val vf = (0.0 * d - b * -1.0) / det
+        val vr = (a * -1.0 - cc * 0.0) / det
+        val m = maxOf(kotlin.math.abs(vf), kotlin.math.abs(vr))
+        if (m < 1e-9) return 0 to 0
+        fun step(v: Double) = if (kotlin.math.abs(v) >= 0.4 * m) (if (v > 0) 1 else -1) else 0
+        return step(vf) to step(vr)
+    }
+
+    /**
      * Sampling window inside square ([file], [rank]) in board units, as (fileMin, fileMax, rankMin, rankMax).
      * The window is shifted away from the camera so a piece standing in front of the square hides less of it.
      */
