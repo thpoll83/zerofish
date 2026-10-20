@@ -138,6 +138,11 @@ as a piece and the square cannot flip between piece and empty without a hand. A 
 remembered only while it reads empty (below 0.2) and only when no piece stands in front of it
 towards the camera: a piece's body would go into the picture, and the square would read as
 occupied just when that piece moved away. The templates are dropped when the lock moves.
+The one exception is a square a move has just left: it is known empty whatever it reads, so
+its picture is taken on the next six settled frames regardless. That is the only chance to
+learn a square that misreads when empty, such as the square nearest the camera, lit brighter
+than the shade's typical square and read as a white piece by tone: once the queen's move is
+applied, by the camera or by a tap, d1 reads empty from the next frame on.
 
 Two explanations that differ only in one destination square and the square behind it in the
 picture are cover twins: a queen on f3 seen from a low angle fills g4 as well, and occupancy

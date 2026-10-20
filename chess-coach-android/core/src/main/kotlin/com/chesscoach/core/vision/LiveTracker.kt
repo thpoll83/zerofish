@@ -98,6 +98,22 @@ class LiveTracker(
     /** Each square's own empty picture, gathered on quiet frames through the locked grid. */
     private val templates = SquareTemplates()
     private val templateBlend = 0.3
+
+    /**
+     * Squares a move has just left, with the settled frames left in which their empty picture
+     * is taken whatever they read: the moment a move vacates a square, the square is known
+     * empty, and that is the one chance to learn a square that misreads when empty (the
+     * square nearest the camera is lit brighter than the shade's typical square and reads as
+     * a white piece by tone). Later the picture refreshes only while the square reads empty.
+     */
+    private val vacated = HashMap<Int, Int>()
+    private val vacatedFrames = 6
+
+    private fun noteVacated(before: Board, after: Board) {
+        val was = before.occupancy()
+        val now = after.occupancy()
+        for (sq in 0 until 64) if (was[sq] != 0 && now[sq] == 0) vacated[sq] = vacatedFrames
+    }
     private var awayFrames = 0
     private var missingFrames = 0
     private val lockTolerance = 0.35
@@ -280,7 +296,9 @@ class LiveTracker(
 
     /** The user picked one of the offered explanations: apply it and resynchronise on the last frame. */
     fun accept(candidate: Candidate) {
+        val before = board
         for (m in candidate.moves) board = board.play(m)
+        noteVacated(before, board)
         previousPatches = lastPatches
         lastRotation?.let { rotation = it }
         quietCosts.clear()
@@ -289,6 +307,7 @@ class LiveTracker(
 
     /** Replace the tracked position (after an undo or a typed move). The last frame no longer matches it. */
     fun setBoard(b: Board) {
+        noteVacated(board, b)
         board = b
         previousPatches = null
         quietCosts.clear()
@@ -311,6 +330,7 @@ class LiveTracker(
         awayFrames = 0
         missingFrames = 0
         templates.clear()
+        vacated.clear()
         learnStreak = 0
         startConfirmed = false
         previousPatches = null
@@ -513,8 +533,11 @@ class LiveTracker(
                 if (!allowRotation) {
                     val occupancy = board.occupancy()
                     val side = located.geometry.nearSide
-                    for (sq in 0 until 64) if (occupancy[sq] == 0 && raw[sq].occupied < 0.2 && MoveInference.reliability(occupancy, sq, side) >= 1.0) {
+                    for (sq in 0 until 64) if (occupancy[sq] == 0 && MoveInference.reliability(occupancy, sq, side) >= 1.0) {
+                        val left = vacated[sq]
+                        if (left == null && raw[sq].occupied >= 0.2) continue
                         templates.remember(sq, located.patches[sq], located.gradients[sq], located.uPatches?.get(sq), located.vPatches?.get(sq), templateBlend)
+                        if (left != null) { if (left <= 1) vacated.remove(sq) else vacated[sq] = left - 1 }
                     }
                 }
             }
@@ -544,7 +567,9 @@ class LiveTracker(
             val fits = base == null || best.cost <= base + applySlack
             if (pendingCount >= framesToConfirm && fits) {
                 val applied = pending
+                val before = board
                 for (m in applied) board = board.play(m)
+                noteVacated(before, board)
                 previousPatches = located.patches
                 rotation = located.rotation
                 quietCosts.clear()
