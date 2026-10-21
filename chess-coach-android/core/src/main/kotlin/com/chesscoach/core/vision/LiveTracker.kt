@@ -357,6 +357,24 @@ class LiveTracker(
     /** The lead the far one of two cover twins needs (see [coverTwins]). */
     private val twinMargin = 1.5
 
+    /**
+     * Below this, a square a move puts a piece on reads too empty for the move to be applied
+     * without asking. Every square a move fills must show something: on the owner's board the
+     * network read a knight back on c3 as empty, d5 as vacated, and every knight move from d5
+     * then fitted about as well as any other. Nf6+ was applied three times on flicker alone.
+     */
+    private val arrivalMin = 0.5
+
+    /** The positions the tracker passed through when it last applied moves by itself, with the move played from each. */
+    private var lastApplied: List<Pair<String, Move>> = emptyList()
+
+    /**
+     * Moves the user took back after the tracker applied them, by the position they were played
+     * from: from there they are offered, never applied by themselves again. Without this the
+     * same misread came straight back after each undo.
+     */
+    private val refused = HashMap<String, MutableSet<Move>>()
+
     /** True when [longer] is [shorter] with one or more moves appended. */
     private fun extends(longer: Candidate, shorter: Candidate): Boolean =
         longer.moves.size > shorter.moves.size && longer.moves.take(shorter.moves.size) == shorter.moves
@@ -386,6 +404,13 @@ class LiveTracker(
         val fileDiff = Square.file(mb.to) - Square.file(ma.to)
         val rankDiff = Square.rank(mb.to) - Square.rank(ma.to)
         return geometry.coverSteps(Square.file(ma.to), Square.rank(ma.to)).any { (df, dr) -> (fileDiff == df && rankDiff == dr) || (fileDiff == -df && rankDiff == -dr) }
+    }
+
+    /** True when a square [c] puts a piece on reads as empty (below [arrivalMin]). */
+    private fun unseenArrival(c: Candidate, obs: Array<SquareObservation>): Boolean {
+        var after = board; for (m in c.moves) after = after.play(m)
+        val was = board.occupancy(); val now = after.occupancy()
+        return (0 until 64).any { now[it] != 0 && was[it] == 0 && obs[it].occupied < arrivalMin }
     }
 
     /**
@@ -435,6 +460,7 @@ class LiveTracker(
 
     /** The user picked one of the offered explanations: apply it and resynchronise on the last frame. */
     fun accept(candidate: Candidate) {
+        lastApplied = emptyList()
         val before = board
         for (m in candidate.moves) board = board.play(m)
         noteVacated(before, board)
@@ -446,6 +472,9 @@ class LiveTracker(
 
     /** Replace the tracked position (after an undo or a typed move). The last frame no longer matches it. */
     fun setBoard(b: Board) {
+        val fen = b.toFen()
+        lastApplied.firstOrNull { it.first == fen }?.let { (_, m) -> refused.getOrPut(fen) { HashSet() } += m }
+        lastApplied = emptyList()
         noteVacated(board, b)
         board = b
         previousPatches = null
@@ -460,6 +489,8 @@ class LiveTracker(
 
     /** Start over: wait for the starting position again and relearn thresholds. */
     fun restart() {
+        refused.clear()
+        lastApplied = emptyList()
         board = Board.start()
         phase = Phase.LEARNING
         calibration = null
@@ -736,7 +767,16 @@ class LiveTracker(
             c !== best && c.moves.isNotEmpty() && best.moves.isNotEmpty() && c.cost - best.cost < twinMargin &&
                 !extends(c, best) && !extends(best, c) && !coverTwins(best, c, located.geometry) && differsOnlyWhereHidden(best, c, cover)
         }
-        if (margin >= applyMargin && !blockedByTwin && !blockedByHidden) {
+        // Every square the best explanation puts a piece on must read occupied (see [arrivalMin]).
+        // When one does not, the piece that left may have gone anywhere: all its moves are offered.
+        val unseenArrival = best.moves.isNotEmpty() && unseenArrival(best, obs)
+        if (unseenArrival && unsettled >= framesBeforeOffering) {
+            val from = best.moves[0].from
+            offer(board.legalMoves().filter { it.from == from }.map { Candidate(listOf(it), best.cost, listOf(board.san(it))) }, always = true)
+        }
+        val blockedByRefusal = best.moves.isNotEmpty() && refused[board.toFen()]?.contains(best.moves[0]) == true
+        val blocked = blockedByTwin || blockedByHidden || unseenArrival || blockedByRefusal
+        if (margin >= applyMargin && !blocked) {
             if (best.moves == pending) pendingCount++ else {
                 pending = best.moves; pendingCount = 1
             }
@@ -746,7 +786,7 @@ class LiveTracker(
             if (pendingCount >= framesToConfirm && fits && !moving) {
                 val applied = pending
                 val before = board
-                for (m in applied) board = board.play(m)
+                lastApplied = applied.map { m -> board.toFen().also { board = board.play(m) } to m }
                 noteVacated(before, board)
                 previousPatches = located.patches
                 rotation = located.rotation
@@ -780,7 +820,7 @@ class LiveTracker(
                 "Not sure what was played. Tap the right one, or type it.", suggestions(), result.candidates,
             )
         }
-        val msg = if (margin >= applyMargin && !blockedByTwin && !blockedByHidden) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
+        val msg = if (margin >= applyMargin && !blocked) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
         else "Maybe ${best.description} (%.2f) or ${runnerUp?.description} (%.2f); unchanged %.2f".format(best.cost, runnerUp?.cost ?: 0.0, noMove?.cost ?: 0.0)
         return FrameResult(Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(), msg, suggestions(), candidates = result.candidates, reading = true)
     }

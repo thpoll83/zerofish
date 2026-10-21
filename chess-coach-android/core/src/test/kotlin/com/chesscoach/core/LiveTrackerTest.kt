@@ -126,6 +126,35 @@ class LiveTrackerTest {
         repeat(3) { assertEquals(LiveTracker.Status.TRACKING, t.process(frame(b, 300 + it, jitter = 2.0)).status) }
     }
 
+    /**
+     * After the user takes back a move the tracker applied, the camera still shows the same
+     * board: the move must come back as a button, never be applied again by itself. On the
+     * owner's board a knight read on the wrong square was applied three times in a row.
+     */
+    @Test
+    fun doesNotApplyAnUndoneMoveAgain() {
+        val t = LiveTracker(framesToConfirm = 3, framesToLearn = 2)
+        val b0 = Board.start()
+        repeat(2) { t.process(frame(b0, it)) }
+        assertEquals(LiveTracker.Phase.TRACKING, t.phase)
+        val b1 = b0.play(b0.parseMove("e4")!!)
+        var applied = false
+        for (i in 0 until 5) if (t.process(frame(b1, 10 + i, jitter = 2.0)).applied.isNotEmpty()) { applied = true; break }
+        assertTrue(applied, "e4 was not applied")
+        // the user undoes it
+        t.setBoard(b0)
+        var offered: com.chesscoach.core.vision.Candidate? = null
+        for (i in 0 until 20) {
+            val r = t.process(frame(b1, 30 + i, jitter = 2.0))
+            assertTrue(r.applied.isEmpty(), "e4 applied again after the undo: ${r.message}")
+            offered = r.suggestions.firstOrNull { it.description == "e4" } ?: offered
+        }
+        assertTrue(offered != null, "e4 was not offered after the undo")
+        // a tap still applies it
+        t.accept(offered!!)
+        assertEquals(b1, t.board)
+    }
+
     @Test
     fun needsAgreementBeforeApplying() {
         val t = LiveTracker(framesToConfirm = 3, framesToLearn = 2)
