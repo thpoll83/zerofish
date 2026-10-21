@@ -91,9 +91,9 @@ flowchart TD
     B4 -- "blocks applying" --> M
     BL -- "none" --> M{"Leads the first real rival by 0.3?<br/>(a rival that only appends a move does not count)"}
     M -- "yes and not blocked" --> PC["Same as last frame's leader? count + 1, else count = 1"]
-    PC --> C3{"Count 3, and the board after the move fits<br/>within 1.2 of the quiet baseline,<br/>and this frame is still?"}
+    PC --> C3{"Count 3, this frame still, and the board after the move<br/>fits within 1.2 of the quiet baseline,<br/>or count 6 and no explanation of up to 3 moves<br/>fits better by 0.6?"}
     C3 -- "yes" --> MP["MOVE_PLAYED: board updated,<br/>vacated squares re-learned for 6 frames"]
-    C3 -- "count 3 but does not fit" --> MC["Offer it: 'Seeing X, but more changed'<br/>(keep looking for the fuller explanation)"]
+    C3 -- "count 3 or more but does not fit" --> MC["Offer it: 'Seeing X, but more changed'<br/>(keep looking for the fuller explanation)"]
     C3 -- "not yet" --> WT
     M -- "no, or blocked" --> WT{"14 unexplained frames?"}
     MC --> WT
@@ -127,7 +127,7 @@ flowchart LR
 | Misread frame | best cost above max(20, baseline + 10) | `track` |
 | A change at all | best beats "no move" by 0.6 | `minEvidence` |
 | Apply margin | 0.3 over the first real rival, 3 frames, still frame | `applyMargin`, `framesToConfirm` |
-| Fits the baseline | within 1.2 of the median "no move" cost of the last 8 settled frames | `applySlack` |
+| Fits the baseline | within 1.2 of the median "no move" cost of the last 8 settled frames; or, from the 6th agreeing frame, no explanation of up to 3 moves fits better by 0.6 | `applySlack`, `deepExtraFrames`, `deepMargin` |
 | Cover twins, hidden rivals | within 1.5 | `twinMargin` |
 | Unseen arrival | filled square below 0.5 | `arrivalMin` |
 | Piece gone | below 0.1 for 14 frames (network only) | `vanishedMax` |

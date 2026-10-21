@@ -528,3 +528,30 @@ A wrong move is the one result never accepted, so the rule was dropped. The netw
 alone, and the rules of section 13 (an empty destination asks, an undone move is only offered,
 a vanished piece asks) catch the case it was meant for.
 
+## 15. Questions that felt obvious, and a pair that was not
+
+**What the owner saw.** In a game played against themself the tracker asked 15 times in 48
+moves, and most of the questions had one candidate. In 8 of them the candidate was read the
+same on every frame and still cost 1.2 to 2.4 more than the quiet position before it. The old
+rule applied a move only when it cost at most 1.2 more than that baseline, in case an earlier
+move had gone unnoticed. The rest were real ties (a6 against a5, Nc2 against Nd3, both cover
+twins) or a destination square the network did not see (Bh3, Nd5), which the rule of section 13
+asks about on purpose.
+
+**What changed.** After six agreeing frames, a move that fails the baseline test is applied if a
+search over up to three moves finds nothing that fits better by 0.6. A move unnoticed earlier
+would show as a longer explanation that fits clearly better. Three frames were tried first and
+applied d5 on video 1 while the hand's shadow still lay on the board: the vacated squares'
+pictures were learned from a disturbed board and the next moves needed taps (luma 14/4 became
+11/7). With six, luma is unchanged (16/2/0, 14/4/0 and 4/1/0) and the network reading changed
+squares goes from 16/2/0 and 15/3/0 to 17/1/0 and 16/2/0. Every square: 17/1/0 twice and
+5/0/0 as before. The held-back message now says why: twin, hidden, arrival unseen, undone
+before, or the margin.
+
+**A pair that was not.** Before Black castled, "Re1 Rf8" was applied for Re1, and the owner
+undid the rook move. f8, just vacated by the bishop, read occupied (0.6 to 0.7) and h8, the
+rook in the far corner, half empty (0.4), and the two together fitted 0.45 better than Re1
+alone. Requiring a gain for the second move of a pair was tried at 1.0 and at 0.7, and dropped:
+real pairs on video 1 gain 0.9 to 1.7, and both settings cost moves, the second one a wrong
+move with the network reading changed squares. The undo is remembered instead, so the same
+pair does not come back, and the log now shows what held a move back. This stays open.
