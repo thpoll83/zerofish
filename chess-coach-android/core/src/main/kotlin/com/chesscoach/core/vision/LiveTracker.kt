@@ -290,6 +290,17 @@ class LiveTracker(
      */
     private val applySlack = 1.2
 
+    /** How much better a longer explanation must fit than the best one to keep a move from being applied (see [noLongerExplanationFitsBetter]). */
+    private val deepMargin = 0.6
+
+    /**
+     * Extra agreeing frames before a move that fits worse than the quiet baseline is applied on
+     * the strength of that search. Applied three frames earlier than before (while the hand's
+     * shadow still lay on the board), d5 on video 1 left the vacated squares' empty pictures
+     * learned from a disturbed board, and the three moves after it needed taps.
+     */
+    private val deepExtraFrames = 3
+
     /** A frame whose best explanation still costs more than this (about twenty squares wrong) is a misread. */
     private val badFrameCost = 20.0
 
@@ -414,6 +425,19 @@ class LiveTracker(
         val fileDiff = Square.file(mb.to) - Square.file(ma.to)
         val rankDiff = Square.rank(mb.to) - Square.rank(ma.to)
         return geometry.coverSteps(Square.file(ma.to), Square.rank(ma.to)).any { (df, dr) -> (fileDiff == df && rankDiff == dr) || (fileDiff == -df && rankDiff == -dr) }
+    }
+
+    /**
+     * True when no explanation of up to three moves fits the readings better than [best] by
+     * [deepMargin]. The quiet baseline test exists for a move that went unnoticed before this
+     * one, and such a move would show here as a longer explanation that fits clearly better.
+     * On the owner's board 8 of 15 questions in one game were a lone move, read the same on
+     * every frame, that cost 1.2 to 2.4 more than the quiet position before it.
+     */
+    private fun noLongerExplanationFitsBetter(best: Candidate, obs: Array<SquareObservation>, change: DoubleArray?, nearSide: NearSide, cover: CoverMap): Boolean {
+        val deep = MoveInference.infer(board, obs, change, maxPlies = 3, nearSide = nearSide, cover = cover)
+        val top = deep.best ?: return true
+        return top.cost >= best.cost - deepMargin
     }
 
     /** True when a square [c] puts a piece on reads as empty (below [arrivalMin]). */
@@ -804,7 +828,11 @@ class LiveTracker(
             }
             // the remembered baseline is from the position before the move: a looser fit
             val base = baseline()
-            val fits = base == null || best.cost <= base + applySlack
+            // A move that reads a little worse than the quiet position before it (a fresh piece, a
+            // shadow) is still applied when no longer explanation fits better; that search runs
+            // only once the three frames agree, so it costs a few frames per move at most.
+            val fits = base == null || best.cost <= base + applySlack ||
+                (pendingCount >= framesToConfirm + deepExtraFrames && !moving && noLongerExplanationFitsBetter(best, obs, change, located.geometry.nearSide, cover))
             if (pendingCount >= framesToConfirm && fits && !moving) {
                 val applied = pending
                 val before = board
@@ -842,8 +870,13 @@ class LiveTracker(
                 "Not sure what was played. Tap the right one, or type it.", suggestions(), result.candidates,
             )
         }
+        val why = listOfNotNull(
+            if (blockedByTwin) "twin" else null, if (blockedByHidden) "hidden" else null,
+            if (unseenArrival) "arrival unseen" else null, if (blockedByRefusal) "undone before" else null,
+            if (margin < applyMargin) "margin %.2f".format(margin) else null,
+        ).joinToString(", ")
         val msg = if (margin >= applyMargin && !blocked) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
-        else "Maybe ${best.description} (%.2f) or ${runnerUp?.description} (%.2f); unchanged %.2f".format(best.cost, runnerUp?.cost ?: 0.0, noMove?.cost ?: 0.0)
+        else "Maybe ${best.description} (%.2f) or ${runnerUp?.description} (%.2f); unchanged %.2f [$why]".format(best.cost, runnerUp?.cost ?: 0.0, noMove?.cost ?: 0.0)
         return FrameResult(Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(), msg, suggestions(), candidates = result.candidates, reading = true)
     }
 }
