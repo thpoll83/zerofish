@@ -451,3 +451,26 @@ a checkerboard at 45 degrees is not what it learned.
 trailing lambda bind to the new parameter: the replays ran but logged nothing, and the suite
 still passed because it asserts on the counts. New parameters go before `log`.
 
+
+## 13. A knight the network did not see, applied three times
+
+**What happened.** On move 16 the knight went back from d5 to c3. With every square read on
+every frame, the network read d5 as empty (0.00) and c3 as empty too (0.04 to 0.19 over 30
+frames). From that seat the c2 pawn's head fills the bottom of c3's crop and the knight stands
+in its top-left corner. Shifting the crop by up to 20 pixels never lifted the reading above
+0.43. So every knight move from d5 to an empty square cost about the same as "no move": each
+pays one empty reading, d5 for "no move" or the destination for the move. Nf6+ won on flicker
+(f6 read 0.1 to 0.35) and was applied. The owner undid it, the camera still showed the same
+board, and the tracker applied Nf6+ again. That happened three times.
+
+**Two rules.**
+- Every square a move puts a piece on must read occupied (0.5 or more) before the move is
+  applied by itself. When one does not, the tracker asks, and it offers every legal move of
+  the piece that left, since the camera shows where it came from but not where it went.
+- A move the user took back after the tracker applied it is never applied by itself again
+  from the same position. It is offered instead, and a tap still plays it.
+
+**What it cost.** With the luma reader nothing changed. Video 1 stays at 16 moves by itself,
+2 taps and none wrong when the user taps once asked, and 14, 4 and 0 when tapping after two
+seconds. Video 2 stays at 4, 1 and 0. A synthetic test checks that an undone e4 comes back
+only as a button. The same test fails on the old code.
