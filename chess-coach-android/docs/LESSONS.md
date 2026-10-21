@@ -416,3 +416,38 @@ on every frame, fixed it at about 16 squares per frame.
 squares. The debug log records, per frame, the squares read and the milliseconds; the depth
 benchmark times all 64 on each accelerator.
 
+## 12. From a corner seat: the cover map and decisions resting on hidden squares
+
+**What happened.** The owner moved the phone to White's right-hand corner. The network
+followed ten moves by itself, reading 4 squares in about 60 ms on most frames of a Pixel 8 Pro,
+then applied 2.f3 for 2.Nf3. From that seat every body leans towards the h-file in the picture:
+the bishop on f1 covered the empty g1 (read 1.00) and the king on e1 covered f2, where the pawn
+still stood (read 0.75). The hidden-square discount of section 4 only looked at the square
+straight behind a piece along the files, so g1 counted in full and f3 won by 0.5, enough to
+pass the margin of 0.3.
+
+**The cover map.** Which squares a body falls onto now comes from the homography: the first and
+second square along each cover step of the piece's square (straight along the dominant axis,
+and the diagonal when the other component is at least four tenths of it). From that seat f1's
+body falls onto g1 and g2, e1's onto f1 and f2. With it, luma alone improved video 1 from 15 to
+16 moves by itself.
+
+**Asking when only hidden squares decide.** Even with the right discount, both squares that
+separate f3 from Nf3 are hidden, and a few hundredths decide between them. The rule: when the
+best explanation and a rival within 1.5 differ, as positions, only on squares right behind a
+piece taller than a pawn (weight 0.5 or less), in either position, the move is offered, not
+applied. Counting squares behind pawns as hidden too made almost every opening move a
+question (Nf3 against Ne2 in the synthetic test), so pawns do not count. The old code applied
+"f3 Nc6" on the bundle's frames; the new one offers "f3 Nc6" and "Nf3 Nc6". The rule cost the
+network one move by itself on video 1 (17 to 16 with changed squares, 18 to 17 with every
+square), nothing on video 2, and the luma reading nothing.
+
+**Turned crops: tried, dropped.** Turning each square's crop so that "up" is the way a piece
+leans there made the network read f2 at 0.98 and e2 cleanly empty, but it misread 10 to 11
+squares per frame instead of 2 to 4: it was trained on crops aligned with the board's grid, and
+a checkerboard at 45 degrees is not what it learned.
+
+**A harness trap.** Adding a parameter after the replay harness's `log` made every existing
+trailing lambda bind to the new parameter: the replays ran but logged nothing, and the suite
+still passed because it asserts on the counts. New parameters go before `log`.
+

@@ -49,9 +49,9 @@ object ReplayHarness {
         truth: List<String>? = null,
         detail: ClosedRange<Double>? = null,
         tapAfter: Int? = System.getenv("CHESS_REPLAY_TAP_AFTER")?.toIntOrNull() ?: 8,
-        log: (String) -> Unit = {},
         /** Adjusts the tracker before the replay, e.g. gives it a square classifier. */
         configure: (LiveTracker) -> Unit = {},
+        log: (String) -> Unit = {},
     ): Stats {
         var readingFrames = 0
         val tracker = LiveTracker(framesToConfirm = 3, framesToLearn = 3)

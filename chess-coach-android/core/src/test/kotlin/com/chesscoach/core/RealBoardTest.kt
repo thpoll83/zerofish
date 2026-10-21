@@ -238,6 +238,33 @@ class RealBoardTest {
     }
 
     /**
+     * The owner's red board from White's right-hand corner, from the app's debug log: after
+     * 1.e4 e5 2.Nf3 the bodies lean towards the h-file in the picture, the bishop on f1 fills the
+     * empty g1 and the king e1 the occupied f2, and 2.f3 was applied. Both squares that tell the
+     * two moves apart are hidden, so the tracker must not apply f3; Nf3 or a question is right.
+     */
+    @Test
+    fun doesNotTakeTheKnightForThePawnFromACornerSeat() {
+        val t = LiveTracker()
+        val start = load("red_6")
+        repeat(4) { t.process(start) }
+        if (t.calibration == null) { t.confirmStart(); repeat(4) { t.process(start) } }
+        assertNotNull(t.calibration, "the starting position on red_6 was not learned")
+        var b = Board.start()
+        for (m in listOf("e4", "e5")) b = b.play(b.parseMove(m)!!)
+        t.setBoard(b)
+        val knight = b.play(b.parseMove("Nf3")!!)
+        for ((name, times) in listOf("red_7" to 4, "red_8" to 8)) {
+            val img = load(name)
+            repeat(times) {
+                val r = t.process(img)
+                println("$name ${r.status} ${r.message} -> " + r.candidates.take(3).joinToString(" | ") { "${it.description} (%.2f)".format(it.cost) })
+                assertTrue(t.board == b || t.board == knight, "applied ${r.candidate?.description} on $name, the move was Nf3")
+            }
+        }
+    }
+
+    /**
      * board_6 (wooden set, overhead) shows 1.e4 e5 2.f3 f6 with the bishop c1 unclear. Labelled by
      * eye; the light wooden pieces are only a little brighter than the dark squares, which is the
      * hard case for the colour cue. Uses default thresholds, as no starting-position photo exists

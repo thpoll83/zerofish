@@ -36,13 +36,16 @@ object MoveInference {
         /** The pieces' heights (see [Board.heights]) in the two positions, when known: a king hides far more than a pawn. */
         occluderHeights: IntArray? = null,
         expectedHeights: IntArray? = occluderHeights,
+        /** Which squares' bodies fall onto which, from the board's geometry; replaces [nearSide] when given. */
+        cover: CoverMap? = null,
     ): Double {
         var total = 0.0
         for (sq in 0 until 64) {
             val o = obs[sq]
             // a square hidden behind a piece in either the old or the new position counts less;
             // taking the minimum keeps a candidate from buying credibility with its own pieces
-            val w = minOf(reliability(occluders, sq, nearSide, occluderHeights), reliability(expectedOccupancy, sq, nearSide, expectedHeights))
+            val w = if (cover != null) minOf(cover.reliability(occluders, sq, occluderHeights), cover.reliability(expectedOccupancy, sq, expectedHeights))
+            else minOf(reliability(occluders, sq, nearSide, occluderHeights), reliability(expectedOccupancy, sq, nearSide, expectedHeights))
             // A body in front can only make a square read as occupied, never as empty: an
             // "occupied" reading behind a piece counts less, an "empty" reading counts in full
             // (a vacated square behind the king is still plainly bare when it reads so).
@@ -105,12 +108,13 @@ object MoveInference {
         change: DoubleArray? = null,
         maxPlies: Int = 2,
         nearSide: NearSide = NearSide.NONE,
+        cover: CoverMap? = null,
     ): InferenceResult {
         val out = ArrayList<Candidate>()
         val base = board.occupancy()
         val baseHeights = board.heights()
         fun total(after: IntArray, afterHeights: IntArray, plies: Int): Double =
-            cost(after, obs, nearSide, base, baseHeights, afterHeights) + plies * PLY_PENALTY + (if (change != null) changeCost(base, after, change) else 0.0)
+            cost(after, obs, nearSide, base, baseHeights, afterHeights, cover) + plies * PLY_PENALTY + (if (change != null) changeCost(base, after, change) else 0.0)
         out.add(Candidate(emptyList(), total(base, baseHeights, 0), emptyList()))
         fun expand(b: Board, moves: List<Move>, sans: List<String>, depth: Int) {
             if (depth >= maxPlies) return
@@ -126,5 +130,45 @@ object MoveInference {
         // Promotions to different pieces look identical to the camera; keep the queen and drop the rest.
         val dedup = out.filter { c -> c.moves.all { it.promotion == 0 || it.promotion == 5 } }
         return InferenceResult(dedup.sortedBy { it.cost })
+    }
+}
+
+
+/**
+ * Which squares a piece's body falls onto in the picture, from the board's geometry: the first
+ * and second square along each of its [BoardGeometry.coverSteps] (straight along the dominant
+ * axis and, from a seat off to the side, the diagonal as well). From White's seat looking along
+ * the files that is the square behind and the one after it, as [MoveInference.reliability] has
+ * it; from a corner it is also the neighbour towards the far side. On the owner's board seen
+ * from White's right-hand corner the bishop on f1 fills g1 in the picture, and Nf3 was read as
+ * f3 because g1 still read as occupied.
+ */
+class CoverMap(geometry: BoardGeometry) {
+    /** Per square, the squares whose bodies fall onto it: ring 1 (next to it) and ring 2. */
+    private val first = Array(64) { ArrayList<Int>(3) }
+    private val second = Array(64) { ArrayList<Int>(3) }
+
+    init {
+        for (o in 0 until 64) {
+            val f = o and 7; val r = o shr 3
+            for ((df, dr) in geometry.coverSteps(f, r)) {
+                val f1 = f + df; val r1 = r + dr
+                if (f1 in 0..7 && r1 in 0..7) first[r1 * 8 + f1] += o
+                val f2 = f + 2 * df; val r2 = r + 2 * dr
+                if (f2 in 0..7 && r2 in 0..7) second[r2 * 8 + f2] += o
+            }
+        }
+    }
+
+    /**
+     * How much to trust the reading of [sq] given which squares are occupied: behind a pawn 0.6
+     * (and nothing two squares on), behind a knight, bishop or rook 0.5 (0.8), behind a queen or
+     * king 0.35 (0.65), the lowest over every piece whose body falls onto the square.
+     */
+    fun reliability(occupancy: IntArray, sq: Int, heights: IntArray? = null): Double {
+        var w = 1.0
+        for (o in first[sq]) if (occupancy[o] != 0) w = minOf(w, when (heights?.get(o) ?: 2) { 1 -> 0.6; 3 -> 0.35; else -> 0.5 })
+        for (o in second[sq]) if (occupancy[o] != 0) w = minOf(w, when (heights?.get(o) ?: 2) { 1 -> 1.0; 3 -> 0.65; else -> 0.8 })
+        return w
     }
 }

@@ -165,6 +165,17 @@ class LiveTracker(
     /** Squares read again in turn on every frame besides the changed ones. */
     private val refreshPerFrame = 4
 
+    // the cover map of the locked grid; rebuilt when the corners move
+    private var coverMap: CoverMap? = null
+    private var coverCorners: List<Pt>? = null
+
+    private fun coverFor(geometry: BoardGeometry): CoverMap {
+        val prev = coverCorners
+        val map = coverMap
+        if (map != null && prev != null && (0 until 4).all { hypot(prev[it].x - geometry.corners[it].x, prev[it].y - geometry.corners[it].y) < 3.0 }) return map
+        return CoverMap(geometry).also { coverMap = it; coverCorners = geometry.corners }
+    }
+
     private fun resetClassifierCache() { cnnProbs = null; cnnPatches = null; cnnCorners = null; cnnWasMoving = true }
 
     private fun classify(image: LumaImage, located: Located, raw: Array<SquareObservation>): Array<SquareObservation> {
@@ -375,6 +386,26 @@ class LiveTracker(
         val fileDiff = Square.file(mb.to) - Square.file(ma.to)
         val rankDiff = Square.rank(mb.to) - Square.rank(ma.to)
         return geometry.coverSteps(Square.file(ma.to), Square.rank(ma.to)).any { (df, dr) -> (fileDiff == df && rankDiff == dr) || (fileDiff == -df && rankDiff == -dr) }
+    }
+
+    /**
+     * True when the positions after [a] and after [b] hold pieces on different squares only
+     * where the body of a piece taller than a pawn covers the square in the picture, in either
+     * position.
+     */
+    private fun differsOnlyWhereHidden(a: Candidate, b: Candidate, cover: CoverMap): Boolean {
+        var pa = board; for (m in a.moves) pa = pa.play(m)
+        var pb = board; for (m in b.moves) pb = pb.play(m)
+        val oa = pa.occupancy(); val ob = pb.occupancy()
+        val ha = pa.heights(); val hb = pb.heights()
+        var any = false
+        for (sq in 0 until 64) {
+            if ((oa[sq] != 0) == (ob[sq] != 0)) continue
+            any = true
+            // hidden: right behind a piece taller than a pawn (behind a pawn the square shows enough)
+            if (cover.reliability(oa, sq, ha) > 0.5 && cover.reliability(ob, sq, hb) > 0.5) return false
+        }
+        return any
     }
 
     /** Forget the pending move evidence, for example after the user corrected the position by hand. */
@@ -594,7 +625,7 @@ class LiveTracker(
         resetPending()
         val obs = cal.observe(f)
         usualUnsure = obs.count { it.unsure }.toDouble()
-        usualCost = MoveInference.cost(board.occupancy(), obs, located.geometry.nearSide, occluderHeights = board.heights())
+        usualCost = MoveInference.cost(board.occupancy(), obs, located.geometry.nearSide, occluderHeights = board.heights(), cover = coverFor(located.geometry))
         return FrameResult(Status.LEARNED, located.geometry, obs, null, 0, emptyList(), "Ready. Play on the board.", quality = q)
     }
 
@@ -629,7 +660,8 @@ class LiveTracker(
         lastPatches = located.patches
         lastRotation = located.rotation
         val change = previousPatches?.let { ChangeDetector.scores(it, located.patches) }
-        val result = MoveInference.infer(board, obs, change, maxPlies = 2, nearSide = located.geometry.nearSide)
+        val cover = coverFor(located.geometry)
+        val result = MoveInference.infer(board, obs, change, maxPlies = 2, nearSide = located.geometry.nearSide, cover = cover)
         val best = result.best ?: return FrameResult(Status.TRACKING, located.geometry, obs, null, 0, emptyList(), "Tracking")
         if (best.cost > maxOf(badFrameCost, (baseline() ?: usualCost) + costSlack)) {
             // even the best explanation leaves far more of the board wrong than usual: the grid
@@ -697,7 +729,14 @@ class LiveTracker(
             c !== best && c.cost - best.cost < twinMargin && coverTwins(best, c, located.geometry) && farTwin(best, c, located.geometry) &&
                 obs[nearSquare(best, c)].occupied >= 0.5
         }
-        if (margin >= applyMargin && !blockedByTwin) {
+        // Two explanations that differ only on squares hidden behind other pieces in the picture
+        // (from a corner seat, Nf3 against f3: g1 lies under the bishop on f1 and f2 under the
+        // king) cannot be told apart by occupancy, whatever the margin says: the user settles it.
+        val blockedByHidden = !blockedByTwin && result.candidates.take(8).any { c ->
+            c !== best && c.moves.isNotEmpty() && best.moves.isNotEmpty() && c.cost - best.cost < twinMargin &&
+                !extends(c, best) && !extends(best, c) && !coverTwins(best, c, located.geometry) && differsOnlyWhereHidden(best, c, cover)
+        }
+        if (margin >= applyMargin && !blockedByTwin && !blockedByHidden) {
             if (best.moves == pending) pendingCount++ else {
                 pending = best.moves; pendingCount = 1
             }
@@ -733,7 +772,7 @@ class LiveTracker(
             // (once a second: it is a hundred times more work than two moves).
             offer(result.candidates.filter { it.moves.isNotEmpty() }.take(4))
             if (unsettled >= framesBeforeDeepSearch && (unsettled - framesBeforeDeepSearch) % 4 == 0) {
-                val deep = MoveInference.infer(board, obs, change, maxPlies = 3, nearSide = located.geometry.nearSide)
+                val deep = MoveInference.infer(board, obs, change, maxPlies = 3, nearSide = located.geometry.nearSide, cover = cover)
                 offer(deep.candidates.filter { it.moves.size == 3 }.take(3), always = true)
             }
             return FrameResult(
@@ -741,7 +780,7 @@ class LiveTracker(
                 "Not sure what was played. Tap the right one, or type it.", suggestions(), result.candidates,
             )
         }
-        val msg = if (margin >= applyMargin && !blockedByTwin) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
+        val msg = if (margin >= applyMargin && !blockedByTwin && !blockedByHidden) "Seeing ${best.description} ($pendingCount/$framesToConfirm)"
         else "Maybe ${best.description} (%.2f) or ${runnerUp?.description} (%.2f); unchanged %.2f".format(best.cost, runnerUp?.cost ?: 0.0, noMove?.cost ?: 0.0)
         return FrameResult(Status.TRACKING, located.geometry, obs, best, pendingCount, emptyList(), msg, suggestions(), candidates = result.candidates, reading = true)
     }

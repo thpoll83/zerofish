@@ -275,13 +275,31 @@ On the game videos, with the replay harness (moves by itself / taps / wrong):
 
 | Reader | Video 1, tap when asked | Video 1, tap after 2 s | Video 2 |
 |---|---|---|---|
-| luma (without the network) | 15 / 3 / 0 | 14 / 4 / 0 | 4 / 1 / 0 |
-| network, changed squares | 17 / 1 / 0 | 15 / 3 / 0 | 4 / 1 / 0 |
-| network, every square | 18 / 0 / 0 | 17 / 1 / 0 | 5 / 0 / 0 |
+| luma (without the network) | 16 / 2 / 0 | 14 / 4 / 0 | 4 / 1 / 0 |
+| network, changed squares | 16 / 2 / 0 | 15 / 3 / 0 | 4 / 1 / 0 |
+| network, every square | 17 / 1 / 0 | 17 / 1 / 0 | 5 / 0 / 0 |
+
+These include the rule below on hidden squares, which costs the network one move by itself on
+video 1 and keeps it from applying 2.f3 for 2.Nf3 from a corner seat (red_6 to red_8).
 
 On the desktop JVM the 64 crops take about 130 ms to make and the network about 300 ms on four
 cores; with changed squares only, about 16 squares are read per frame on average. The depth
 benchmark times the network on all 64 squares on the phone too.
+
+## Hidden squares and the cover map
+
+Which squares a piece's body falls onto in the picture comes from the board's homography
+(`CoverMap`): along each of its cover steps, straight along the dominant axis and, from a seat
+off to the side, the diagonal as well. An occupied reading on such a square counts less (behind
+a pawn 0.6, behind a knight, bishop or rook 0.5, behind a queen or king 0.35; 1.0, 0.8 and 0.65
+two squares on). Until now only the square straight behind a piece along the files counted.
+From White's right-hand corner the owner's pieces lean towards the h-file: after 1.e4 e5 2.Nf3
+the bishop on f1 covers the empty g1 and the king e1 the occupied f2, so g1 read 1.00 occupied,
+f2 0.75, and 2.f3 was applied by a lead of 0.5. Two explanations whose positions differ only on
+squares right behind a piece taller than a pawn cannot be told apart by occupancy, whatever the
+lead says; the tracker now offers both instead of applying one. Turning each crop for the
+network along the lean was tried and dropped: the network was trained on crops aligned with
+the board's grid and misread 10 to 11 squares per frame instead of 2 to 4.
 
 ## Reading the squares
 
