@@ -328,3 +328,55 @@ both the tap-when-asked and the tap-after-two-seconds runs.
   there. An occlusion-aware sampling window is the next step for that angle.
 - The whole-game check still rests on two videos and one bundle. More bundles from real
   games are worth more than any further rule.
+
+## 10. Depth as a second reader (an experiment, not in the tracker)
+
+**The idea.** A monocular depth network turns one frame into a depth map. With the camera
+pose from the board's four corners (focal length from the homography, the board plane known),
+every pixel becomes a 3D point; every point standing above the board is dropped onto the board
+along its normal, and the square it lands on gets the credit. That is "build a 3D model, then
+see what happened" without a mesh, and it sees neither glare nor colour: d1 under the lamp reads
+empty, yellow on cream reads like any piece, and the queen's body over g4 lands on f3. Full
+meshes need many viewpoints or a depth sensor; a phone on a stand gives one view, and ARCore's
+depth needs the phone to move.
+
+**The model.** Depth Anything V2 Small (25 M parameters, Apache-2.0; the larger ones are
+non-commercial) as ONNX, 518 by 518 input. On the desktop JVM through ONNX Runtime it takes
+about 350 ms per frame on four cores, and its depth map agrees with the Python pipeline's to a
+correlation of 0.999.
+
+**Measured on the videos.** The scores were computed offline for every frame of video 1 and the
+first 110 frames of video 2, then fed to the tracker in place of luma's occupancy (luma still
+says white or black), through the replay harness:
+
+| Run | Video 1 by itself / taps / wrong | Video 2 |
+|---|---|---|
+| luma (the tracker as it is), tap when asked | 15 / 3 / 0 | 4 / 1 / 0 |
+| depth every frame, threshold 0.06, no hidden-square discount | 17 / 1 / 0 | 5 / 0 / 0 |
+| the same, depth once a second | 15 / 3 / 0 | 4 / 1 / 0 |
+| luma, tap after two seconds | 14 / 4 / 0 | 4 / 1 / 0 |
+| depth every frame, tap after two seconds | 14 / 4 / 0 | 5 / 0 / 0 |
+
+What decided the setting:
+
+- **Replace, do not blend.** Averaging depth with luma, or letting depth decide only its
+  confident squares, needed more taps than depth alone.
+- **No hidden-square discount.** The footprints already put a body on its own square;
+  discounting the squares behind it as well threw the evidence away twice.
+- **A fixed threshold, not one from the start position.** Calibrated on the learning frame
+  the threshold came out at 0.0085, below the stray points that edges of pieces spill onto
+  neighbouring squares (0.05 to 0.2). Fixed thresholds from 0.045 to 0.15 gave the same video 1
+  result; 0.1 applied one wrong move on video 2, and 0.03 never confirmed 1.e4 on the owner's
+  red board, which 0.06 reads by itself. The value was chosen after seeing these runs, on two
+  videos and one bundle frame: a lead, not a proven setting.
+- **Calibrate on a still frame.** Calibrating on the first tracking frame of video 2, with the
+  hand already on its way to e4, applied 3 to 8 wrong moves.
+- **Per square, depth is no better than luma.** On settled frames of video 1 it misread 13.5%
+  of squares with the start-position threshold (3.7% with thresholds chosen per rank from the
+  answers), luma 11.4%, often on different squares. The move search, which compares whole
+  positions, is what makes either work.
+
+**Why it is not in the tracker.** The gain needs depth on every frame, under 200 ms on the
+phone. The settings screen has a benchmark for exactly that question (see the README); until it
+says yes on the owner's phone, depth stays an experiment.
+

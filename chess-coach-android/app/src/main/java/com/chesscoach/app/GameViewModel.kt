@@ -54,6 +54,10 @@ data class UiState(
     /** Keep a log of the tracker's decisions with the frames behind them, for a shareable bundle. */
     val debugLog: Boolean = true,
     val debugSummary: String = "",
+    /** The depth benchmark: running, its progress or results, and the depth map it read. */
+    val depthBenchRunning: Boolean = false,
+    val depthBench: String = "",
+    val depthPreview: android.graphics.Bitmap? = null,
     // live mode
     val liveStatus: String = "Point the camera at the board",
     val liveFrameWidth: Int = 0,
@@ -201,6 +205,55 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         recorder.clear()
         recorder.log("LOG cleared")
         refreshDebugSummary()
+    }
+
+    private val depthBenchmark by lazy { DepthBenchmark(java.io.File(getApplication<Application>().filesDir, "depth/depth_anything_v2_vits.onnx")) }
+
+    /**
+     * Times the depth model on the last camera frame on the CPU and on each accelerator, after
+     * downloading the model once; the results go to the screen and the debug log, the depth map
+     * and the frame into the debug bundle.
+     */
+    fun runDepthBenchmark() {
+        if (_state.value.depthBenchRunning) return
+        val frame = lastFrame
+        if (frame == null) {
+            _state.update { it.copy(depthBench = "No camera frame yet. Go back to the board for a moment so the camera sees it, then try again.") }
+            return
+        }
+        val corners = _state.value.liveCorners
+        _state.update { it.copy(depthBenchRunning = true, depthBench = "Starting", depthPreview = null) }
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                if (!depthBenchmark.modelReady()) {
+                    depthBenchmark.download { mb -> _state.update { it.copy(depthBench = "Downloading the depth model: %.0f of 99 MB".format(mb)) } }
+                }
+                val prepared = depthBenchmark.prepare(frame, corners)
+                val configs = depthBenchmark.configs()
+                val (results, depth) = depthBenchmark.run(prepared, configs) { p -> _state.update { it.copy(depthBench = p) } }
+                val soc = if (android.os.Build.VERSION.SDK_INT >= 31) ", ${android.os.Build.SOC_MANUFACTURER} ${android.os.Build.SOC_MODEL}" else ""
+                val text = buildString {
+                    append("${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}$soc, ${Runtime.getRuntime().availableProcessors()} cores\n")
+                    append("Frame ${frame.width}x${frame.height}, " + (if (corners.size == 4) "board region ${prepared.cropW}x${prepared.cropH}" else "no board found, whole frame") + ", prepared in ${prepared.millis} ms\n")
+                    for (r in results) append(r.toString()).append('\n')
+                }.trimEnd()
+                val bitmap = depth?.let { d ->
+                    val p = depthBenchmark.preview(prepared, d)
+                    android.graphics.Bitmap.createBitmap(p.argb, p.width, p.height, android.graphics.Bitmap.Config.ARGB_8888)
+                }
+                recorder.log("DEPTH BENCH " + text.replace("\n", " | "))
+                recorder.frame(frameNo, "depthbench", frame)
+                bitmap?.let { b ->
+                    val out = java.io.ByteArrayOutputStream()
+                    b.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                    recorder.file("f%05d_depth.png".format(frameNo), out.toByteArray())
+                }
+                _state.update { it.copy(depthBenchRunning = false, depthBench = text, depthPreview = bitmap) }
+            } catch (e: Throwable) {
+                recorder.log("DEPTH BENCH failed: ${e.message}")
+                _state.update { it.copy(depthBenchRunning = false, depthBench = "Depth benchmark failed: ${e.message}") }
+            }
+        }
     }
 
     /** A user action worth a line and the frame it was taken on. */

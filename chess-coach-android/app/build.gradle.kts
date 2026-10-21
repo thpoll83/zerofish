@@ -134,4 +134,6 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.kotlinx.coroutines.android)
+    // the depth benchmark (an experiment, see DepthBenchmark)
+    implementation(libs.onnxruntime.android)
 }

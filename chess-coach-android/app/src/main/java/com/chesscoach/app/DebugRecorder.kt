@@ -65,6 +65,16 @@ class DebugRecorder(private val context: Context) {
         }
     }
 
+    /** Saves [bytes] as [name] next to the log, for results that are not frames. */
+    @Synchronized fun file(name: String, bytes: ByteArray) {
+        if (!enabled) return
+        try {
+            dir.mkdirs()
+            File(dir, name).writeBytes(bytes)
+        } catch (_: IOException) {
+        }
+    }
+
     /** The tracker's planes as NV21: the luma plane, then V and U interleaved at half resolution. */
     private fun nv21(image: YuvImage): ByteArray {
         val w = image.width

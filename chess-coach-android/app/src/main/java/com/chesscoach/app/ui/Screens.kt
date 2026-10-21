@@ -7,6 +7,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
@@ -52,6 +53,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -165,6 +167,33 @@ private fun SetupScreen(state: UiState, vm: GameViewModel) {
             }
         }) { Text("Share debug bundle") }
         OutlinedButton(onClick = { vm.clearDebugLog() }) { Text("Clear") }
+    }
+    Spacer(Modifier.height(16.dp))
+    Text("Depth benchmark", fontWeight = FontWeight.Bold)
+    Text(
+        "An experiment: times a depth model (Depth Anything V2 Small) on the last camera frame, on the processor and on the phone's " +
+            "accelerators, to see whether it could read the board on every frame. The model, 99 MB, is downloaded once from GitHub. " +
+            "Takes one to three minutes; the results also go into the debug log.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    OutlinedButton(onClick = { vm.runDepthBenchmark() }, enabled = !state.depthBenchRunning, modifier = Modifier.padding(top = 6.dp)) {
+        Text(if (state.depthBenchRunning) "Running..." else "Run depth benchmark")
+    }
+    if (state.depthBench.isNotBlank()) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+            if (state.depthBenchRunning) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(state.depthBench, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+    state.depthPreview?.let { bmp ->
+        Image(
+            bitmap = bmp.asImageBitmap(),
+            contentDescription = "Depth map of the last camera frame, nearer is brighter",
+            modifier = Modifier.fillMaxWidth().aspectRatio(bmp.width.toFloat() / bmp.height).padding(top = 6.dp),
+        )
     }
     Spacer(Modifier.height(24.dp))
     Button(onClick = { vm.resumeLive() }, modifier = Modifier.fillMaxWidth()) { Text("Back to the board") }

@@ -237,6 +237,19 @@ a tap, a typed move or an undo; plus every twentieth frame as a sample. At most 
 kept. "Share debug bundle" zips the lot for sending; the frames show the board and whatever is
 around it, so look before sharing. The bundle replays through the harness like a video.
 
+## Depth benchmark
+
+An experiment (Settings > Depth benchmark): it times a monocular depth model, Depth Anything V2
+Small (Apache-2.0), on the last camera frame through ONNX Runtime, on the CPU, with XNNPACK and
+through NNAPI (full and half precision, and half precision with no CPU fallback), and shows the
+median time per frame, the time to set each one up, how closely each depth map agrees with the
+CPU's, and the depth map itself. The model, 99 MB, is downloaded once from the converter's GitHub
+release and checked against its SHA-256; that download is the only use of the internet
+permission. The results, the frame and the depth map go into the debug log. Depth replaced the
+luma occupancy reading in an offline test on the game videos (see docs/LESSONS.md, section 10)
+and helped only when it ran on every frame, so the time per frame decides whether it is worth
+building in.
+
 ## Reading the squares
 
 Each square is sampled through the homography on the half facing away from the camera, where
