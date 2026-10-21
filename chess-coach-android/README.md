@@ -9,6 +9,8 @@ What the camera work taught us, rule by rule with the numbers and the attempts t
 is in [docs/LESSONS.md](docs/LESSONS.md). How one camera frame turns into a decision, as flow
 charts with every threshold, is in [docs/DECISION_FLOW.md](docs/DECISION_FLOW.md), and what was
 tried and dropped, with the measurement that dropped it, in [docs/DISMISSED.md](docs/DISMISSED.md).
+The owner's recorded games, with their logs and the frames something was decided on, are in
+[recorded-games](recorded-games).
 
 ## What it does
 
