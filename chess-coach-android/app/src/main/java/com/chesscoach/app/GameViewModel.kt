@@ -54,6 +54,13 @@ data class UiState(
     /** Keep a log of the tracker's decisions with the frames behind them, for a shareable bundle. */
     val debugLog: Boolean = true,
     val debugSummary: String = "",
+    /** Chesscog's occupancy network: in this build, switched on, reading every square each frame, and how it runs. */
+    val cnnAvailable: Boolean = false,
+    val cnnOn: Boolean = true,
+    val cnnEverySquare: Boolean = false,
+    val cnnInfo: String = "Loading the square classifier...",
+    /** Squares the network read on the last frame and how long it took, for the status line. */
+    val liveCnn: String = "",
     /** The depth benchmark: running, its progress or results, and the depth map it read. */
     val depthBenchRunning: Boolean = false,
     val depthBench: String = "",
@@ -116,6 +123,13 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The decisions and the frames behind them; see [DebugRecorder]. */
     private val recorder = DebugRecorder(app)
+
+    /**
+     * Chesscog's occupancy network, once loaded from the app's assets; null when not in this
+     * build. Declared before the init block that starts loading it, so its initialiser cannot
+     * run after the load.
+     */
+    @Volatile private var squareClassifier: ChesscogClassifier? = null
     private var frameNo = 0
     @Volatile private var lastFrame: YuvImage? = null
     private var lastOfferCount = 0
@@ -135,8 +149,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 camera = CameraSettings(cameraId = prefs.getString("cameraId", null), zoom = prefs.getFloat("zoom", 1f)),
                 showDebugOverlay = prefs.getBoolean("debugOverlay", false),
                 debugLog = prefs.getBoolean("debugLog", true),
+                cnnOn = prefs.getBoolean("cnnOn", true),
+                cnnEverySquare = prefs.getBoolean("cnnEverySquare", false),
             )
         }
+        loadSquareClassifier()
         recorder.enabled = _state.value.debugLog
         recorder.log("APP started")
         viewModelScope.launch {
@@ -207,6 +224,47 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         refreshDebugSummary()
     }
 
+    private fun loadSquareClassifier() {
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                val bytes = getApplication<Application>().assets.open(ChesscogClassifier.ASSET).use { it.readBytes() }
+                val t0 = System.currentTimeMillis()
+                val cls = ChesscogClassifier(bytes)
+                squareClassifier = cls
+                _state.update { it.copy(cnnAvailable = true, cnnInfo = "Chesscog occupancy network, ${cls.provider}, loaded in ${System.currentTimeMillis() - t0} ms") }
+                recorder.log("CNN loaded: ${cls.provider}")
+                applySquareClassifier()
+            } catch (e: java.io.FileNotFoundException) {
+                _state.update { it.copy(cnnAvailable = false, cnnInfo = "Not included in this build: the squares are read from brightness and colour.") }
+            } catch (e: Throwable) {
+                recorder.log("CNN failed to load: ${e.message}")
+                _state.update { it.copy(cnnAvailable = false, cnnInfo = "Could not load the square classifier: ${e.message}") }
+            }
+        }
+    }
+
+    private fun applySquareClassifier() {
+        val s = _state.value
+        synchronized(tracker) {
+            tracker.squareClassifier = if (s.cnnOn) squareClassifier else null
+            tracker.classifyEverySquare = s.cnnEverySquare
+        }
+    }
+
+    fun setCnnOn(on: Boolean) {
+        _state.update { it.copy(cnnOn = on) }
+        prefs.edit().putBoolean("cnnOn", on).apply()
+        recorder.log("CNN " + if (on) "on" else "off")
+        applySquareClassifier()
+    }
+
+    fun setCnnEverySquare(on: Boolean) {
+        _state.update { it.copy(cnnEverySquare = on) }
+        prefs.edit().putBoolean("cnnEverySquare", on).apply()
+        recorder.log("CNN every square " + if (on) "on" else "off")
+        applySquareClassifier()
+    }
+
     private val depthBenchmark by lazy { DepthBenchmark(java.io.File(getApplication<Application>().filesDir, "depth/depth_anything_v2_vits.onnx")) }
 
     /**
@@ -231,11 +289,30 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 val prepared = depthBenchmark.prepare(frame, corners)
                 val configs = depthBenchmark.configs()
                 val (results, depth) = depthBenchmark.run(prepared, configs) { p -> _state.update { it.copy(depthBench = p) } }
+                // Chesscog's network on all 64 squares of the same frame, as on the first still frame after a move
+                val cnnResults = if (corners.size == 4) {
+                    try {
+                        val modelFile = java.io.File(getApplication<Application>().cacheDir, ChesscogClassifier.ASSET)
+                        if (!modelFile.exists()) getApplication<Application>().assets.open(ChesscogClassifier.ASSET).use { input -> modelFile.outputStream().use { input.copyTo(it) } }
+                        val t0 = System.nanoTime()
+                        val crops = com.chesscoach.core.vision.ChesscogCrops.crop(frame, com.chesscoach.core.vision.BoardGeometry(corners), IntArray(64) { it })
+                        val cropMs = (System.nanoTime() - t0) / 1_000_000
+                        val shape = longArrayOf(64, 3, com.chesscoach.core.vision.ChesscogCrops.SIZE.toLong(), com.chesscoach.core.vision.ChesscogCrops.SIZE.toLong())
+                        val (res, _) = depthBenchmark.time(modelFile.path, crops, shape, configs) { p -> _state.update { it.copy(depthBench = "Chesscog, 64 squares: $p") } }
+                        listOf("Chesscog occupancy network, all 64 squares (crops made in $cropMs ms):") + res.map { "  $it" }
+                    } catch (e: java.io.FileNotFoundException) {
+                        listOf("Chesscog occupancy network: not in this build")
+                    } catch (e: Throwable) {
+                        listOf("Chesscog occupancy network: failed, ${e.message}")
+                    }
+                } else listOf("Chesscog occupancy network: needs the board found in the frame")
                 val soc = if (android.os.Build.VERSION.SDK_INT >= 31) ", ${android.os.Build.SOC_MANUFACTURER} ${android.os.Build.SOC_MODEL}" else ""
                 val text = buildString {
                     append("${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}$soc, ${Runtime.getRuntime().availableProcessors()} cores\n")
                     append("Frame ${frame.width}x${frame.height}, " + (if (corners.size == 4) "board region ${prepared.cropW}x${prepared.cropH}" else "no board found, whole frame") + ", prepared in ${prepared.millis} ms\n")
-                    for (r in results) append(r.toString()).append('\n')
+                    append("Depth Anything V2 Small:\n")
+                    for (r in results) append("  ").append(r.toString()).append('\n')
+                    for (line in cnnResults) append(line).append('\n')
                 }.trimEnd()
                 val bitmap = depth?.let { d ->
                     val p = depthBenchmark.preview(prepared, d)
@@ -319,10 +396,20 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         lastFrameAt = now
         viewModelScope.launch(trackerDispatcher) {
             try {
-                val r = synchronized(tracker) { tracker.process(frame) }
+                var cnnSquares = 0
+                var cnnMs = 0L
+                var cnnError: String? = null
+                val r = synchronized(tracker) {
+                    tracker.process(frame).also { cnnSquares = tracker.lastClassified; cnnMs = tracker.lastClassifyMs; cnnError = tracker.lastClassifyError }
+                }
+                val cnnText = when {
+                    cnnError != null -> "network error: $cnnError"
+                    cnnSquares > 0 -> "network $cnnSquares squares $cnnMs ms"
+                    else -> ""
+                }
                 val corners = r.geometry?.corners ?: emptyList()
                 (frame as? YuvImage)?.let { lastFrame = it }
-                record(frame, r, corners)
+                record(frame, r, corners, cnnText)
                 _state.update {
                     // a hand over the board or a lost grid must not take the offered moves away
                     val keep = r.status == LiveTracker.Status.UNSTABLE || r.status == LiveTracker.Status.NO_BOARD
@@ -331,6 +418,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                         liveStatus = r.message, liveFrameWidth = frame.width, liveFrameHeight = frame.height, liveCorners = corners,
                         liveObservations = r.observations?.toList(), liveCandidate = r.candidate?.takeIf { c -> c.moves.isNotEmpty() }?.description,
                         liveFps = fps,
+                        liveCnn = cnnText,
                         liveReading = r.reading,
                         liveQuality = r.quality?.score ?: it.liveQuality,
                         liveHint = r.quality?.hint ?: it.liveHint,
@@ -363,7 +451,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
      * something was decided: the pieces learned, a move applied, a question asked, an offer
      * added, the grid moved; plus every twentieth frame as a sample of the quiet times.
      */
-    private fun record(frame: LumaImage, r: LiveTracker.FrameResult, corners: List<Pt>) {
+    private fun record(frame: LumaImage, r: LiveTracker.FrameResult, corners: List<Pt>, cnn: String = "") {
         frameNo++
         if (!_state.value.debugLog) return
         val tag = when {
@@ -386,6 +474,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         if (r.candidates.isNotEmpty()) sb.append(" | top: ").append(r.candidates.take(4).joinToString(" | ") { "${it.description} (%.2f)".format(it.cost) })
         if (r.suggestions.isNotEmpty()) sb.append(" | offers: ").append(r.suggestions.joinToString(" | ") { "${it.description} (%.1f)".format(it.cost) })
         r.observations?.let { obs -> sb.append(" | unsure ${obs.count { it.unsure }}") }
+        if (cnn.isNotEmpty()) sb.append(" | ").append(cnn)
         if (corners.size == 4) sb.append(" | grid ").append(corners.joinToString(" ") { "%.0f,%.0f".format(it.x, it.y) })
         if (saved != null) sb.append(" | image $saved")
         recorder.log(sb.toString())

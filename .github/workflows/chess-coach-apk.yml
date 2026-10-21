@@ -30,10 +30,22 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # for converting Chesscog's occupancy network to ONNX at build time (tools/chesscog_to_onnx.py)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PyTorch (CPU) and ONNX for the Chesscog conversion
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install onnx onnxruntime
+
       - name: Core unit tests
         run: ./gradlew :core:test --no-daemon
 
       - name: Build debug and release APKs
+        env:
+          CHESSCOG_REQUIRED: '1'
         run: ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon --stacktrace
 
       - uses: actions/upload-artifact@v4

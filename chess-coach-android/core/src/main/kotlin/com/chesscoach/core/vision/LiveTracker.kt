@@ -133,6 +133,86 @@ class LiveTracker(
      */
     private var smoothed: Array<SquareObservation>? = null
 
+    /**
+     * A learned square reader (Chesscog's occupancy network in the app). When set, it decides
+     * which squares hold a piece while tracking; luma still decides white or black, and the
+     * pieces are still learned from luma. On the game videos it followed every move by itself
+     * where luma needed three taps, with no wrong move (docs/LESSONS.md, section 11).
+     */
+    var squareClassifier: SquareClassifier? = null
+        set(value) { field = value; resetClassifierCache() }
+
+    /** Squares the classifier read on the last frame and how long that took (diagnostics). */
+    var lastClassified = 0
+        private set
+    var lastClassifyMs = 0L
+        private set
+    var lastClassifyError: String? = null
+        private set
+
+    /** Read every square on every frame instead of only the changed ones (diagnostics, slower). */
+    var classifyEverySquare = false
+
+    // The classifier's last reading per square, and the square's patch and the board's corners
+    // when it was read: a square is read again only when its patch, or a neighbour's, changed
+    // since (the crop takes in half of each neighbour), so a still board costs nothing.
+    private var cnnProbs: DoubleArray? = null
+    private var cnnPatches: Array<IntArray>? = null
+    private var cnnCorners: List<Pt>? = null
+
+    private var cnnWasMoving = true
+    private var cnnNext = 0
+    /** Squares read again in turn on every frame besides the changed ones. */
+    private val refreshPerFrame = 4
+
+    private fun resetClassifierCache() { cnnProbs = null; cnnPatches = null; cnnCorners = null; cnnWasMoving = true }
+
+    private fun classify(image: LumaImage, located: Located, raw: Array<SquareObservation>): Array<SquareObservation> {
+        val model = squareClassifier ?: return raw
+        val yuv = image as? YuvImage ?: return raw
+        val geo = located.geometry
+        val t0 = System.nanoTime()
+        val prevProbs = cnnProbs
+        val prevPatches = cnnPatches
+        val prevCorners = cnnCorners
+        val moved = prevCorners == null || (0 until 4).any { hypot(prevCorners[it].x - geo.corners[it].x, prevCorners[it].y - geo.corners[it].y) > 1.5 }
+        // A hand over the board changes many squares from one frame to the next; the first still
+        // frame after it is the one a move is confirmed on, and every square is read again there:
+        // comparing patches with the ones at the last reading missed pieces that had moved.
+        val movingNow = lastPatches?.let { prev -> ChangeDetector.scores(prev, located.patches).count { it > 0.5 } > maxMovingSquares } ?: true
+        val handLeft = cnnWasMoving && !movingNow
+        cnnWasMoving = movingNow
+        val todo: IntArray = if (classifyEverySquare || handLeft || prevProbs == null || prevPatches == null || moved) IntArray(64) { it } else {
+            val change = ChangeDetector.scores(prevPatches, located.patches)
+            val set = java.util.TreeSet<Int>()
+            for (sq in 0 until 64) if (change[sq] > 0.2) {
+                for (df in -1..1) for (dr in -1..1) {
+                    val f = (sq and 7) + df; val r = (sq shr 3) + dr
+                    if (f in 0..7 && r in 0..7) set += r * 8 + f
+                }
+            }
+            // and a few more in turn, so no reading grows old
+            repeat(refreshPerFrame) { set += cnnNext; cnnNext = (cnnNext + 1) % 64 }
+            set.toIntArray()
+        }
+        val probs = if (moved || prevProbs == null) DoubleArray(64) else prevProbs.copyOf()
+        val patches = if (moved || prevPatches == null) located.patches.copyOf() else prevPatches.copyOf()
+        if (todo.isNotEmpty()) {
+            try {
+                val out = model.occupied(ChesscogCrops.crop(yuv, geo, todo), todo.size)
+                for ((i, sq) in todo.withIndex()) { probs[sq] = out[i].toDouble(); patches[sq] = located.patches[sq] }
+                lastClassifyError = null
+            } catch (e: Exception) {
+                lastClassifyError = e.message ?: e.javaClass.simpleName
+                return raw
+            }
+        }
+        cnnProbs = probs; cnnPatches = patches; cnnCorners = geo.corners
+        lastClassified = todo.size
+        lastClassifyMs = (System.nanoTime() - t0) / 1_000_000
+        return Array(64) { i -> val o = raw[i]; SquareObservation(probs[i], o.white, o.occFraction, o.colourScore) }
+    }
+
     /** Weight of the current frame in the blend; the rest is the blend so far. */
     private val smoothingWeight = 0.6
 
@@ -363,10 +443,13 @@ class LiveTracker(
         startConfirmed = false
         previousPatches = null
         quietCosts.clear()
+        resetClassifierCache()
         resetPending()
     }
 
     fun process(image: LumaImage): FrameResult {
+        lastClassified = 0
+        lastClassifyMs = 0
         val lock = locked
         if (phase == Phase.TRACKING && lock != null) {
             // the board where it was: most frames end here, at a fraction of a search's cost
@@ -534,7 +617,7 @@ class LiveTracker(
             smoothed = null
             return FrameResult(Status.UNSTABLE, located.geometry, raw, null, pendingCount, emptyList(), "Hold still, hand or shadow over the board")
         }
-        val obs = smooth(raw)
+        val obs = smooth(classify(image, located, raw))
         // Squares that changed since the last frame: a hand carrying a piece moves six to ten of
         // them between two frames, a settled board none to two (handheld jitter). A frame with
         // a hand in flight may agree with the frames before, but a move is applied only on a

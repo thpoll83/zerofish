@@ -58,6 +58,31 @@ val downloadNnue by tasks.registering {
     }
 }
 
+// Chesscog's occupancy network (MIT licence), converted to ONNX by tools/chesscog_to_onnx.py,
+// which needs Python with torch, torchvision, onnx and onnxruntime. Without them the app is built
+// without the network and reads the squares from luma alone, as before.
+val chesscogDir = layout.buildDirectory.dir("generated/chesscog/assets")
+
+val prepareChesscog by tasks.registering {
+    description = "Converts Chesscog's occupancy classifier to ONNX for the app assets"
+    outputs.dir(chesscogDir)
+    doLast {
+        val out = File(chesscogDir.get().asFile, "chesscog_occupancy.onnx")
+        if (out.exists() && out.length() > 40_000_000) return@doLast
+        out.parentFile.mkdirs()
+        val script = rootProject.file("tools/chesscog_to_onnx.py")
+        val python = System.getenv("PYTHON") ?: "python3"
+        try {
+            val p = ProcessBuilder(python, script.path, out.path).inheritIO().start()
+            if (p.waitFor() != 0) throw GradleException("tools/chesscog_to_onnx.py failed")
+        } catch (e: Exception) {
+            // CI sets CHESSCOG_REQUIRED: a release without the network must not pass unnoticed
+            if (System.getenv("CHESSCOG_REQUIRED") != null) throw GradleException("Chesscog conversion failed: ${e.message}", e)
+            logger.warn("Chesscog conversion failed (${e.message}); building without the square classifier")
+        }
+    }
+}
+
 android {
     namespace = "com.chesscoach.app"
     compileSdk = 36
@@ -87,6 +112,7 @@ android {
     }
 
     sourceSets["main"].assets.srcDir(nnueDir.get().asFile)
+    sourceSets["main"].assets.srcDir(chesscogDir.get().asFile)
 
     buildTypes {
         release {
@@ -103,7 +129,7 @@ android {
         buildConfig = true
     }
     androidResources {
-        noCompress += "nnue"
+        noCompress += listOf("nnue", "onnx")
     }
 }
 
@@ -114,7 +140,7 @@ kotlin {
 }
 
 tasks.named("preBuild") {
-    dependsOn(downloadNnue)
+    dependsOn(downloadNnue, prepareChesscog)
 }
 
 dependencies {

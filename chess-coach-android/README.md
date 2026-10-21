@@ -250,6 +250,39 @@ luma occupancy reading in an offline test on the game videos (see docs/LESSONS.m
 and helped only when it ran on every frame, so the time per frame decides whether it is worth
 building in.
 
+## Square classifier (Chesscog)
+
+An experiment, on by default in this build (Settings > Square reader): Chesscog's occupancy
+network (Georg Wölflein, [github.com/georg-wolflein/chesscog](https://github.com/georg-wolflein/chesscog),
+MIT licence, from the paper "Determining Chess Game State from an Image", Journal of Imaging
+2021) decides which squares hold a piece while the game is tracked. It is a ResNet-18 trained on
+about 5,000 rendered boards from many angles and lights; it reads a 100 by 100 crop of each
+square plus half a square around it, from the board warped to a top-down view with the camera's
+side at the bottom (`ChesscogCrops`, sampled straight from the frame through the homography).
+Brightness and colour still tell white from black, and the pieces are still learned from luma.
+The model is converted to ONNX at build time (`tools/chesscog_to_onnx.py`, which checks the
+download's SHA-256 and the export against PyTorch) and run through ONNX Runtime; a build without
+Python and PyTorch leaves it out and reads the squares as before, while CI refuses to.
+
+Only squares whose patch changed since their last reading are read again, with their
+neighbours (the crop takes in half of each), plus four more in turn every frame, and the whole
+board on the first still frame after a hand has been over it: comparing patches with the ones
+at the last reading alone missed pieces that had moved, and applied "c3 cxd4" for "c4 dxc4".
+"Read every square on every frame" reads all 64 each time, about four times the work. The debug
+log records per frame how many squares were read and how long it took.
+
+On the game videos, with the replay harness (moves by itself / taps / wrong):
+
+| Reader | Video 1, tap when asked | Video 1, tap after 2 s | Video 2 |
+|---|---|---|---|
+| luma (without the network) | 15 / 3 / 0 | 14 / 4 / 0 | 4 / 1 / 0 |
+| network, changed squares | 17 / 1 / 0 | 15 / 3 / 0 | 4 / 1 / 0 |
+| network, every square | 18 / 0 / 0 | 17 / 1 / 0 | 5 / 0 / 0 |
+
+On the desktop JVM the 64 crops take about 130 ms to make and the network about 300 ms on four
+cores; with changed squares only, about 16 squares are read per frame on average. The depth
+benchmark times the network on all 64 squares on the phone too.
+
 ## Reading the squares
 
 Each square is sampled through the homography on the half facing away from the camera, where
@@ -313,6 +346,12 @@ cd chess-coach-android
 ```
 
 Install `app/build/outputs/apk/debug/app-debug.apk` on a 64-bit phone (Android 8.0+).
+
+The square classifier needs Python 3 with `torch`, `torchvision`, `onnx` and `onnxruntime`
+during the build (the CPU build of torch is enough:
+`pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu` and
+`pip install onnx onnxruntime`); without them the app is built without it. Set `PYTHON` to
+choose the interpreter.
 
 To build with ARMv8.2 dot-product instructions (about 30% faster search on 2018+ phones), add
 `-DSTOCKFISH_DOTPROD=ON` to `externalNativeBuild.cmake.arguments` in `app/build.gradle.kts`.

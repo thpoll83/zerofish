@@ -169,9 +169,38 @@ private fun SetupScreen(state: UiState, vm: GameViewModel) {
         OutlinedButton(onClick = { vm.clearDebugLog() }) { Text("Clear") }
     }
     Spacer(Modifier.height(16.dp))
+    Text("Square reader (experiment)", fontWeight = FontWeight.Bold)
+    Text(state.cnnInfo, style = MaterialTheme.typography.bodySmall)
+    if (state.cnnAvailable) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+            Switch(checked = state.cnnOn, onCheckedChange = { vm.setCnnOn(it) })
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text("A neural network decides which squares hold a piece", fontWeight = FontWeight.Bold)
+                Text(
+                    "Chesscog's occupancy network, trained on rendered boards from many angles. Brightness and colour still tell " +
+                        "white from black. On the test videos it followed every move by itself where the old reading needed taps.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+            Switch(checked = state.cnnEverySquare, enabled = state.cnnOn, onCheckedChange = { vm.setCnnEverySquare(it) })
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text("Read every square on every frame", fontWeight = FontWeight.Bold)
+                Text(
+                    "Off: only squares that changed are read again, plus a few in turn, and the whole board once the hand has left. " +
+                        "On: about four times the work, slightly better on the videos. With the recognition markers on, the status line shows the time per frame.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+    }
+    Spacer(Modifier.height(16.dp))
     Text("Depth benchmark", fontWeight = FontWeight.Bold)
     Text(
-        "An experiment: times a depth model (Depth Anything V2 Small) on the last camera frame, on the processor and on the phone's " +
+        "An experiment: times a depth model (Depth Anything V2 Small), and the square classifier on all 64 squares, on the last camera frame, on the processor and on the phone's " +
             "accelerators, to see whether it could read the board on every frame. The model, 99 MB, is downloaded once from GitHub. " +
             "Takes one to three minutes; the results also go into the debug log.",
         style = MaterialTheme.typography.bodySmall,
@@ -386,7 +415,8 @@ private fun LiveScreen(state: UiState, vm: GameViewModel) {
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(
-                    status + (state.liveCandidate?.let { "  seeing $it" } ?: "") + (if (state.showDebugOverlay && state.liveFps > 0) "  (%.1f fps)".format(state.liveFps) else ""),
+                    status + (state.liveCandidate?.let { "  seeing $it" } ?: "") + (if (state.showDebugOverlay && state.liveFps > 0) "  (%.1f fps)".format(state.liveFps) else "") +
+                        (if (state.showDebugOverlay && state.liveCnn.isNotEmpty()) "  ${state.liveCnn}" else ""),
                     style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
             }

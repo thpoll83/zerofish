@@ -163,7 +163,15 @@ class DepthBenchmark(private val modelFile: File) {
      * Times each configuration on [prepared]: one untimed-for-the-median first run, then [runs]
      * timed runs. Returns the results and the first configuration's depth map for a look.
      */
-    fun run(prepared: Prepared, configs: List<Config>, runs: Int = 5, progress: (String) -> Unit = {}): Pair<List<Result>, FloatArray?> {
+    fun run(prepared: Prepared, configs: List<Config>, runs: Int = 5, progress: (String) -> Unit = {}): Pair<List<Result>, FloatArray?> =
+        time(modelFile.path, prepared.input, longArrayOf(1, 3, SIZE.toLong(), SIZE.toLong()), configs, runs, progress)
+
+    /**
+     * Times any model at [modelPath] on one [input] of [shape] under each configuration: one
+     * first run, then [runs] timed runs. Returns the results and the first configuration's
+     * output, to which the others' outputs are compared.
+     */
+    fun time(modelPath: String, input: FloatArray, shape: LongArray, configs: List<Config>, runs: Int = 5, progress: (String) -> Unit = {}): Pair<List<Result>, FloatArray?> {
         val env = OrtEnvironment.getEnvironment()
         val results = ArrayList<Result>()
         var reference: FloatArray? = null
@@ -173,7 +181,7 @@ class DepthBenchmark(private val modelFile: File) {
                 val t0 = System.nanoTime()
                 OrtSession.SessionOptions().use { opts ->
                 c.setup(opts)
-                env.createSession(modelFile.path, opts).use { session ->
+                env.createSession(modelPath, opts).use { session ->
                     val loadMs = (System.nanoTime() - t0) / 1_000_000
                     val inputName = session.inputNames.first()
                     val times = ArrayList<Long>()
@@ -181,7 +189,7 @@ class DepthBenchmark(private val modelFile: File) {
                     var firstMs = 0L
                     for (k in 0..runs) {
                         progress("${c.name}: run ${k + 1} of ${runs + 1}")
-                        OnnxTensor.createTensor(env, FloatBuffer.wrap(prepared.input), longArrayOf(1, 3, SIZE.toLong(), SIZE.toLong())).use { tensor ->
+                        OnnxTensor.createTensor(env, FloatBuffer.wrap(input), shape).use { tensor ->
                             val s = System.nanoTime()
                             session.run(mapOf(inputName to tensor)).use { out ->
                                 val ms = (System.nanoTime() - s) / 1_000_000

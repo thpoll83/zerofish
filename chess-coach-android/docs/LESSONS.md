@@ -380,3 +380,39 @@ What decided the setting:
 phone. The settings screen has a benchmark for exactly that question (see the README); until it
 says yes on the owner's phone, depth stays an experiment.
 
+## 11. A learned square reader: Chesscog's occupancy network
+
+**Where it came from.** Wölflein and Arandjelović's Chesscog (MIT licence) reads a photo of a
+board in three steps: find the board, decide per square whether it holds a piece, then name the
+piece. Its occupancy network is a ResNet-18 trained on about 5,000 rendered boards at many
+camera angles and lights; the crop is the square plus half a square on each side, 100 by 100
+pixels, from the board warped to a top-down view with the camera's side at the bottom. Its
+piece crops reach one to three squares above the square, more for squares further from the
+camera, wider towards the board's edges, and mirrored on the left half so every piece leans
+the same way: the same "a body falls onto the square behind" problem as the cover steps of
+section 4, handled by the crop. Another suggested project, a whole-board network trained on
+overhead photos only, reported 73% of squares right and was of no use from a low seat.
+
+**Per square, unchanged, on boards it never saw.** On the 164 settled frames of video 1 it
+misread 3.5% of squares, against 11.4% for the luma reading and 13.5% for the depth footprints
+of section 10; most of its errors were on two squares, g8 and c7, next to pieces leaning into
+them. On the owner's red board after 1.e4 it read e2 0.00, e3 0.00 and e4 1.00; its only miss
+was the pawn on f2 (0.17).
+
+**In the tracker.** Its probabilities replace luma's occupancy reading, before the smoothing;
+everything else stays, the hidden-square discount included (unlike depth's footprints, the
+crops do not put a body on its own square, and the discount helped). It needs no threshold:
+it outputs a probability. Results are in the README; in short, reading every square on every
+frame followed every move of both videos with one tap at most and nothing wrong, and reading
+only changed squares came close.
+
+**The cache that went wrong first.** Reading a square again only when its patch had changed
+since its last reading (the change detector's score above 0.2, with its neighbours) applied
+"c3 cxd4" for "c4 dxc4" twice on video 1: a piece that had moved was still read where it had
+stood. Reading the whole board on the first still frame after a hand, and four squares in turn
+on every frame, fixed it at about 16 squares per frame.
+
+**What to watch on the phone.** The network costs about 23 billion operations for all 64
+squares. The debug log records, per frame, the squares read and the milliseconds; the depth
+benchmark times all 64 on each accelerator.
+
