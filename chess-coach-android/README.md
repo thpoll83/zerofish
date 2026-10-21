@@ -5,6 +5,9 @@ Stockfish what to answer, and shows the move on a digital board.
 
 Standalone project. It shares no code with ZeroFish and can be moved to its own repository as is.
 
+What the camera work taught us, rule by rule with the numbers and the attempts that failed,
+is in [docs/LESSONS.md](docs/LESSONS.md).
+
 ## What it does
 
 Live mode (default): set up the starting position, point the camera at the board (handheld or on
