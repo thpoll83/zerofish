@@ -248,7 +248,10 @@ release and checked against its SHA-256; that download is the only use of the in
 permission. The results, the frame and the depth map go into the debug log. Depth replaced the
 luma occupancy reading in an offline test on the game videos (see docs/LESSONS.md, section 10)
 and helped only when it ran on every frame, so the time per frame decides whether it is worth
-building in.
+building in. Results show as each configuration finishes, the NNAPI ones last. Each one gets
+two minutes: on a Pixel 8 Pro, NNAPI with half precision never finished preparing, and the
+benchmark used to wait on it forever. Such a setup cannot be stopped, so the later NNAPI
+configurations are skipped until the app restarts.
 
 ## Square classifier (Chesscog)
 

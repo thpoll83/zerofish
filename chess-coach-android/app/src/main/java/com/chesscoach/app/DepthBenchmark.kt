@@ -26,7 +26,15 @@ import kotlin.math.sqrt
  */
 class DepthBenchmark(private val modelFile: File) {
 
-    class Config(val name: String, val setup: (OrtSession.SessionOptions) -> Unit)
+    /** [accelerator]: goes through NNAPI's driver, which may never come back (see [time]). */
+    class Config(val name: String, val accelerator: Boolean = false, val setup: (OrtSession.SessionOptions) -> Unit)
+
+    /**
+     * True once an accelerator setup failed to finish within its limit. Its thread cannot be
+     * stopped and keeps the driver, so later accelerator configurations are skipped.
+     */
+    @Volatile var acceleratorStuck = false
+        private set
 
     class Result(
         val config: String,
@@ -152,9 +160,9 @@ class DepthBenchmark(private val modelFile: File) {
             it.setIntraOpNumThreads(1); it.addXnnpack(mapOf("intra_op_num_threads" to threads.toString()))
         }
         if (OrtProvider.NNAPI in providers) {
-            list += Config("NNAPI") { it.addNnapi() }
-            list += Config("NNAPI, half precision") { it.addNnapi(EnumSet.of(NNAPIFlags.USE_FP16)) }
-            list += Config("NNAPI, half precision, accelerator only") { it.addNnapi(EnumSet.of(NNAPIFlags.USE_FP16, NNAPIFlags.CPU_DISABLED)) }
+            list += Config("NNAPI", accelerator = true) { it.addNnapi() }
+            list += Config("NNAPI, half precision", accelerator = true) { it.addNnapi(EnumSet.of(NNAPIFlags.USE_FP16)) }
+            list += Config("NNAPI, half precision, accelerator only", accelerator = true) { it.addNnapi(EnumSet.of(NNAPIFlags.USE_FP16, NNAPIFlags.CPU_DISABLED)) }
         }
         return list
     }
@@ -163,57 +171,82 @@ class DepthBenchmark(private val modelFile: File) {
      * Times each configuration on [prepared]: one untimed-for-the-median first run, then [runs]
      * timed runs. Returns the results and the first configuration's depth map for a look.
      */
-    fun run(prepared: Prepared, configs: List<Config>, runs: Int = 5, progress: (String) -> Unit = {}): Pair<List<Result>, FloatArray?> =
-        time(modelFile.path, prepared.input, longArrayOf(1, 3, SIZE.toLong(), SIZE.toLong()), configs, runs, progress)
+    fun run(prepared: Prepared, configs: List<Config>, runs: Int = 5, onResult: (Result) -> Unit = {}, progress: (String) -> Unit = {}): Pair<List<Result>, FloatArray?> =
+        time(modelFile.path, prepared.input, longArrayOf(1, 3, SIZE.toLong(), SIZE.toLong()), configs, runs, onResult = onResult, progress = progress)
 
     /**
      * Times any model at [modelPath] on one [input] of [shape] under each configuration: one
      * first run, then [runs] timed runs. Returns the results and the first configuration's
-     * output, to which the others' outputs are compared.
+     * output, to which the others' outputs are compared; [onResult] gets each result as it is
+     * known. Each configuration gets [limitMs]: on a Pixel 8 Pro, NNAPI with half precision
+     * never finished preparing the depth model, and the benchmark showed "preparing" forever.
      */
-    fun time(modelPath: String, input: FloatArray, shape: LongArray, configs: List<Config>, runs: Int = 5, progress: (String) -> Unit = {}): Pair<List<Result>, FloatArray?> {
+    fun time(
+        modelPath: String, input: FloatArray, shape: LongArray, configs: List<Config>, runs: Int = 5,
+        limitMs: Long = 120_000, onResult: (Result) -> Unit = {}, progress: (String) -> Unit = {},
+    ): Pair<List<Result>, FloatArray?> {
         val env = OrtEnvironment.getEnvironment()
         val results = ArrayList<Result>()
         var reference: FloatArray? = null
         for (c in configs) {
-            progress("${c.name}: preparing")
-            try {
-                val t0 = System.nanoTime()
-                OrtSession.SessionOptions().use { opts ->
-                c.setup(opts)
-                env.createSession(modelPath, opts).use { session ->
-                    val loadMs = (System.nanoTime() - t0) / 1_000_000
-                    val inputName = session.inputNames.first()
-                    val times = ArrayList<Long>()
-                    var depth: FloatArray? = null
-                    var firstMs = 0L
-                    for (k in 0..runs) {
-                        progress("${c.name}: run ${k + 1} of ${runs + 1}")
-                        OnnxTensor.createTensor(env, FloatBuffer.wrap(input), shape).use { tensor ->
-                            val s = System.nanoTime()
-                            session.run(mapOf(inputName to tensor)).use { out ->
-                                val ms = (System.nanoTime() - s) / 1_000_000
-                                if (k == 0) {
-                                    firstMs = ms
-                                    val buf = (out.get(0) as OnnxTensor).floatBuffer
-                                    depth = FloatArray(buf.remaining()).also { buf.get(it) }
-                                } else times += ms
-                            }
-                        }
-                    }
-                    times.sort()
-                    val d = depth
-                    val ref = reference
-                    val agreement = if (ref != null && d != null) correlation(ref, d) else null
-                    if (ref == null) reference = d
-                    results += Result(c.name, loadMs, firstMs, times[times.size / 2], times.first(), times.size, agreement, null)
-                }
-                }
-            } catch (e: Throwable) {
-                results += Result(c.name, 0, 0, 0, 0, 0, null, (e.message ?: e.javaClass.simpleName).lineSequence().first().take(160))
+            if (c.accelerator && acceleratorStuck) {
+                results += Result(c.name, 0, 0, 0, 0, 0, null, "skipped, an earlier accelerator setup never finished").also(onResult)
+                continue
             }
+            progress("${c.name}: preparing")
+            var outcome: Pair<Result, FloatArray?>? = null
+            val worker = Thread({
+                outcome = try {
+                    timeOne(env, modelPath, input, shape, c, runs, reference, progress)
+                } catch (e: Throwable) {
+                    Result(c.name, 0, 0, 0, 0, 0, null, (e.message ?: e.javaClass.simpleName).lineSequence().first().take(160)) to null
+                }
+            }, "bench-${c.name}")
+            worker.isDaemon = true
+            worker.start()
+            worker.join(limitMs)
+            val done = outcome
+            if (done == null) {
+                if (c.accelerator) acceleratorStuck = true
+                results += Result(c.name, 0, 0, 0, 0, 0, null, "no answer after ${limitMs / 1000} s; restart the app to free the driver").also(onResult)
+                continue
+            }
+            results += done.first.also(onResult)
+            if (reference == null && done.first.error == null) reference = done.second
         }
         return results to reference
+    }
+
+    private fun timeOne(env: OrtEnvironment, modelPath: String, input: FloatArray, shape: LongArray, c: Config, runs: Int, reference: FloatArray?, progress: (String) -> Unit): Pair<Result, FloatArray?> {
+        val t0 = System.nanoTime()
+        OrtSession.SessionOptions().use { opts ->
+            c.setup(opts)
+            env.createSession(modelPath, opts).use { session ->
+                val loadMs = (System.nanoTime() - t0) / 1_000_000
+                val inputName = session.inputNames.first()
+                val times = ArrayList<Long>()
+                var output: FloatArray? = null
+                var firstMs = 0L
+                for (k in 0..runs) {
+                    progress("${c.name}: run ${k + 1} of ${runs + 1}")
+                    OnnxTensor.createTensor(env, FloatBuffer.wrap(input), shape).use { tensor ->
+                        val s = System.nanoTime()
+                        session.run(mapOf(inputName to tensor)).use { out ->
+                            val ms = (System.nanoTime() - s) / 1_000_000
+                            if (k == 0) {
+                                firstMs = ms
+                                val buf = (out.get(0) as OnnxTensor).floatBuffer
+                                output = FloatArray(buf.remaining()).also { buf.get(it) }
+                            } else times += ms
+                        }
+                    }
+                }
+                times.sort()
+                val d = output
+                val agreement = if (reference != null && d != null) correlation(reference, d) else null
+                return Result(c.name, loadMs, firstMs, times[times.size / 2], times.first(), times.size, agreement, null) to d
+            }
+        }
     }
 
     /** The depth map of the cropped region, scaled to gray from its 2nd to 98th percentile. */

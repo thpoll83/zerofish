@@ -287,33 +287,61 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                     depthBenchmark.download { mb -> _state.update { it.copy(depthBench = "Downloading the depth model: %.0f of 99 MB".format(mb)) } }
                 }
                 val prepared = depthBenchmark.prepare(frame, corners)
-                val configs = depthBenchmark.configs()
-                val (results, depth) = depthBenchmark.run(prepared, configs) { p -> _state.update { it.copy(depthBench = p) } }
-                // Chesscog's network on all 64 squares of the same frame, as on the first still frame after a move
-                val cnnResults = if (corners.size == 4) {
-                    try {
-                        val modelFile = java.io.File(getApplication<Application>().cacheDir, ChesscogClassifier.ASSET)
-                        if (!modelFile.exists()) getApplication<Application>().assets.open(ChesscogClassifier.ASSET).use { input -> modelFile.outputStream().use { input.copyTo(it) } }
-                        val t0 = System.nanoTime()
-                        val crops = com.chesscoach.core.vision.ChesscogCrops.crop(frame, com.chesscoach.core.vision.BoardGeometry(corners), IntArray(64) { it })
-                        val cropMs = (System.nanoTime() - t0) / 1_000_000
-                        val shape = longArrayOf(64, 3, com.chesscoach.core.vision.ChesscogCrops.SIZE.toLong(), com.chesscoach.core.vision.ChesscogCrops.SIZE.toLong())
-                        val (res, _) = depthBenchmark.time(modelFile.path, crops, shape, configs) { p -> _state.update { it.copy(depthBench = "Chesscog, 64 squares: $p") } }
-                        listOf("Chesscog occupancy network, all 64 squares (crops made in $cropMs ms):") + res.map { "  $it" }
-                    } catch (e: java.io.FileNotFoundException) {
-                        listOf("Chesscog occupancy network: not in this build")
-                    } catch (e: Throwable) {
-                        listOf("Chesscog occupancy network: failed, ${e.message}")
-                    }
-                } else listOf("Chesscog occupancy network: needs the board found in the frame")
                 val soc = if (android.os.Build.VERSION.SDK_INT >= 31) ", ${android.os.Build.SOC_MANUFACTURER} ${android.os.Build.SOC_MODEL}" else ""
-                val text = buildString {
-                    append("${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}$soc, ${Runtime.getRuntime().availableProcessors()} cores\n")
-                    append("Frame ${frame.width}x${frame.height}, " + (if (corners.size == 4) "board region ${prepared.cropW}x${prepared.cropH}" else "no board found, whole frame") + ", prepared in ${prepared.millis} ms\n")
+                val head = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}$soc, ${Runtime.getRuntime().availableProcessors()} cores\n" +
+                    "Frame ${frame.width}x${frame.height}, " + (if (corners.size == 4) "board region ${prepared.cropW}x${prepared.cropH}" else "no board found, whole frame") + ", prepared in ${prepared.millis} ms"
+                // Results show as they come; the NNAPI ones last, as a driver that never answers
+                // (half precision on a Pixel 8 Pro) would otherwise hold back the rest.
+                val depthLines = ArrayList<String>()
+                val cnnLines = ArrayList<String>()
+                fun shown(): String = buildString {
+                    append(head).append('\n')
                     append("Depth Anything V2 Small:\n")
-                    for (r in results) append("  ").append(r.toString()).append('\n')
-                    for (line in cnnResults) append(line).append('\n')
+                    for (l in depthLines) append("  ").append(l).append('\n')
+                    if (cnnLines.isNotEmpty()) append(cnnLines.first()).append('\n')
+                    for (l in cnnLines.drop(1)) append("  ").append(l).append('\n')
                 }.trimEnd()
+                fun status(p: String) = _state.update { it.copy(depthBench = shown() + "\n\nNow: " + p) }
+                val configs = depthBenchmark.configs()
+                val plain = configs.filter { !it.accelerator }
+                val accel = configs.filter { it.accelerator }
+                var depth: FloatArray? = null
+                fun depthPart(cs: List<DepthBenchmark.Config>) {
+                    if (cs.isEmpty()) return
+                    val (_, d) = depthBenchmark.run(prepared, cs, onResult = { r -> depthLines += r.toString() }) { p -> status(p) }
+                    if (depth == null) depth = d
+                }
+                // Chesscog's network on all 64 squares of the same frame, as on the first still frame after a move
+                var cnnModel: java.io.File? = null
+                var crops: FloatArray? = null
+                fun cnnPart(cs: List<DepthBenchmark.Config>) {
+                    if (cs.isEmpty()) return
+                    if (corners.size != 4) { if (cnnLines.isEmpty()) cnnLines += "Chesscog occupancy network: needs the board found in the frame"; return }
+                    try {
+                        val modelFile = cnnModel ?: java.io.File(getApplication<Application>().cacheDir, ChesscogClassifier.ASSET).also { f ->
+                            if (!f.exists()) getApplication<Application>().assets.open(ChesscogClassifier.ASSET).use { input -> f.outputStream().use { input.copyTo(it) } }
+                            cnnModel = f
+                        }
+                        val input = crops ?: run {
+                            val t0 = System.nanoTime()
+                            val c = com.chesscoach.core.vision.ChesscogCrops.crop(frame, com.chesscoach.core.vision.BoardGeometry(corners), IntArray(64) { it })
+                            cnnLines += "Chesscog occupancy network, all 64 squares (crops made in ${(System.nanoTime() - t0) / 1_000_000} ms):"
+                            crops = c
+                            c
+                        }
+                        val shape = longArrayOf(64, 3, com.chesscoach.core.vision.ChesscogCrops.SIZE.toLong(), com.chesscoach.core.vision.ChesscogCrops.SIZE.toLong())
+                        depthBenchmark.time(modelFile.path, input, shape, cs, onResult = { r -> cnnLines += r.toString() }) { p -> status("Chesscog, 64 squares: $p") }
+                    } catch (e: java.io.FileNotFoundException) {
+                        if (cnnLines.isEmpty()) cnnLines += "Chesscog occupancy network: not in this build"
+                    } catch (e: Throwable) {
+                        cnnLines += "Chesscog occupancy network: failed, ${e.message}"
+                    }
+                }
+                depthPart(plain)
+                cnnPart(plain)
+                depthPart(accel)
+                cnnPart(accel)
+                val text = shown()
                 val bitmap = depth?.let { d ->
                     val p = depthBenchmark.preview(prepared, d)
                     android.graphics.Bitmap.createBitmap(p.argb, p.width, p.height, android.graphics.Bitmap.Config.ARGB_8888)
