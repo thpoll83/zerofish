@@ -375,6 +375,16 @@ class LiveTracker(
      */
     private val refused = HashMap<String, MutableSet<Move>>()
 
+    /**
+     * With the network reading the squares, a square of the tracked position that reads below
+     * this is taken as left by its piece: the network reads a standing piece that low only when
+     * it has gone. When the piece went where the network does not see it (the knight back on
+     * c3), "no move" fits as well as any move, and the board looked quiet while the tracked
+     * position was wrong. After [framesBeforeAsking] such frames the tracker asks where it went.
+     */
+    private val vanishedMax = 0.1
+    private var vanishedFrames = 0
+
     /** True when [longer] is [shorter] with one or more moves appended. */
     private fun extends(longer: Candidate, shorter: Candidate): Boolean =
         longer.moves.size > shorter.moves.size && longer.moves.take(shorter.moves.size) == shorter.moves
@@ -436,6 +446,7 @@ class LiveTracker(
     /** Forget the pending move evidence, for example after the user corrected the position by hand. */
     fun resetPending() {
         pending = emptyList(); pendingCount = 0
+        vanishedFrames = 0
         unsettled = 0
         quiet = 0
         offers.clear()
@@ -731,6 +742,17 @@ class LiveTracker(
             // is applied. On a still board that flickers, buttons that came and went could not be
             // tapped; the user settles any doubt by tapping or typing, so nothing is taken back.
             if (quiet >= quietFramesToSettle) { pending = emptyList(); pendingCount = 0; unsettled = 0; quiet = 0 }
+            val occupancy = board.occupancy()
+            val gone = if (squareClassifier == null) emptyList() else (0 until 64).filter { occupancy[it] != 0 && obs[it].occupied < vanishedMax }
+            vanishedFrames = if (gone.isEmpty()) 0 else vanishedFrames + 1
+            if (vanishedFrames >= framesBeforeAsking) {
+                val moves = board.legalMoves().filter { it.from in gone }
+                offer(moves.map { Candidate(listOf(it), best.cost, listOf(board.san(it))) }, always = true)
+                if (offers.isNotEmpty()) {
+                    val names = gone.joinToString(", ") { Square.name(it) }
+                    return FrameResult(Status.AMBIGUOUS, located.geometry, obs, best, pendingCount, emptyList(), "A piece seems gone from $names. Tap where it went, or type it.", suggestions(), candidates = result.candidates)
+                }
+            }
             val asking = unsettled >= framesBeforeAsking && offers.isNotEmpty()
             return if (asking) FrameResult(Status.AMBIGUOUS, located.geometry, obs, best, pendingCount, emptyList(), "Not sure what was played. Tap the right one, or type it.", suggestions(), candidates = result.candidates)
             else FrameResult(Status.TRACKING, located.geometry, obs, best, 0, emptyList(), if (unsettled > 0) "Reading the move..." else "Tracking", suggestions(), candidates = result.candidates, reading = unsettled > 0)

@@ -463,14 +463,25 @@ pays one empty reading, d5 for "no move" or the destination for the move. Nf6+ w
 (f6 read 0.1 to 0.35) and was applied. The owner undid it, the camera still showed the same
 board, and the tracker applied Nf6+ again. That happened three times.
 
-**Two rules.**
+**Three rules.**
 - Every square a move puts a piece on must read occupied (0.5 or more) before the move is
   applied by itself. When one does not, the tracker asks, and it offers every legal move of
   the piece that left, since the camera shows where it came from but not where it went.
 - A move the user took back after the tracker applied it is never applied by itself again
   from the same position. It is offered instead, and a tap still plays it.
+- With the network on, a square of the tracked position that reads below 0.1 for 14 frames
+  in a row counts as left by its piece. The tracker then asks "A piece seems gone from d5"
+  and offers that piece's moves. Without this rule the replay of the bundle sat on "Tracking"
+  with the knight still on d5 in the tracker's board: "no move" pays for d5 reading empty,
+  and Nc3 pays the same for c3, so neither won by the 0.6 needed to count as a change.
+
+On the bundle's frames the tracker now applies nothing, asks about d5 after 14 frames and
+offers Nc3 among the knight's moves.
 
 **What it cost.** With the luma reader nothing changed. Video 1 stays at 16 moves by itself,
 2 taps and none wrong when the user taps once asked, and 14, 4 and 0 when tapping after two
 seconds. Video 2 stays at 4, 1 and 0. A synthetic test checks that an undone e4 comes back
-only as a button. The same test fails on the old code.
+only as a button. The same test fails on the old code. The network replays did not change
+either: reading every square, 17, 1 and 0 on video 1 (whether the user taps once asked or
+after two seconds) and 5, 0 and 0 on video 2; reading changed squares, 16, 2 and 0 and 15, 3
+and 0 on video 1 and 4, 1 and 0 on video 2. No replay asked about a vanished piece.

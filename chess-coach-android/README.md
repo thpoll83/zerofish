@@ -301,6 +301,15 @@ lead says; the tracker now offers both instead of applying one. Turning each cro
 network along the lean was tried and dropped: the network was trained on crops aligned with
 the board's grid and misread 10 to 11 squares per frame instead of 2 to 4.
 
+## When a move is only offered
+
+Three cases end in a question rather than an applied move. A move whose destination reads
+empty (below 0.5) is offered with every other legal move of the piece that left. A move the
+user took back after the tracker applied it is only offered from that position again. With
+the network on, a piece whose square reads below 0.1 for 14 frames in a row counts as gone,
+and the tracker asks where it went. On the owner's board the network read a knight back on
+c3 as empty, and before these rules Nf6+ was applied three times, twice right after an undo.
+
 ## Reading the squares
 
 Each square is sampled through the homography on the half facing away from the camera, where
