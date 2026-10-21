@@ -492,3 +492,39 @@ only as a button. The same test fails on the old code. The network replays did n
 either: reading every square, 17, 1 and 0 on video 1 (whether the user taps once asked or
 after two seconds) and 5, 0 and 0 on video 2; reading changed squares, 16, 2 and 0 and 15, 3
 and 0 on video 1 and 4, 1 and 0 on video 2. No replay asked about a vanished piece.
+
+## 14. A second reader as the referee: depth, then luma, both dropped
+
+**The idea.** One reader decides, a second one checks it, and where they disagree the
+tracker does not trust either. The referee must be right where the first reader fails, so
+the question is how each reader fails. On the 164 settled frames of video 1, split by whether
+a piece stands on the next square towards the camera:
+
+| Reader | Free: piece read empty | Free: empty read piece | Behind a piece: piece read empty | Behind a piece: empty read piece |
+|---|---|---|---|---|
+| Depth footprints | 3.9% | 6.8% | 1.1% | 50% |
+| Chesscog network | 1.0% | 1.6% | 1.8% | 11.7% |
+| Luma | 0.2% | 11.8% | 0.5% | 37% |
+
+(3,097 pieces and 3,624 empties on free squares; 1,721 and 2,054 behind a piece.)
+
+**Depth.** It is worse than the network on free squares in both directions, and calls half of
+the hidden empty squares occupied. It is not a clear signal anywhere, and it costs 1.8 s per
+reading on the phone.
+
+**Luma.** It fails the opposite way to the network: it almost never reads a standing piece as
+empty. So the rule was: where the network reads below 0.5 and luma reads occupied, the square
+reads 0.5, unknown, and a move that fills it is not applied by itself.
+- From luma 0.5 it broke the bundle of section 13: luma read d5 occupied after the knight had
+  left, and c3 occupied before the move, where only the c2 pawn's head stood. Both became
+  unknown, and the "piece seems gone" question never came.
+- From luma 0.8 the bundle came out well: d5 read empty, c3 unknown, and Nc3 became the best
+  explanation and the first offer, still not applied by itself. But on video 1 it applied a
+  wrong move with changed-squares reading (15 by itself, 3 taps, 1 wrong; 11, 7 and 1 when
+  tapping after two seconds), and with every square read it cost moves (16, 2, 0 and 15, 3,
+  0 against 17, 1, 0 twice). Video 2 did not change.
+
+A wrong move is the one result never accepted, so the rule was dropped. The network decides
+alone, and the rules of section 13 (an empty destination asks, an undone move is only offered,
+a vanished piece asks) catch the case it was meant for.
+
