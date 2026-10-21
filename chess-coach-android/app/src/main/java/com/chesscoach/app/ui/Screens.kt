@@ -200,9 +200,9 @@ private fun SetupScreen(state: UiState, vm: GameViewModel) {
     Spacer(Modifier.height(16.dp))
     Text("Depth benchmark", fontWeight = FontWeight.Bold)
     Text(
-        "An experiment: times a depth model (Depth Anything V2 Small), and the square classifier on all 64 squares, on the last camera frame, on the processor and on the phone's " +
-            "accelerators, to see whether it could read the board on every frame. The model, 99 MB, is downloaded once from GitHub. " +
-            "Takes one to three minutes; the results also go into the debug log.",
+        "An experiment: times a depth model (Depth Anything V2 Small), and the square classifier on all 64 squares, on the last camera frame, on the processor " +
+            "(plain and with XNNPACK), to see whether it could read the board on every frame. Point the camera at the board first. The model, 99 MB, is downloaded once from GitHub. " +
+            "Takes about a minute; the results also go into the debug log.",
         style = MaterialTheme.typography.bodySmall,
     )
     OutlinedButton(onClick = { vm.runDepthBenchmark() }, enabled = !state.depthBenchRunning, modifier = Modifier.padding(top = 6.dp)) {

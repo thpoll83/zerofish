@@ -4,7 +4,6 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtProvider
 import ai.onnxruntime.OrtSession
-import ai.onnxruntime.providers.NNAPIFlags
 import com.chesscoach.core.vision.Pt
 import com.chesscoach.core.vision.YuvImage
 import java.io.File
@@ -12,7 +11,6 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.FloatBuffer
 import java.security.MessageDigest
-import java.util.EnumSet
 import kotlin.math.sqrt
 
 /**
@@ -20,25 +18,17 @@ import kotlin.math.sqrt
  * candidate for reading which squares hold a piece from the board's shape instead of its
  * brightness. On the game videos, depth on every frame followed more moves by itself than the
  * luma reading; once a second it only tied. Whether it can run on every frame is what this
- * measures, on the CPU and on each accelerator ONNX Runtime can reach.
+ * measures, on the CPU and with XNNPACK.
  *
  * No Android classes here, so the same code runs in a desktop test.
  */
 class DepthBenchmark(private val modelFile: File) {
 
-    /** [accelerator]: goes through NNAPI's driver, which may never come back (see [time]). */
-    class Config(val name: String, val accelerator: Boolean = false, val setup: (OrtSession.SessionOptions) -> Unit)
-
-    /**
-     * True once an accelerator setup failed to finish within its limit. Its thread cannot be
-     * stopped and keeps the driver, so later accelerator configurations are skipped.
-     */
-    @Volatile var acceleratorStuck = false
-        private set
+    class Config(val name: String, val setup: (OrtSession.SessionOptions) -> Unit)
 
     class Result(
         val config: String,
-        /** Creating the session, which for NNAPI includes compiling the model for the accelerator. */
+        /** Creating the session. */
         val loadMs: Long,
         val firstMs: Long,
         val medianMs: Long,
@@ -151,18 +141,18 @@ class DepthBenchmark(private val modelFile: File) {
         return Prepared(out, x0, y0, w, h, side, (System.nanoTime() - t0) / 1_000_000)
     }
 
-    /** Every configuration worth timing on this device: the CPU always, accelerators where present. */
+    /**
+     * Every configuration worth timing on this device: the CPU, and XNNPACK where present.
+     * NNAPI is left out. On a Pixel 8 Pro (Tensor G3, Android 17) it ran the depth model in
+     * 12.9 s per frame against 1.8 s on the CPU, and with half precision it never finished
+     * preparing; the app was gone seconds after that setup had been abandoned.
+     */
     fun configs(threads: Int = 4): List<Config> {
         val providers = OrtEnvironment.getAvailableProviders()
         val list = ArrayList<Config>()
         list += Config("CPU, $threads threads") { it.setIntraOpNumThreads(threads) }
         if (OrtProvider.XNNPACK in providers) list += Config("XNNPACK, $threads threads") {
             it.setIntraOpNumThreads(1); it.addXnnpack(mapOf("intra_op_num_threads" to threads.toString()))
-        }
-        if (OrtProvider.NNAPI in providers) {
-            list += Config("NNAPI", accelerator = true) { it.addNnapi() }
-            list += Config("NNAPI, half precision", accelerator = true) { it.addNnapi(EnumSet.of(NNAPIFlags.USE_FP16)) }
-            list += Config("NNAPI, half precision, accelerator only", accelerator = true) { it.addNnapi(EnumSet.of(NNAPIFlags.USE_FP16, NNAPIFlags.CPU_DISABLED)) }
         }
         return list
     }
@@ -180,6 +170,7 @@ class DepthBenchmark(private val modelFile: File) {
      * output, to which the others' outputs are compared; [onResult] gets each result as it is
      * known. Each configuration gets [limitMs]: on a Pixel 8 Pro, NNAPI with half precision
      * never finished preparing the depth model, and the benchmark showed "preparing" forever.
+     * A configuration past its limit is reported; its thread cannot be stopped.
      */
     fun time(
         modelPath: String, input: FloatArray, shape: LongArray, configs: List<Config>, runs: Int = 5,
@@ -189,10 +180,6 @@ class DepthBenchmark(private val modelFile: File) {
         val results = ArrayList<Result>()
         var reference: FloatArray? = null
         for (c in configs) {
-            if (c.accelerator && acceleratorStuck) {
-                results += Result(c.name, 0, 0, 0, 0, 0, null, "skipped, an earlier accelerator setup never finished").also(onResult)
-                continue
-            }
             progress("${c.name}: preparing")
             var outcome: Pair<Result, FloatArray?>? = null
             val worker = Thread({
@@ -207,8 +194,7 @@ class DepthBenchmark(private val modelFile: File) {
             worker.join(limitMs)
             val done = outcome
             if (done == null) {
-                if (c.accelerator) acceleratorStuck = true
-                results += Result(c.name, 0, 0, 0, 0, 0, null, "no answer after ${limitMs / 1000} s; restart the app to free the driver").also(onResult)
+                results += Result(c.name, 0, 0, 0, 0, 0, null, "no answer after ${limitMs / 1000} s").also(onResult)
                 continue
             }
             results += done.first.also(onResult)

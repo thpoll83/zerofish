@@ -380,6 +380,13 @@ What decided the setting:
 phone. The settings screen has a benchmark for exactly that question (see the README); until it
 says yes on the owner's phone, depth stays an experiment.
 
+**The phone's answer: no.** On the owner's Pixel 8 Pro (Tensor G3, Android 17) the model took
+1.77 s per frame on the CPU with 4 threads and 2.0 s with XNNPACK, about nine times the budget.
+NNAPI took 12.9 s. NNAPI with half precision never finished preparing: the first version of the
+benchmark waited on it forever, and the second gave up after 120 s, but the app was gone 11
+seconds after that run. A thread inside the driver cannot be stopped. NNAPI is now left out of
+the benchmark, and the app logs Android's reason for its last exit when it starts.
+
 ## 11. A learned square reader: Chesscog's occupancy network
 
 **Where it came from.** Wölflein and Arandjelović's Chesscog (MIT licence) reads a photo of a

@@ -156,6 +156,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         loadSquareClassifier()
         recorder.enabled = _state.value.debugLog
         recorder.log("APP started")
+        logLastExit()
         viewModelScope.launch {
             try {
                 // Leave two cores to the camera, the tracker and the screen: Stockfish on every core made the
@@ -268,7 +269,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     private val depthBenchmark by lazy { DepthBenchmark(java.io.File(getApplication<Application>().filesDir, "depth/depth_anything_v2_vits.onnx")) }
 
     /**
-     * Times the depth model on the last camera frame on the CPU and on each accelerator, after
+     * Times the depth model and Chesscog on the last camera frame on the CPU and with XNNPACK, after
      * downloading the model once; the results go to the screen and the debug log, the depth map
      * and the frame into the debug bundle.
      */
@@ -290,8 +291,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 val soc = if (android.os.Build.VERSION.SDK_INT >= 31) ", ${android.os.Build.SOC_MANUFACTURER} ${android.os.Build.SOC_MODEL}" else ""
                 val head = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}$soc, ${Runtime.getRuntime().availableProcessors()} cores\n" +
                     "Frame ${frame.width}x${frame.height}, " + (if (corners.size == 4) "board region ${prepared.cropW}x${prepared.cropH}" else "no board found, whole frame") + ", prepared in ${prepared.millis} ms"
-                // Results show as they come; the NNAPI ones last, as a driver that never answers
-                // (half precision on a Pixel 8 Pro) would otherwise hold back the rest.
+                // results show as each configuration finishes
                 val depthLines = ArrayList<String>()
                 val cnnLines = ArrayList<String>()
                 fun shown(): String = buildString {
@@ -303,44 +303,23 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 }.trimEnd()
                 fun status(p: String) = _state.update { it.copy(depthBench = shown() + "\n\nNow: " + p) }
                 val configs = depthBenchmark.configs()
-                val plain = configs.filter { !it.accelerator }
-                val accel = configs.filter { it.accelerator }
-                var depth: FloatArray? = null
-                fun depthPart(cs: List<DepthBenchmark.Config>) {
-                    if (cs.isEmpty()) return
-                    val (_, d) = depthBenchmark.run(prepared, cs, onResult = { r -> depthLines += r.toString() }) { p -> status(p) }
-                    if (depth == null) depth = d
-                }
+                val (_, depth) = depthBenchmark.run(prepared, configs, onResult = { r -> depthLines += r.toString() }) { p -> status(p) }
                 // Chesscog's network on all 64 squares of the same frame, as on the first still frame after a move
-                var cnnModel: java.io.File? = null
-                var crops: FloatArray? = null
-                fun cnnPart(cs: List<DepthBenchmark.Config>) {
-                    if (cs.isEmpty()) return
-                    if (corners.size != 4) { if (cnnLines.isEmpty()) cnnLines += "Chesscog occupancy network: needs the board found in the frame"; return }
-                    try {
-                        val modelFile = cnnModel ?: java.io.File(getApplication<Application>().cacheDir, ChesscogClassifier.ASSET).also { f ->
-                            if (!f.exists()) getApplication<Application>().assets.open(ChesscogClassifier.ASSET).use { input -> f.outputStream().use { input.copyTo(it) } }
-                            cnnModel = f
-                        }
-                        val input = crops ?: run {
-                            val t0 = System.nanoTime()
-                            val c = com.chesscoach.core.vision.ChesscogCrops.crop(frame, com.chesscoach.core.vision.BoardGeometry(corners), IntArray(64) { it })
-                            cnnLines += "Chesscog occupancy network, all 64 squares (crops made in ${(System.nanoTime() - t0) / 1_000_000} ms):"
-                            crops = c
-                            c
-                        }
-                        val shape = longArrayOf(64, 3, com.chesscoach.core.vision.ChesscogCrops.SIZE.toLong(), com.chesscoach.core.vision.ChesscogCrops.SIZE.toLong())
-                        depthBenchmark.time(modelFile.path, input, shape, cs, onResult = { r -> cnnLines += r.toString() }) { p -> status("Chesscog, 64 squares: $p") }
-                    } catch (e: java.io.FileNotFoundException) {
-                        if (cnnLines.isEmpty()) cnnLines += "Chesscog occupancy network: not in this build"
-                    } catch (e: Throwable) {
-                        cnnLines += "Chesscog occupancy network: failed, ${e.message}"
-                    }
+                if (corners.size != 4) {
+                    cnnLines += "Chesscog occupancy network: needs the board in view; point the camera at it and run again"
+                } else try {
+                    val modelFile = java.io.File(getApplication<Application>().cacheDir, ChesscogClassifier.ASSET)
+                    if (!modelFile.exists()) getApplication<Application>().assets.open(ChesscogClassifier.ASSET).use { input -> modelFile.outputStream().use { input.copyTo(it) } }
+                    val t0 = System.nanoTime()
+                    val crops = com.chesscoach.core.vision.ChesscogCrops.crop(frame, com.chesscoach.core.vision.BoardGeometry(corners), IntArray(64) { it })
+                    cnnLines += "Chesscog occupancy network, all 64 squares (crops made in ${(System.nanoTime() - t0) / 1_000_000} ms):"
+                    val shape = longArrayOf(64, 3, com.chesscoach.core.vision.ChesscogCrops.SIZE.toLong(), com.chesscoach.core.vision.ChesscogCrops.SIZE.toLong())
+                    depthBenchmark.time(modelFile.path, crops, shape, configs, onResult = { r -> cnnLines += r.toString() }) { p -> status("Chesscog, 64 squares: $p") }
+                } catch (e: java.io.FileNotFoundException) {
+                    cnnLines += "Chesscog occupancy network: not in this build"
+                } catch (e: Throwable) {
+                    cnnLines += "Chesscog occupancy network: failed, ${e.message}"
                 }
-                depthPart(plain)
-                cnnPart(plain)
-                depthPart(accel)
-                cnnPart(accel)
                 val text = shown()
                 val bitmap = depth?.let { d ->
                     val p = depthBenchmark.preview(prepared, d)
@@ -358,6 +337,34 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 recorder.log("DEPTH BENCH failed: ${e.message}")
                 _state.update { it.copy(depthBenchRunning = false, depthBench = "Depth benchmark failed: ${e.message}") }
             }
+        }
+    }
+
+    /**
+     * Why the app's previous run ended, from Android's own record: a crash, a crash in native
+     * code, the system freeing memory, or the user. The log of a run that crashed ends without
+     * a word, so the next run says what happened.
+     */
+    private fun logLastExit() {
+        if (android.os.Build.VERSION.SDK_INT < 30) return
+        try {
+            val am = getApplication<Application>().getSystemService(android.app.ActivityManager::class.java) ?: return
+            val last = am.getHistoricalProcessExitReasons(null, 0, 1).firstOrNull() ?: return
+            val reason = when (last.reason) {
+                android.app.ApplicationExitInfo.REASON_CRASH -> "crash"
+                android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "crash in native code"
+                android.app.ApplicationExitInfo.REASON_LOW_MEMORY -> "the system freed memory"
+                android.app.ApplicationExitInfo.REASON_ANR -> "not responding"
+                android.app.ApplicationExitInfo.REASON_SIGNALED -> "killed by signal ${last.status}"
+                android.app.ApplicationExitInfo.REASON_EXIT_SELF -> "exited"
+                android.app.ApplicationExitInfo.REASON_USER_REQUESTED -> "stopped by the user"
+                android.app.ApplicationExitInfo.REASON_USER_STOPPED -> "stopped by the user"
+                else -> "reason ${last.reason}"
+            }
+            val at = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date(last.timestamp))
+            recorder.log("LAST EXIT at $at: $reason, ${last.pss / 1024} MB in use${last.description?.let { ", $it" } ?: ""}")
+        } catch (e: Exception) {
+            recorder.log("LAST EXIT unknown: ${e.message}")
         }
     }
 
