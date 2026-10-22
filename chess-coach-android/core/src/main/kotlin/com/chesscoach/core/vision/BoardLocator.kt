@@ -1,0 +1,72 @@
+package com.chesscoach.core.vision
+
+import com.chesscoach.core.chess.Square
+
+/** A located, oriented board with everything the move inference needs. */
+class Located(
+    val geometry: BoardGeometry,
+    val patches: Array<IntArray>,
+    val features: SquareFeatures,
+    val observations: Array<SquareObservation>,
+    val rotation: Int,
+    val gradients: Array<IntArray>,
+    val uPatches: Array<IntArray>?,
+    val vPatches: Array<IntArray>?,
+)
+
+/**
+ * Turns detected (or tapped) corners into an oriented board. The detector returns the corners in
+ * an arbitrary rotation; the dark a1 rule fixes it up to 180 degrees and the expected position
+ * (plus the rotation used last time) settles the rest.
+ */
+object BoardLocator {
+    fun locate(
+        image: LumaImage,
+        corners: List<Pt>,
+        calibration: Calibration,
+        expectedOccupancy: IntArray?,
+        previousRotation: Int?,
+        allowRotation: Boolean = true,
+        /** Each square's own empty picture where known (only valid with a locked grid, so only without rotation). */
+        templates: SquareTemplates? = null,
+    ): Located {
+        val rotations = if (allowRotation) listOf(0, 1, 2, 3) else listOf(0)
+        val candidates = rotations.mapNotNull { rot ->
+            val c = List(4) { corners[(it + rot) % 4] }
+            val g = try {
+                BoardGeometry(c)
+            } catch (e: IllegalArgumentException) {
+                return@mapNotNull null
+            }
+            val patches = SquareSampler.sample(image, g)
+            val colour = image as? YuvImage
+            val gradients = SquareSampler.sampleGradient(image, g)
+            val uPatches = colour?.let { SquareSampler.sample(it.uView, g) }
+            val vPatches = colour?.let { SquareSampler.sample(it.vView, g) }
+            val features = SquareFeatures.extract(patches, gradients, uPatches, vPatches, expectedOccupancy, if (allowRotation) null else templates)
+            val obs = calibration.observe(features)
+            // a1 is dark: squares with even file+rank must be the darker group.
+            var dark = 0.0
+            var light = 0.0
+            for (sq in 0 until 64) {
+                val m = patches[sq].average()
+                if (Square.isLight(sq)) light += m else dark += m
+            }
+            val shadeOk = light > dark
+            var cost = if (shadeOk) 0.0 else 12.0
+            if (expectedOccupancy != null) {
+                cost += MoveInference.cost(expectedOccupancy, obs)
+                // Raw brightness of the pieces: squares expected to hold white pieces must be
+                // brighter than those expected to hold black ones. Independent of thresholds, so
+                // it settles the 180-degree ambiguity before anything has been learned.
+                val whites = (0 until 64).filter { expectedOccupancy[it] == 1 }.map { features.colourScore[it] }
+                val blacks = (0 until 64).filter { expectedOccupancy[it] == 2 }.map { features.colourScore[it] }
+                if (whites.isNotEmpty() && blacks.isNotEmpty()) cost -= 16.0 * (whites.average() - blacks.average())
+            }
+            if (previousRotation != null && rot == previousRotation) cost -= 1.0
+            Located(g, patches, features, obs, rot, gradients, uPatches, vPatches) to cost
+        }
+        require(candidates.isNotEmpty()) { "No valid orientation" }
+        return candidates.minByOrNull { it.second }!!.first
+    }
+}
