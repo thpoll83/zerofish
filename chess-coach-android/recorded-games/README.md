@@ -35,11 +35,20 @@ The frames are cropped to the board with a margin of 2% at the sides and below a
 of these kinds are kept: learned, confirm (the user said the start is set up), played, tap,
 asked and undo. Offer frames are left out because they are taken while the hand is still over
 the board, and frames that show a hand or an arm at the edge of the crop are dropped (seven in
-game 03). The full frames, the samples every twentieth frame, and the table around the board
-stay on the phone and in the zips the owner shared.
+game 03).
+
+## The full recordings
+
+The original zips, the two game videos and the photos shared while the reader was built are in
+the private repo [thpoll83/zerofish-recordings](https://github.com/thpoll83/zerofish-recordings)
+(Git LFS, 153 MB in 21 files, each with its size and SHA-256 in its `MANIFEST.md`). They show
+the owner's home and hands, so that repo stays private. `tools/fetch_recordings.sh` clones it
+next to this repo, downloads all files or the ones named (`tools/fetch_recordings.sh
+../zerofish-recordings "videos/*"`) and checks them against the manifest. A new game goes into
+both places: the zip into the private repo's `bundles/`, the archived folder here.
 
 The cropped frames are for looking at, not for replaying: the replay harness needs whole
-frames. To add a game, share the debug bundle from the app and run
+frames, which the full recordings below have. To add a game, share the debug bundle from the app and run
 
     python3 tools/archive_bundle.py BUNDLE.zip recorded-games/07-name --skip <frames with a hand>
 
