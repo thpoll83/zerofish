@@ -23,6 +23,9 @@ SCORE_BACK_H = 22
 SAVE_DIR   = os.path.expanduser('~/.zerofish_saves')
 PUZZLE_DIR = os.path.expanduser('~/.zerofish_puzzles')
 
+# Opening book (Polyglot .bin format).  Set to '' or a non-existent path to disable.
+OPENING_BOOK_PATH = '/usr/local/share/zerofish/opening_book.bin'
+
 
 # ── Idle sleep ────────────────────────────────────────────────────────────────
 IDLE_SLEEP_SECS = 120  # seconds of no touch before display sleeps; 0 = disabled
@@ -217,9 +220,11 @@ SCREEN_FONT_FAMILY = {
     'puzzle_difficulty':   'noto',
     'puzzle_hint':         'noto',
     'stats':               'noto',
+    'game_stats':          'noto',
     'settings':            'noto',
     'wifi':                'noto',
     'wifi_result':         'noto',
+    'analyze':             'noto',
 }
 
 # ── Piece / chess-glyph font ──────────────────────────────────────────────────

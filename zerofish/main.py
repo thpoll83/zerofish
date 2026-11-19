@@ -22,7 +22,7 @@ import game_state
 import puzzle_state
 import ui
 from game_utils       import (skill_level, think_limit, move_label,
-                               push_and_continue, set_cpu_governor)
+                               push_and_continue, set_cpu_governor, engine_move)
 from puzzle_session   import PuzzleSession
 from screen_machine   import ScreenMachine
 from screen_splash       import (get_sf_info, build_splash_screen,
@@ -35,7 +35,9 @@ from screen_difficulty   import build_difficulty_screen, hit_diff
 from screen_color        import build_color_screen, hit_color, COLORS
 from screen_thinking     import build_thinking_screen
 from screen_sf_move      import build_sf_move_screen
-from screen_game_over    import build_game_over_screen, game_over_message
+from screen_game_over    import (build_game_over_screen, game_over_message,
+                                  hit_game_over, game_over_outcome)
+from screen_analyze      import build_analyze_screen, hit_analyze
 from screen_player_move  import (build_player_move_screen, hit_pm_piece, hit_pm_file,
                                   hit_pm_rank, find_candidates, needs_promotion,
                                   PIECES, PIECE_SYMBOLS, FILES, RANKS)
@@ -53,8 +55,9 @@ from screen_puzzle_end_confirm import build_puzzle_end_confirm_screen, hit_puzzl
 from screen_puzzle_difficulty  import (build_puzzle_difficulty_screen,
                                         hit_puzzle_difficulty_screen)
 from screen_puzzle_hint        import build_puzzle_hint_screen, hit_puzzle_hint
-from screen_stats     import build_stats_screen, hit_stats
-from screen_settings  import build_settings_screen, hit_settings
+from screen_stats      import build_stats_screen, hit_stats
+from screen_game_stats import build_game_stats_screen, hit_game_stats
+from screen_settings   import build_settings_screen, hit_settings
 from screen_wifi      import (build_wifi_screen, hit_wifi,
                                build_wifi_result_screen, hit_wifi_result,
                                scan_networks, connect_open, connect_wpa,
@@ -250,6 +253,16 @@ def main():
     game_start          = 0.0
     sf_time_acc         = [0.0]
     score_end           = None
+
+    # ── Game-over / analyze state ─────────────────────────────────────────────
+    game_over_outcome_code: str              = ''
+    analyze_history:        list             = []
+    analyze_player_white:   bool             = True
+    analyze_idx:            int              = 0
+    analyze_board:          chess.Board | None = None
+    analyze_last_move:      chess.Move | None  = None
+    analyze_played_san:     str              = ''
+    analyze_best_san:       str              = ''
 
     # ── WiFi state ────────────────────────────────────────────────────────────
     wifi_nets:        list       = []
@@ -479,11 +492,14 @@ def main():
                         else:
                             sf_label = move_label(board)
                             machine.transition('ok_black')
-                            _transition(epd, build_thinking_screen(sf_label), partial_count)
-                            t0 = time.time()
-                            set_cpu_governor('performance')
                             try:
-                                result = engine.play(board, engine_limit)
+                                sf_san, elapsed = engine_move(
+                                    board, engine, engine_limit,
+                                    book_path=config.OPENING_BOOK_PATH,
+                                    on_thinking=lambda: _transition(
+                                        epd, build_thinking_screen(sf_label),
+                                        partial_count),
+                                )
                             except Exception as exc:
                                 log.error('Engine.play failed on opening move: %s', exc)
                                 engine.quit()
@@ -494,13 +510,10 @@ def main():
                                 _transition(epd, build_game_over_screen('Engine error', ''),
                                             partial_count)
                                 continue
-                            finally:
-                                set_cpu_governor('powersave')
-                            sf_time_acc[0] += time.time() - t0
-                            sf_san = board.san(result.move)
-                            board.push(result.move)
+                            sf_time_acc[0] += elapsed
                             move_history.append(sf_san)
-                            log.info('Stockfish: %s', sf_san)
+                            log.info('%s (opening): %s',
+                                     'Book' if elapsed == 0.0 else 'Stockfish', sf_san)
                             cur_move_label = sf_label
                             machine.transition('done')
                             save_path = game_state.save(board, move_history,
@@ -514,6 +527,7 @@ def main():
                 if ui.hit_ok(lx, ly, no_title=True):
                     if board.is_game_over():
                         line1, line2 = game_over_message(board, player_is_white)
+                        game_over_outcome_code = game_over_outcome(board, player_is_white)
                         machine.transition('game_over')
                         _transition(epd, build_game_over_screen(line1, line2), partial_count)
                     else:
@@ -567,6 +581,8 @@ def main():
                                     player_is_white, inv_count, cur_move_label,
                                     sf_time_acc,
                                     transition_fn=_transition, show_fn=_show)
+                                if new_screen == ui.SCREEN_GAME_OVER:
+                                    game_over_outcome_code = game_over_outcome(board, player_is_white)
                                 machine.force(new_screen)
                                 if machine.is_at(ui.SCREEN_PLAYER_MOVE):
                                     sel_piece = sel_file = sel_rank = None
@@ -615,6 +631,8 @@ def main():
                             player_is_white, inv_count, cur_move_label,
                             sf_time_acc,
                             transition_fn=_transition, show_fn=_show)
+                        if new_screen == ui.SCREEN_GAME_OVER:
+                            game_over_outcome_code = game_over_outcome(board, player_is_white)
                         machine.force(new_screen)
                         if machine.is_at(ui.SCREEN_PLAYER_MOVE):
                             save_path = game_state.save(board, move_history,
@@ -658,6 +676,8 @@ def main():
                         player_is_white, inv_count, cur_move_label,
                         sf_time_acc,
                         transition_fn=_transition, show_fn=_show)
+                    if new_screen == ui.SCREEN_GAME_OVER:
+                        game_over_outcome_code = game_over_outcome(board, player_is_white)
                     machine.force(new_screen)
                     if machine.is_at(ui.SCREEN_PLAYER_MOVE):
                         save_path = game_state.save(board, move_history,
@@ -701,6 +721,7 @@ def main():
                     log.info('Player resigned')
                     game_state.clear(save_path)
                     save_path = None
+                    game_over_outcome_code = game_state.OUTCOME_RESIGNED
                     machine.transition('yes')
                     _transition(epd, build_game_over_screen('Resigned', ''), partial_count)
                 elif ui.hit_ok(lx, ly):
@@ -795,7 +816,13 @@ def main():
 
             # ── Game over ─────────────────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_GAME_OVER):
-                if ui.hit_ok(lx, ly):
+                action = hit_game_over(lx, ly)
+                if action in ('ok', 'analyze'):
+                    if game_over_outcome_code:
+                        game_state.record_result(game_over_outcome_code)
+                    game_over_outcome_code = ''
+
+                if action == 'ok':
                     game_state.clear(save_path)
                     save_path    = None
                     if engine:
@@ -811,6 +838,84 @@ def main():
                     sel_piece    = sel_file = sel_rank = None
                     saves_list   = game_state.list_saves()
                     machine.transition('ok')
+                    _transition(epd, build_splash_screen(sf_info), partial_count)
+
+                elif action == 'analyze':
+                    game_state.clear(save_path)
+                    save_path            = None
+                    analyze_history      = list(move_history)
+                    analyze_player_white = player_is_white
+                    analyze_idx          = 0
+                    analyze_board        = chess.Board()
+                    analyze_last_move    = None
+                    analyze_played_san   = ''
+                    analyze_best_san     = ''
+                    if engine and not analyze_board.is_game_over():
+                        try:
+                            r = engine.play(analyze_board, chess.engine.Limit(time=0.1))
+                            analyze_best_san = analyze_board.san(r.move)
+                        except Exception as e:
+                            log.debug('analyze best-move query failed: %s', e)
+                            analyze_best_san = ''
+                    machine.transition('analyze')
+                    _transition(epd,
+                                build_analyze_screen(analyze_board, 0,
+                                                     len(analyze_history),
+                                                     player_is_white=analyze_player_white,
+                                                     played_san=analyze_played_san,
+                                                     best_san=analyze_best_san),
+                                partial_count)
+
+            # ── Analyze: step through game move by move ────────────────────────
+            elif machine.is_at(ui.SCREEN_ANALYZE):
+                action = hit_analyze(lx, ly, analyze_idx, len(analyze_history))
+                if action == 'next' and analyze_idx < len(analyze_history):
+                    san = analyze_history[analyze_idx]
+                    mv  = analyze_board.parse_san(san)
+                    analyze_board.push(mv)
+                    analyze_last_move  = mv
+                    analyze_played_san = san
+                    analyze_idx       += 1
+                    if engine and not analyze_board.is_game_over():
+                        try:
+                            r = engine.play(analyze_board, chess.engine.Limit(time=0.1))
+                            analyze_best_san = analyze_board.san(r.move)
+                        except Exception as e:
+                            log.debug('analyze best-move query failed: %s', e)
+                            analyze_best_san = ''
+                    else:
+                        analyze_best_san = ''
+                    _show(epd,
+                          build_analyze_screen(analyze_board, analyze_idx,
+                                               len(analyze_history),
+                                               last_move=analyze_last_move,
+                                               player_is_white=analyze_player_white,
+                                               played_san=analyze_played_san,
+                                               best_san=analyze_best_san),
+                          partial_count)
+
+                elif action == 'end':
+                    game_state.clear(save_path)
+                    save_path         = None
+                    if engine:
+                        engine.quit()
+                        engine = None
+                    board             = None
+                    inv_count         = 0
+                    move_history      = []
+                    analyze_history   = []
+                    analyze_board     = None
+                    analyze_last_move = None
+                    analyze_played_san = ''
+                    analyze_best_san  = ''
+                    analyze_idx       = 0
+                    game_start        = 0.0
+                    sf_time_acc       = [0.0]
+                    diff_sel          = None
+                    color_sel         = None
+                    sel_piece         = sel_file = sel_rank = None
+                    saves_list        = game_state.list_saves()
+                    machine.transition('end')
                     _transition(epd, build_splash_screen(sf_info), partial_count)
 
             # ── Puzzle display ────────────────────────────────────────────────
@@ -982,14 +1087,24 @@ def main():
                     machine.transition('ok')
                     _transition(epd, pz.screen(), partial_count)
 
-            # ── Stats ─────────────────────────────────────────────────────────
+            # ── Stats (puzzle counts) ─────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_STATS):
-                if hit_stats(lx, ly) == 'back':
+                action = hit_stats(lx, ly)
+                if action == 'back':
                     machine.transition('back')
                     saves_list = game_state.list_saves()
                     _transition(epd,
                                 build_main_menu_screen(has_saves=bool(saves_list)),
                                 partial_count)
+                elif action == 'more':
+                    machine.transition('more')
+                    _transition(epd, build_game_stats_screen(), partial_count)
+
+            # ── Stats page 2 (game outcomes) ──────────────────────────────────
+            elif machine.is_at(ui.SCREEN_GAME_STATS):
+                if hit_game_stats(lx, ly) == 'back':
+                    machine.transition('back')
+                    _transition(epd, build_stats_screen(), partial_count)
 
             # ── Settings ──────────────────────────────────────────────────────
             elif machine.is_at(ui.SCREEN_SETTINGS):

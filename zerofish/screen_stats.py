@@ -15,7 +15,8 @@ class StatsScreen(ui.Screen):
         img, draw = self.new_image()
         f = self.fonts
 
-        ui.draw_chrome(draw, f, 'Stats', ok_active=True, ok_label='Back')
+        ui.draw_chrome(draw, f, 'Stats', ok_active=True, ok_label='Back',
+                       sec_label='More')
 
         hf = f['small']
         lh = 12
@@ -37,7 +38,11 @@ class StatsScreen(ui.Screen):
         return img
 
     def hit(self, lx: int, ly: int, **kw) -> str | None:
-        return 'back' if ui.hit_ok(lx, ly) else None
+        if ui.hit_ok(lx, ly, split=True):
+            return 'back'
+        if ui.hit_sec(lx, ly):
+            return 'more'
+        return None
 
 
 _screen = StatsScreen()

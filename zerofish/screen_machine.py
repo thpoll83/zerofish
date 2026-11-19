@@ -15,6 +15,7 @@ from ui import (
     SCREEN_PUZZLE_DISAMBIG, SCREEN_PUZZLE_LOADING, SCREEN_PUZZLE_PROMOTION,
     SCREEN_PUZZLE_END_CONFIRM, SCREEN_PUZZLE_DIFFICULTY, SCREEN_PUZZLE_HINT,
     SCREEN_STATS, SCREEN_SETTINGS, SCREEN_WIFI, SCREEN_WIFI_RESULT,
+    SCREEN_GAME_STATS, SCREEN_ANALYZE,
 )
 
 
@@ -47,8 +48,12 @@ class ScreenMachine:
         (SCREEN_MAIN_MENU,      'settings'):      SCREEN_SETTINGS,
         (SCREEN_MAIN_MENU,      'back'):          SCREEN_SPLASH,
 
-        # Stats
+        # Stats (page 1: puzzle stats)
         (SCREEN_STATS,          'back'):          SCREEN_MAIN_MENU,
+        (SCREEN_STATS,          'more'):          SCREEN_GAME_STATS,
+
+        # Stats page 2: game stats
+        (SCREEN_GAME_STATS,     'back'):          SCREEN_STATS,
 
         # Settings
         (SCREEN_SETTINGS,       'wifi'):          SCREEN_WIFI,
@@ -107,6 +112,10 @@ class ScreenMachine:
         (SCREEN_TIME,           'ok'):          SCREEN_INGAME_MENU,
 
         (SCREEN_GAME_OVER,      'ok'):          SCREEN_SPLASH,
+        (SCREEN_GAME_OVER,      'analyze'):     SCREEN_ANALYZE,
+
+        # Analyze: 'end' returns to splash; 'next' is handled without transition
+        (SCREEN_ANALYZE,        'end'):         SCREEN_SPLASH,
 
         (SCREEN_RESUME,         'back'):        SCREEN_MAIN_MENU,
         (SCREEN_RESUME,         'ok'):          SCREEN_PLAYER_MOVE,

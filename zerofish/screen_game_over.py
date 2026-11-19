@@ -1,5 +1,6 @@
 import chess
 from PIL import Image, ImageDraw
+import game_state
 import ui
 
 
@@ -27,7 +28,7 @@ class GameOverScreen(ui.Screen):
     def build(self, line1: str, line2: str) -> Image.Image:
         img, draw = self.new_image()
         f = self.fonts
-        ui.draw_chrome(draw, f, 'Game Over', ok_active=True)
+        ui.draw_chrome(draw, f, 'Game Over', ok_active=True, sec_label='Analyze')
         cx = ui.VSEP_X // 2
         cy = (ui.TITLE_H + ui.H) // 2
         ui.draw_centered(draw, cx, cy - 14, line1, f['result'], 0)
@@ -36,8 +37,10 @@ class GameOverScreen(ui.Screen):
         return img
 
     def hit(self, lx: int, ly: int, **kw) -> str | None:
-        if ui.hit_ok(lx, ly):
+        if ui.hit_ok(lx, ly, split=True):
             return 'ok'
+        if ui.hit_sec(lx, ly):
+            return 'analyze'
         return None
 
 
@@ -46,3 +49,18 @@ _screen = GameOverScreen()
 
 def build_game_over_screen(line1: str, line2: str) -> Image.Image:
     return _screen.build(line1, line2)
+
+
+def hit_game_over(lx: int, ly: int) -> str | None:
+    return _screen.hit(lx, ly)
+
+
+def game_over_outcome(board: chess.Board, player_is_white: bool) -> str:
+    """Return a game_state.OUTCOME_* constant for the finished game."""
+    outcome = board.outcome()
+    if outcome is None:
+        return game_state.OUTCOME_LOSS
+    if outcome.termination == chess.Termination.CHECKMATE:
+        return (game_state.OUTCOME_WIN if outcome.winner == player_is_white
+                else game_state.OUTCOME_LOSS)
+    return game_state.OUTCOME_DRAW

@@ -41,6 +41,8 @@ class PuzzleSession:
         self.hint_fen:      str   = ''
         self.hint_moves:    list  = []
         self.hint_move_idx: int   = 0
+        # Puzzle to re-queue after the player dismisses the hint screen
+        self._pending_retry: dict | None = None
 
     # ── Screen builders ───────────────────────────────────────────────────────
 
@@ -97,13 +99,22 @@ class PuzzleSession:
         self.diff_label = ''
 
     def advance(self) -> None:
-        """Move to the next unsolved puzzle, reloading from disk if exhausted."""
+        """Move to the next unsolved puzzle, reloading from disk if exhausted.
+
+        If the previous attempt was wrong the puzzle is re-inserted a few
+        positions ahead so the player gets another chance in the same session.
+        """
+        retry = self._pending_retry
+        self._pending_retry = None
         self.idx += 1
         if self.idx >= len(self.list):
             min_r = config.PUZZLE_DIFF_MIN.get(self.diff_sel, 0)
             max_r = config.PUZZLE_DIFF_MAX.get(self.diff_sel, 9999)
             self.list = puzzle_state.load_unsolved_by_rating(min_r, max_r)
             self.idx  = 0
+        if retry is not None:
+            insert_at = min(self.idx + 2, len(self.list))
+            self.list.insert(insert_at, retry)
         self.load_current()
 
     def check_move(self, move_uci: str) -> str:
@@ -155,5 +166,8 @@ class PuzzleSession:
             self.hint_fen       = self.fen
             self.hint_moves     = list(self.moves)
             self.hint_move_idx  = self.move_idx
+            # Schedule a retry: advance() will re-insert this puzzle shortly.
+            if self.idx < len(self.list):
+                self._pending_retry = self.list[self.idx]
             log.info('Puzzle wrong: played %s expected %s', move_uci, self.sol)
             return 'wrong'

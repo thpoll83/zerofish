@@ -10,7 +10,8 @@ from datetime import datetime
 import chess
 import config
 
-SAVE_DIR = config.SAVE_DIR
+SAVE_DIR       = config.SAVE_DIR
+_STATS_FILE    = os.path.join(SAVE_DIR, 'game_stats.json')
 _OLD_SAVE_PATH = os.path.expanduser('~/.zerofish_save.json')
 
 
@@ -129,3 +130,42 @@ def clear(path: str) -> None:
             os.remove(path)
         except OSError:
             pass
+
+
+# ── Game outcome statistics ───────────────────────────────────────────────────
+
+OUTCOME_WIN      = 'win'
+OUTCOME_LOSS     = 'loss'
+OUTCOME_DRAW     = 'draw'
+OUTCOME_RESIGNED = 'resigned'
+
+_OUTCOME_STATS_KEYS = {
+    OUTCOME_WIN:      'wins',
+    OUTCOME_LOSS:     'losses',
+    OUTCOME_DRAW:     'draws',
+    OUTCOME_RESIGNED: 'resigned',
+}
+
+
+def load_game_stats() -> dict:
+    """Return the game-result counters dict (wins/losses/draws/resigned)."""
+    try:
+        with open(_STATS_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def record_result(code: str) -> None:
+    """Increment the counter for outcome *code* (one of the OUTCOME_* constants)."""
+    key = _OUTCOME_STATS_KEYS.get(code)
+    if key is None:
+        return
+    stats = load_game_stats()
+    stats[key] = stats.get(key, 0) + 1
+    os.makedirs(SAVE_DIR, exist_ok=True)
+    try:
+        with open(_STATS_FILE, 'w') as f:
+            json.dump(stats, f)
+    except OSError:
+        pass
