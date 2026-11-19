@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The same palette as ui/Theme.kt, for the window before Compose draws. -->
+    <color name="header">#000000</color>
+    <color name="bg">#0B1220</color>
+</resources>

@@ -1,0 +1,742 @@
+# Chess Coach debug log, Wed Oct 21 21:56:56 GMT+02:00 2026, Google Pixel 8 Pro, Android 17, app 0.1
+     0.0s APP started
+     0.4s CNN loaded: XNNPACK, 4 threads
+     3.9s f00001 NO_BOARD Looking for the board
+     4.1s f00002 NO_BOARD Looking for the board
+     4.3s f00003 NO_BOARD Looking for the board
+     4.8s f00004 NO_BOARD Looking for the board
+     5.0s f00005 NO_BOARD Looking for the board
+     5.2s f00006 NO_BOARD Looking for the board
+     5.4s f00007 NO_BOARD Looking for the board
+     5.8s f00008 NO_BOARD Looking for the board
+     6.1s f00009 NO_BOARD Looking for the board
+     7.2s f00010 NO_BOARD Looking for the board
+   195.6s f00011 NO_BOARD Looking for the board
+   195.7s f00012 NO_BOARD Looking for the board
+   196.1s f00013 NO_BOARD Looking for the board
+   196.6s f00014 NO_BOARD Looking for the board
+   197.1s f00015 NO_BOARD Looking for the board
+   197.6s f00016 NO_BOARD Looking for the board
+   197.8s f00017 NO_BOARD Looking for the board
+   198.2s f00018 NO_BOARD Looking for the board
+   198.6s f00019 NO_BOARD Looking for the board
+   199.5s f00020 NO_BOARD Looking for the board | image f00020_sample.jpg
+   200.7s f00021 NO_BOARD Looking for the board
+   201.5s f00022 NO_BOARD Looking for the board
+   201.6s f00023 NO_BOARD Looking for the board
+   202.0s f00024 NO_BOARD Looking for the board
+   202.9s f00025 NO_BOARD Looking for the board
+   203.2s f00026 NO_BOARD Looking for the board
+   203.8s f00027 NO_BOARD Looking for the board
+   204.0s f00028 NO_BOARD Looking for the board
+   204.3s f00029 NO_BOARD Looking for the board
+   204.5s f00030 NO_BOARD Looking for the board
+   204.7s f00031 NO_BOARD Looking for the board
+   205.4s f00032 NO_BOARD Looking for the board
+   206.0s f00033 NO_BOARD Looking for the board
+   206.6s f00034 NO_BOARD Looking for the board
+   206.8s f00035 NO_BOARD Looking for the board
+   207.0s f00036 NO_BOARD Looking for the board
+   207.5s f00037 NO_BOARD Looking for the board
+   208.3s f00038 NO_BOARD Looking for the board
+   209.2s f00039 NO_BOARD Looking for the board
+   210.0s f00040 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.07: Pieces hard to tell from empty squares: more light from above] | unsure 3 | grid 593,527 -19,456 46,671 593,664 | image f00040_sample.jpg
+   210.5s f00041 NO_BOARD Looking for the board
+   211.0s f00042 NO_BOARD Looking for the board
+   212.2s f00043 NO_BOARD Looking for the board
+   212.5s f00044 NO_BOARD Looking for the board
+   213.0s f00045 NO_BOARD Looking for the board
+   213.5s f00046 NO_BOARD Looking for the board
+   214.5s f00047 NO_BOARD Looking for the board
+   215.1s f00048 NO_BOARD Looking for the board
+   215.5s f00049 NO_BOARD Looking for the board
+   216.0s f00050 NO_BOARD Looking for the board
+   216.2s f00051 NO_BOARD Looking for the board
+   216.5s f00052 NO_BOARD Looking for the board
+   216.8s f00053 NO_BOARD Looking for the board
+   217.1s f00054 NO_BOARD Looking for the board
+   217.8s f00055 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.02: The board is small in the picture: move closer or zoom in] | unsure 6 | grid 311,444 521,432 488,353 310,388
+   218.0s f00056 NO_BOARD Looking for the board
+   218.2s f00057 NO_BOARD Looking for the board
+   218.4s f00058 NO_BOARD Looking for the board
+   218.6s f00059 NO_BOARD Looking for the board
+   218.9s f00060 NO_BOARD Looking for the board | image f00060_sample.jpg
+   219.1s f00061 NO_BOARD Looking for the board
+   219.4s f00062 NO_BOARD Looking for the board
+   219.9s f00063 NO_BOARD Looking for the board
+   220.4s f00064 NO_BOARD Looking for the board
+   220.7s f00065 NO_BOARD Looking for the board
+   221.1s f00066 NO_BOARD Looking for the board
+   222.1s f00067 NO_BOARD Looking for the board
+   222.4s f00068 NO_BOARD Looking for the board
+   222.7s f00069 NO_BOARD Looking for the board
+   223.2s f00070 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.05: Pieces hard to tell from empty squares: more light from above] | unsure 2 | grid 725,686 755,253 616,161 586,701
+   223.6s f00071 NO_BOARD Looking for the board
+   224.5s f00072 NO_BOARD Looking for the board
+   225.1s f00073 NO_BOARD Looking for the board
+   225.3s f00074 NO_BOARD Looking for the board
+   225.9s f00075 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.02: Pieces hard to tell from empty squares: more light from above] | unsure 2 | grid 966,341 981,221 616,254 613,412
+   226.9s f00076 NO_BOARD Looking for the board
+   227.1s f00077 NO_BOARD Looking for the board
+   227.7s f00078 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.15: Pieces hard to tell from empty squares: more light from above] | unsure 3 | grid 254,256 51,248 -123,1306 226,1356
+   228.0s f00079 NO_BOARD Looking for the board
+   228.2s f00080 NO_BOARD Looking for the board | image f00080_sample.jpg
+   228.4s f00081 NO_BOARD Looking for the board
+   229.9s f00082 NO_BOARD Looking for the board
+   230.1s f00083 NO_BOARD Looking for the board
+   230.3s f00084 NO_BOARD Looking for the board
+   231.0s f00085 NO_BOARD Looking for the board
+   231.4s f00086 NO_BOARD Looking for the board
+   232.0s f00087 NO_BOARD Looking for the board
+   232.3s f00088 NO_BOARD Looking for the board
+   233.1s f00089 NO_BOARD Looking for the board
+   234.7s f00090 LEARNING Learning your pieces (1/3) [quality 0.71: Board edges unclear: light the board evenly, avoid glare] | unsure 5 | grid 94,1201 943,621 503,264 -53,572
+   235.9s f00091 LEARNING Learning your pieces (2/3) [quality 0.74: Board edges unclear: light the board evenly, avoid glare] | unsure 6 | grid -68,598 1042,487 720,65 32,66
+   237.3s f00092 LEARNED Ready. Play on the board. [quality 0.87: Good view] [colour shift: 1 Y -1 U +1 V, gain 0.99; WARN occupancy (texture) on dark squares overlaps: 0.97 vs 0.52 | backup cues on dark squares: tone no (0.97 vs 0.52, separation 3.3), edge no (0.10 vs 0.00, separation 0.9), chroma no (0.54 vs 0.00, separation 1.3) | OK piece colour (brightness) on dark squares: -0.79 vs 1.15 | OK occupancy (texture or colour) on light squares: 0.88 vs 0.90 | backup cues on light squares: tone no (0.85 vs 0.16, separation 2.8), edge no (0.10 vs 0.01, separation 0.9) | OK piece colour (brightness) on light squares: -0.67 vs 1.36] | unsure 5 | grid -91,586 1015,455 695,36 -2,49 | image f00092_learned.jpg
+   240.2s f00093 TRACKING Tracking | top: no move (5.76) | a3 (6.06) | a4 (6.07) | f3 (6.29) | unsure 0 | network 64 squares 2284 ms | grid -92,587 1020,457 693,35 -4,49
+   241.6s f00094 TRACKING Tracking | top: no move (6.22) | a3 (6.49) | a4 (6.54) | f3 (6.64) | unsure 1 | network 64 squares 1183 ms | grid -93,587 1025,459 692,35 -4,50
+   241.9s f00095 UNSTABLE Hold still, the board moved | unsure 6 | grid -93,587 1025,459 692,35 -4,50 | image f00095_moved.jpg
+   242.4s f00096 UNSTABLE Hold still, the board moved | unsure 4 | grid -93,587 1025,459 692,35 -4,50 | image f00096_moved.jpg
+   243.8s f00097 UNSTABLE Hold still, cannot read the board | top: g4 f5 (35.86) | h4 f5 (35.86) | e4 f5 (35.86) | f4 f6 (35.87) | unsure 4 | network 64 squares 814 ms | grid -96,578 1027,460 697,34 3,46
+   244.3s f00098 UNSTABLE Hold still, the board moved | unsure 9 | grid -96,578 1027,460 697,34 3,46 | image f00098_moved.jpg
+   245.2s f00099 UNSTABLE Hold still, the board moved | unsure 3 | grid -96,578 1027,460 697,34 3,46 | image f00099_moved.jpg
+   245.8s f00100 UNSTABLE Hold still, the board moved | unsure 4 | grid -96,578 1027,460 697,34 3,46 | image f00100_moved.jpg
+   246.7s f00101 UNSTABLE Hold still, the board moved | unsure 8 | grid -96,578 1027,460 697,34 3,46 | image f00101_moved.jpg
+   247.5s f00102 UNSTABLE Hold still, the board moved | unsure 7 | grid -96,578 1027,460 697,34 3,46 | image f00102_moved.jpg
+   248.0s f00103 UNSTABLE Hold still, the board moved | unsure 7 | grid -96,578 1027,460 697,34 3,46 | image f00103_moved.jpg
+   248.6s f00104 UNSTABLE Hold still, the board moved | unsure 9 | grid -96,578 1027,460 697,34 3,46 | image f00104_moved.jpg
+   249.5s f00105 UNSTABLE Hold still, the board moved | unsure 9 | grid -96,578 1027,460 697,34 3,46 | image f00105_moved.jpg
+   249.9s f00106 UNSTABLE Hold still, the board moved | unsure 4 | grid -96,578 1027,460 697,34 3,46 | image f00106_moved.jpg
+   250.4s f00107 UNSTABLE Hold still, the board moved | unsure 7 | grid -96,578 1027,460 697,34 3,46 | image f00107_moved.jpg
+   251.0s f00108 UNSTABLE Hold still, the board moved | unsure 4 | grid -96,578 1027,460 697,34 3,46 | image f00108_moved.jpg
+   251.5s f00109 UNSTABLE Hold still, the board moved | unsure 6 | grid -96,578 1027,460 697,34 3,46 | image f00109_moved.jpg
+   251.7s f00110 UNSTABLE Hold still, the board moved | unsure 14 | grid -96,578 1027,460 697,34 3,46 | image f00110_moved.jpg
+   252.3s f00111 UNSTABLE Hold still, the board moved | unsure 4 | grid -96,578 1027,460 697,34 3,46 | image f00111_moved.jpg
+   252.5s f00112 UNSTABLE Hold still, the board moved | unsure 5 | grid -96,578 1027,460 697,34 3,46 | image f00112_moved.jpg
+   252.7s f00113 UNSTABLE Hold still, the board moved | unsure 5 | grid -96,578 1027,460 697,34 3,46 | image f00113_moved.jpg
+   253.8s NEW GAME by the user; game so far: 
+   253.9s f00114 TRACKING Tracking | top: no move (3.91) | f3 (5.24) | a3 (5.28) | c3 (5.32) | unsure 1 | network 64 squares 938 ms | grid -12,772 980,714 686,277 143,273
+   254.4s f00115 LEARNING Learning your pieces (1/3) [quality 0.77: Board edges unclear: light the board evenly, avoid glare] | unsure 5 | grid -14,772 979,711 685,274 139,271
+   254.8s f00116 LEARNING Learning your pieces (2/3) [quality 0.80: Board edges unclear: light the board evenly, avoid glare] | unsure 4 | grid -14,772 979,711 685,274 139,271
+   255.4s f00117 LEARNED Ready. Play on the board. [quality 0.85: Good view] [colour shift: 1 Y -1 U +0 V, gain 1.20; OK occupancy (texture) on dark squares: 0.47 vs 0.49 | backup cues on dark squares: tone no (0.47 vs 0.49, separation 6.1), edge no (0.06 vs 0.03, separation 2.2), chroma no (0.07 vs 0.14, separation 3.9) | OK piece colour (brightness) on dark squares: -0.42 vs 0.97 | OK occupancy (texture) on light squares: 0.19 vs 0.64 | backup cues on light squares: tone ok (0.19 vs 0.64, separation 9.5), edge no (0.06 vs 0.01, separation 1.5), chroma no (0.22 vs 0.00, separation 1.7) | OK piece colour (brightness) on light squares: -0.45 vs 1.13] | unsure 2 | grid -14,772 980,711 685,273 139,271 | image f00117_learned.jpg
+   257.7s f00118 TRACKING Tracking | top: no move (3.17) | a4 (4.54) | a3 (4.56) | e4 (4.79) | unsure 0 | network 64 squares 1932 ms | grid -14,773 979,711 685,273 139,270
+   258.7s f00119 TRACKING Tracking | top: no move (8.53) | e4 (8.95) | e3 (9.29) | e4 Nh6 (9.35) | unsure 8 | network 64 squares 927 ms | grid -14,773 977,710 685,274 139,270
+   259.8s f00120 TRACKING Seeing e4 (1/3) | top: e4 (5.83) | e3 (6.97) | e4 Nf6 (7.16) | e4 f6 (7.20) | unsure 1 | network 64 squares 948 ms | grid -14,773 976,710 685,274 139,270 | image f00120_sample.jpg
+   260.0s f00121 TRACKING Seeing e4 (2/3) | top: e4 (5.01) | e3 (6.46) | e4 f6 (6.59) | e4 Nf6 (6.59) | unsure 0 | network 4 squares 58 ms | grid -14,773 976,710 685,274 139,270
+   260.2s f00122 MOVE_PLAYED Played e4 | top: e4 (4.71) | e3 (6.28) | e4 Na6 (6.34) | e4 Nc6 (6.36) | unsure 0 | network 4 squares 64 ms | grid -14,773 976,710 685,274 139,270 | image f00122_played.jpg
+   260.5s f00123 TRACKING Tracking | top: no move (3.70) | Na6 (5.32) | Nc6 (5.34) | f6 (5.40) | unsure 0 | network 4 squares 51 ms | grid -14,773 976,710 685,274 139,270
+   260.7s f00124 TRACKING Tracking | top: no move (3.66) | Na6 (5.29) | Nc6 (5.31) | f6 (5.38) | unsure 0 | network 4 squares 70 ms | grid -14,773 976,711 685,274 139,270
+   260.9s f00125 TRACKING Tracking | top: no move (3.61) | Na6 (5.24) | Nc6 (5.26) | f6 (5.33) | unsure 0 | network 4 squares 54 ms | grid -14,773 977,711 685,274 139,270
+   261.1s f00126 TRACKING Tracking | top: no move (3.63) | Na6 (5.24) | Nc6 (5.28) | f6 (5.36) | unsure 0 | network 4 squares 71 ms | grid -14,774 977,711 685,274 139,270
+   261.3s f00127 TRACKING Tracking | top: no move (3.63) | Na6 (5.25) | Nc6 (5.27) | f6 (5.35) | unsure 0 | network 4 squares 71 ms | grid -15,774 978,711 685,274 140,270
+   261.5s f00128 TRACKING Tracking | top: no move (3.68) | Na6 (5.28) | Nc6 (5.32) | f6 (5.41) | unsure 0 | network 4 squares 64 ms | grid -15,774 978,712 684,274 140,269
+   261.8s f00129 TRACKING Tracking | top: no move (3.51) | Na6 (5.13) | Nc6 (5.15) | f6 (5.24) | unsure 0 | network 4 squares 71 ms | grid -15,774 978,712 684,274 140,269
+   262.1s f00130 TRACKING Tracking | top: no move (3.65) | Na6 (5.25) | Nc6 (5.29) | f6 (5.38) | unsure 0 | network 12 squares 180 ms | grid -15,774 978,712 684,274 140,269
+   262.3s f00131 TRACKING Tracking | top: no move (3.52) | Na6 (5.15) | Nc6 (5.17) | f6 (5.25) | unsure 0 | network 4 squares 76 ms | grid -15,774 978,712 684,274 140,269
+   262.5s f00132 TRACKING Tracking | top: no move (3.53) | Na6 (5.16) | Nc6 (5.18) | f6 (5.26) | unsure 0 | network 4 squares 60 ms | grid -15,774 978,712 684,274 140,269
+   262.8s f00133 TRACKING Tracking | top: no move (3.50) | Na6 (5.13) | Nc6 (5.15) | d6 (5.22) | unsure 0 | network 10 squares 188 ms | grid -15,774 978,712 684,274 140,269
+   263.1s f00134 TRACKING Tracking | top: no move (3.55) | Na6 (5.16) | Nc6 (5.19) | d6 (5.26) | unsure 0 | network 13 squares 192 ms | grid -15,774 978,712 684,274 140,269
+   263.3s f00135 TRACKING Tracking | top: no move (3.45) | Na6 (5.00) | Nc6 (5.01) | d6 (5.16) | unsure 1 | network 4 squares 59 ms | grid -15,774 978,712 684,274 140,269
+   263.5s f00136 TRACKING Tracking | top: no move (3.47) | Na6 (4.97) | Nc6 (5.00) | d6 (5.18) | unsure 1 | network 4 squares 53 ms | grid -15,774 979,712 684,274 140,269
+   263.7s f00137 TRACKING Tracking | top: no move (3.43) | Na6 (4.93) | Nc6 (4.95) | d6 (5.14) | unsure 1 | network 4 squares 49 ms | grid -15,774 979,712 684,274 140,269
+   263.9s f00138 TRACKING Tracking | top: no move (3.50) | Na6 (5.01) | Nc6 (5.02) | d6 (5.21) | unsure 1 | network 4 squares 49 ms | grid -15,774 978,712 684,274 140,269
+   264.2s f00139 TRACKING Tracking | top: no move (3.43) | Na6 (4.94) | Nc6 (4.95) | d6 (5.14) | unsure 1 | network 4 squares 61 ms | grid -15,774 978,712 684,274 140,269
+   264.4s f00140 TRACKING Tracking | top: no move (3.36) | Na6 (4.86) | Nc6 (4.87) | d6 (5.07) | unsure 1 | network 4 squares 53 ms | grid -15,774 977,711 684,274 140,269 | image f00140_sample.jpg
+   264.6s f00141 TRACKING Tracking | top: no move (3.39) | Na6 (4.88) | Nc6 (4.91) | d6 (5.10) | unsure 1 | network 4 squares 60 ms | grid -15,774 977,712 684,274 140,269
+   264.8s f00142 TRACKING Tracking | top: no move (3.37) | Na6 (4.87) | Nc6 (4.89) | d6 (5.08) | unsure 1 | network 4 squares 52 ms | grid -15,774 978,712 684,274 140,269
+   265.0s f00143 TRACKING Tracking | top: no move (3.38) | Na6 (4.88) | Nc6 (4.89) | d6 (5.08) | unsure 1 | network 4 squares 57 ms | grid -15,774 977,711 684,274 140,269
+   265.2s f00144 TRACKING Tracking | top: no move (3.37) | Na6 (4.87) | Nc6 (4.88) | d6 (5.07) | unsure 1 | network 4 squares 65 ms | grid -15,774 978,712 684,274 140,269
+   265.5s f00145 TRACKING Tracking | top: no move (3.31) | Na6 (4.81) | Nc6 (4.83) | d6 (5.02) | unsure 1 | network 4 squares 60 ms | grid -15,774 977,711 684,274 140,269
+   265.7s f00146 TRACKING Tracking | top: no move (3.34) | Na6 (4.82) | Nc6 (4.85) | d6 (5.05) | unsure 1 | network 4 squares 61 ms | grid -15,774 977,711 684,274 140,269
+   265.9s f00147 TRACKING Tracking | top: no move (3.31) | Na6 (4.81) | Nc6 (4.82) | f6 (5.02) | unsure 1 | network 4 squares 72 ms | grid -15,774 977,711 684,274 140,269
+   266.1s f00148 TRACKING Tracking | top: no move (3.35) | Na6 (4.85) | Nc6 (4.87) | f6 (4.93) | unsure 1 | network 4 squares 54 ms | grid -15,774 977,711 684,274 140,269
+   266.3s f00149 TRACKING Tracking | top: no move (3.38) | Na6 (4.88) | Nc6 (4.90) | f6 (4.90) | unsure 1 | network 4 squares 62 ms | grid -15,774 976,711 684,274 140,269
+   266.5s f00150 TRACKING Tracking | top: no move (3.38) | f6 (4.88) | Na6 (4.88) | Nc6 (4.90) | unsure 1 | network 4 squares 39 ms | grid -15,774 976,711 684,274 140,269
+   266.7s f00151 TRACKING Tracking | top: no move (3.46) | Na6 (4.92) | Nc6 (4.93) | f6 (4.95) | unsure 1 | network 4 squares 45 ms | grid -15,774 976,711 684,274 140,269
+   266.9s f00152 TRACKING Tracking | top: no move (3.47) | Na6 (4.90) | Nc6 (4.93) | f6 (4.96) | unsure 0 | network 4 squares 67 ms | grid -15,774 977,711 684,274 140,269
+   267.1s f00153 TRACKING Tracking | top: no move (3.44) | Na6 (4.88) | Nc6 (4.90) | f6 (4.93) | unsure 0 | network 4 squares 82 ms | grid -15,774 976,711 684,274 140,269
+   267.4s f00154 TRACKING Tracking | top: no move (3.43) | Na6 (4.87) | Nc6 (4.88) | f6 (4.92) | unsure 0 | network 4 squares 76 ms | grid -15,774 976,711 684,274 140,269
+   267.6s f00155 TRACKING Tracking | top: no move (3.47) | Na6 (4.90) | Nc6 (4.91) | f6 (4.95) | unsure 0 | network 4 squares 83 ms | grid -15,774 976,711 684,274 140,269
+   267.8s f00156 TRACKING Tracking | top: no move (3.53) | Na6 (4.97) | Nc6 (4.98) | f6 (5.02) | unsure 0 | network 4 squares 57 ms | grid -15,774 976,711 684,274 140,269
+   268.0s f00157 TRACKING Tracking | top: no move (3.56) | Na6 (4.99) | Nc6 (5.00) | f6 (5.04) | unsure 0 | network 4 squares 73 ms | grid -15,774 976,711 684,274 140,269
+   268.2s f00158 TRACKING Tracking | top: no move (3.53) | Na6 (4.97) | Nc6 (4.98) | f6 (5.02) | unsure 0 | network 4 squares 60 ms | grid -15,774 976,711 684,274 140,269
+   268.5s f00159 TRACKING Tracking | top: no move (3.53) | Na6 (4.96) | Nc6 (4.98) | f6 (5.02) | unsure 0 | network 4 squares 56 ms | grid -15,774 976,711 684,274 140,269
+   268.8s f00160 TRACKING Tracking | top: no move (3.52) | Na6 (4.96) | Nc6 (4.97) | f6 (5.01) | unsure 0 | network 4 squares 68 ms | grid -15,774 976,711 684,274 140,269 | image f00160_sample.jpg
+   268.9s f00161 TRACKING Tracking | top: no move (3.52) | Na6 (4.96) | Nc6 (4.97) | f6 (5.01) | unsure 0 | network 4 squares 61 ms | grid -15,774 976,711 684,274 140,269
+   269.1s f00162 TRACKING Tracking | top: no move (3.51) | Na6 (4.95) | Nc6 (4.96) | f6 (5.00) | unsure 0 | network 4 squares 66 ms | grid -15,774 976,711 684,274 140,269
+   269.4s f00163 TRACKING Tracking | top: no move (3.50) | Na6 (4.92) | Nc6 (4.95) | f6 (4.99) | unsure 0 | network 4 squares 62 ms | grid -15,774 976,711 684,274 140,269
+   269.6s f00164 TRACKING Tracking | top: no move (3.39) | Na6 (4.82) | Nc6 (4.84) | f6 (5.02) | unsure 0 | network 4 squares 51 ms | grid -15,774 976,711 684,274 140,269
+   269.8s f00165 TRACKING Tracking | top: no move (3.34) | Na6 (4.78) | Nc6 (4.79) | f6 (5.03) | unsure 0 | network 4 squares 83 ms | grid -15,774 976,711 684,274 140,269
+   270.0s f00166 TRACKING Tracking | top: no move (3.33) | Na6 (4.77) | Nc6 (4.78) | f6 (5.05) | unsure 0 | network 4 squares 59 ms | grid -15,774 976,711 684,274 140,269
+   270.2s f00167 TRACKING Tracking | top: no move (3.46) | Na6 (4.67) | Nc6 (4.68) | f6 (5.18) | unsure 1 | network 4 squares 61 ms | grid -15,774 977,711 684,274 140,269
+   270.5s f00168 TRACKING Tracking | top: no move (3.57) | Na6 (4.69) | Nc6 (4.70) | f6 (5.30) | unsure 1 | network 4 squares 65 ms | grid -15,774 976,711 684,274 140,269
+   270.7s f00169 TRACKING Tracking | top: no move (3.62) | Na6 (4.70) | Nc6 (4.71) | f6 (5.35) | unsure 1 | network 4 squares 63 ms | grid -15,774 976,711 684,274 140,269
+   270.9s f00170 TRACKING Tracking | top: no move (3.64) | Na6 (4.70) | Nc6 (4.71) | f6 (5.36) | unsure 1 | network 4 squares 48 ms | grid -15,774 976,711 684,274 140,269
+   271.1s f00171 TRACKING Tracking | top: no move (3.63) | Na6 (4.69) | Nc6 (4.70) | f6 (5.35) | unsure 1 | network 4 squares 44 ms | grid -15,774 976,711 684,274 140,269
+   271.4s f00172 TRACKING Tracking | top: no move (3.59) | Na6 (4.64) | Nc6 (4.65) | f6 (5.31) | unsure 1 | network 4 squares 67 ms | grid -15,774 976,711 684,274 140,269
+   271.5s f00173 TRACKING Tracking | top: no move (3.58) | Na6 (4.63) | Nc6 (4.64) | f6 (5.30) | unsure 1 | network 4 squares 66 ms | grid -15,774 976,711 684,274 139,269
+   271.8s f00174 TRACKING Tracking | top: no move (3.56) | Na6 (4.61) | Nc6 (4.62) | f6 (5.29) | unsure 1 | network 4 squares 57 ms | grid -15,774 976,711 684,274 139,269
+   272.0s f00175 TRACKING Tracking | top: no move (3.55) | Na6 (4.60) | Nc6 (4.61) | f6 (5.28) | unsure 1 | network 4 squares 63 ms | grid -15,774 976,711 684,274 139,269
+   272.1s f00176 TRACKING Tracking | top: no move (3.55) | Na6 (4.60) | Nc6 (4.61) | f6 (5.28) | unsure 1 | network 4 squares 53 ms | grid -15,774 976,711 684,274 140,269
+   272.4s f00177 TRACKING Tracking | top: no move (3.53) | Na6 (4.58) | Nc6 (4.60) | f6 (5.26) | unsure 1 | network 4 squares 56 ms | grid -15,774 977,711 684,274 140,269
+   272.7s f00178 TRACKING Tracking | top: no move (3.52) | Na6 (4.57) | Nc6 (4.59) | f6 (5.25) | unsure 1 | network 4 squares 59 ms | grid -15,774 977,711 684,274 140,269
+   272.9s f00179 TRACKING Tracking | top: no move (3.52) | Na6 (4.57) | Nc6 (4.58) | f6 (5.24) | unsure 1 | network 4 squares 69 ms | grid -15,774 977,712 684,274 140,269
+   273.1s f00180 TRACKING Tracking | top: no move (3.55) | Na6 (4.60) | Nc6 (4.61) | f6 (5.20) | unsure 1 | network 4 squares 60 ms | grid -15,774 978,712 684,274 140,269 | image f00180_sample.jpg
+   273.3s f00181 TRACKING Tracking | top: no move (3.55) | Na6 (4.61) | Nc6 (4.62) | f6 (5.19) | unsure 1 | network 4 squares 44 ms | grid -15,774 978,712 684,274 140,269
+   273.5s f00182 TRACKING Tracking | top: no move (3.56) | Na6 (4.62) | Nc6 (4.63) | f6 (5.19) | unsure 1 | network 4 squares 54 ms | grid -15,774 977,711 685,274 139,269
+   273.7s f00183 TRACKING Tracking | top: no move (3.60) | Na6 (4.61) | Nc6 (4.62) | f6 (5.22) | unsure 2 | network 4 squares 49 ms | grid -15,774 977,712 685,274 139,269
+   273.9s f00184 TRACKING Tracking | top: no move (3.58) | Na6 (4.58) | Nc6 (4.59) | f6 (5.19) | unsure 2 | network 4 squares 52 ms | grid -15,774 978,712 685,274 140,269
+   274.1s f00185 TRACKING Tracking | top: no move (3.60) | Na6 (4.59) | Nc6 (4.60) | f6 (5.21) | unsure 2 | network 4 squares 57 ms | grid -15,774 978,712 685,274 139,269
+   274.4s f00186 TRACKING Tracking | top: no move (3.60) | Na6 (4.59) | Nc6 (4.61) | f6 (5.22) | unsure 2 | network 4 squares 58 ms | grid -15,774 977,711 685,274 139,269
+   274.6s f00187 TRACKING Tracking | top: no move (3.59) | Na6 (4.58) | Nc6 (4.59) | f6 (5.20) | unsure 2 | network 4 squares 69 ms | grid -15,774 977,711 685,274 139,269
+   274.8s f00188 TRACKING Tracking | top: no move (3.57) | Na6 (4.56) | Nc6 (4.57) | f6 (5.18) | unsure 2 | network 4 squares 57 ms | grid -15,774 977,711 685,274 139,269
+   275.0s f00189 TRACKING Tracking | top: no move (3.57) | Na6 (4.55) | Nc6 (4.57) | f6 (5.18) | unsure 2 | network 4 squares 61 ms | grid -15,774 976,711 685,273 139,269
+   275.2s f00190 TRACKING Tracking | top: no move (3.56) | Na6 (4.55) | Nc6 (4.56) | f6 (5.17) | unsure 2 | network 4 squares 47 ms | grid -15,774 977,711 685,273 139,269
+   275.4s f00191 TRACKING Tracking | top: no move (3.57) | Na6 (4.56) | Nc6 (4.57) | f6 (5.18) | unsure 2 | network 4 squares 58 ms | grid -15,774 976,711 685,273 139,269
+   275.6s f00192 TRACKING Tracking | top: no move (3.58) | Na6 (4.57) | Nc6 (4.58) | f6 (5.19) | unsure 2 | network 4 squares 49 ms | grid -15,774 977,711 685,273 139,269
+   275.9s f00193 TRACKING Tracking | top: no move (3.62) | Na6 (4.59) | Nc6 (4.62) | f6 (5.23) | unsure 2 | network 4 squares 57 ms | grid -14,774 976,711 685,273 139,269
+   276.1s f00194 TRACKING Tracking | top: no move (3.63) | Na6 (4.61) | Nc6 (4.63) | f6 (5.25) | unsure 2 | network 4 squares 68 ms | grid -14,774 976,711 685,273 139,269
+   276.3s f00195 TRACKING Tracking | top: no move (3.62) | Na6 (4.61) | Nc6 (4.62) | f6 (5.23) | unsure 2 | network 4 squares 63 ms | grid -14,774 976,710 685,273 139,269
+   276.5s f00196 TRACKING Tracking | top: no move (3.58) | Na6 (4.57) | Nc6 (4.58) | f6 (5.27) | unsure 2 | network 4 squares 58 ms | grid -14,774 976,711 685,273 139,269
+   276.7s f00197 TRACKING Tracking | top: no move (3.61) | Na6 (4.58) | Nc6 (4.61) | f6 (5.33) | unsure 2 | network 4 squares 57 ms | grid -14,774 976,711 685,273 139,269
+   276.9s f00198 TRACKING Tracking | top: no move (3.62) | Na6 (4.59) | Nc6 (4.62) | f6 (5.36) | unsure 2 | network 4 squares 68 ms | grid -14,774 976,711 685,273 139,269
+   277.1s f00199 TRACKING Tracking | top: no move (3.38) | Na6 (4.59) | Nc6 (4.63) | f6 (5.13) | unsure 2 | network 4 squares 49 ms | grid -14,774 976,711 685,273 139,269
+   277.4s f00200 TRACKING Tracking | top: no move (3.32) | Na6 (4.65) | Nc6 (4.67) | f6 (5.06) | unsure 2 | network 4 squares 70 ms | grid -14,774 976,711 685,273 139,269 | image f00200_sample.jpg
+   277.6s f00201 TRACKING Tracking | top: no move (3.30) | Na6 (4.68) | Nc6 (4.69) | f6 (5.04) | unsure 1 | network 4 squares 63 ms | grid -14,774 975,710 685,273 139,269
+   277.8s f00202 TRACKING Tracking | top: no move (3.32) | Na6 (4.72) | Nc6 (4.74) | f6 (5.07) | unsure 1 | network 4 squares 46 ms | grid -14,774 975,710 685,273 139,269
+   278.0s f00203 TRACKING Tracking | top: no move (3.29) | Na6 (4.70) | Nc6 (4.71) | f6 (5.04) | unsure 1 | network 4 squares 60 ms | grid -14,774 976,711 685,273 139,269
+   278.3s f00204 TRACKING Tracking | top: no move (3.34) | Na6 (4.74) | Nc6 (4.76) | f6 (5.09) | unsure 1 | network 4 squares 59 ms | grid -14,774 976,710 685,273 139,269
+   278.5s f00205 TRACKING Tracking | top: no move (3.34) | Na6 (4.74) | Nc6 (4.76) | f6 (5.08) | unsure 1 | network 4 squares 76 ms | grid -14,774 976,711 685,273 139,269
+   278.7s f00206 TRACKING Tracking | top: no move (3.34) | Na6 (4.73) | Nc6 (4.76) | f6 (5.08) | unsure 1 | network 4 squares 58 ms | grid -14,774 976,711 685,273 139,269
+   278.9s f00207 TRACKING Tracking | top: no move (3.31) | Na6 (4.71) | Nc6 (4.73) | f6 (5.05) | unsure 1 | network 4 squares 71 ms | grid -14,774 976,711 685,273 139,269
+   279.1s f00208 TRACKING Tracking | top: no move (3.35) | Na6 (4.74) | Nc6 (4.77) | f6 (5.09) | unsure 1 | network 4 squares 50 ms | grid -14,774 976,711 685,273 139,269
+   279.3s f00209 TRACKING Tracking | top: no move (3.29) | Na6 (4.69) | Nc6 (4.71) | f6 (5.04) | unsure 1 | network 4 squares 50 ms | grid -14,774 976,711 685,273 139,269
+   279.5s f00210 TRACKING Tracking | top: no move (3.29) | Na6 (4.70) | Nc6 (4.71) | f6 (5.04) | unsure 1 | network 4 squares 58 ms | grid -14,774 976,711 685,273 139,269
+   279.7s f00211 TRACKING Tracking | top: no move (3.27) | Na6 (4.68) | Nc6 (4.69) | f6 (5.02) | unsure 1 | network 4 squares 59 ms | grid -14,774 977,711 685,273 139,269
+   280.0s f00212 TRACKING Tracking | top: no move (3.25) | Na6 (4.67) | Nc6 (4.68) | f6 (5.00) | unsure 1 | network 4 squares 74 ms | grid -14,774 977,711 685,273 139,269
+   280.2s f00213 TRACKING Tracking | top: no move (3.24) | Na6 (4.65) | Nc6 (4.66) | f6 (4.99) | unsure 1 | network 4 squares 59 ms | grid -15,774 977,711 685,273 139,269
+   280.4s f00214 TRACKING Tracking | top: no move (3.24) | Na6 (4.65) | Nc6 (4.66) | f6 (4.99) | unsure 1 | network 4 squares 57 ms | grid -14,774 977,711 685,273 139,269
+   280.6s f00215 TRACKING Tracking | top: no move (3.40) | Na6 (4.74) | Nc6 (4.75) | f6 (5.15) | unsure 1 | network 4 squares 59 ms | grid -15,774 977,711 685,273 139,269
+   280.8s f00216 TRACKING Tracking | top: no move (3.39) | Na6 (4.70) | Nc6 (4.71) | f6 (5.14) | unsure 1 | network 4 squares 66 ms | grid -15,774 977,711 685,273 139,269
+   281.0s f00217 TRACKING Tracking | top: no move (3.43) | Na6 (4.71) | Nc6 (4.74) | f6 (5.18) | unsure 1 | network 4 squares 57 ms | grid -15,774 977,711 685,273 139,269
+   281.3s f00218 TRACKING Tracking | top: no move (3.40) | Na6 (4.68) | Nc6 (4.70) | f6 (5.15) | unsure 1 | network 4 squares 66 ms | grid -15,774 977,711 685,273 139,269
+   281.5s f00219 TRACKING Tracking | top: no move (3.41) | Na6 (4.70) | Nc6 (4.71) | f6 (5.16) | unsure 1 | network 4 squares 62 ms | grid -14,774 976,711 685,273 139,269
+   281.7s f00220 TRACKING Tracking | top: no move (3.40) | Na6 (4.69) | Nc6 (4.70) | f6 (5.15) | unsure 1 | network 4 squares 58 ms | grid -15,774 977,711 685,273 139,269 | image f00220_sample.jpg
+   281.9s f00221 TRACKING Tracking | top: no move (3.42) | Na6 (4.71) | Nc6 (4.72) | f6 (5.17) | unsure 1 | network 4 squares 68 ms | grid -15,774 977,711 685,273 139,269
+   282.1s f00222 TRACKING Tracking | top: no move (3.46) | Na6 (4.72) | Nc6 (4.75) | f6 (5.21) | unsure 1 | network 4 squares 47 ms | grid -15,774 977,711 685,273 139,269
+   282.3s f00223 TRACKING Tracking | top: no move (3.45) | Na6 (4.73) | Nc6 (4.75) | f6 (5.20) | unsure 1 | network 4 squares 75 ms | grid -15,774 977,711 685,273 139,269
+   282.5s f00224 TRACKING Tracking | top: no move (3.45) | Na6 (4.73) | Nc6 (4.75) | f6 (5.19) | unsure 1 | network 4 squares 54 ms | grid -15,774 977,711 685,273 139,269
+   282.8s f00225 TRACKING Tracking | top: no move (3.44) | Na6 (4.72) | Nc6 (4.73) | f6 (5.18) | unsure 1 | network 4 squares 49 ms | grid -15,775 977,711 685,273 139,269
+   283.0s f00226 TRACKING Tracking | top: no move (3.42) | Na6 (4.71) | Nc6 (4.72) | f6 (5.18) | unsure 1 | network 4 squares 71 ms | grid -15,774 976,711 685,273 139,269
+   283.2s f00227 TRACKING Tracking | top: no move (3.43) | Na6 (4.71) | Nc6 (4.72) | f6 (5.18) | unsure 1 | network 4 squares 69 ms | grid -15,774 977,711 685,273 139,269
+   283.4s f00228 TRACKING Tracking | top: no move (3.42) | Na6 (4.71) | Nc6 (4.72) | f6 (5.17) | unsure 1 | network 4 squares 56 ms | grid -14,774 976,711 685,273 139,269
+   283.6s f00229 TRACKING Tracking | top: no move (3.46) | Na6 (4.73) | Nc6 (4.76) | f6 (5.21) | unsure 1 | network 4 squares 47 ms | grid -15,774 977,711 685,273 139,269
+   283.8s f00230 TRACKING Tracking | top: no move (3.44) | Na6 (4.72) | Nc6 (4.73) | f6 (5.19) | unsure 1 | network 4 squares 59 ms | grid -15,774 977,711 685,273 139,269
+   284.0s f00231 TRACKING Tracking | top: no move (3.51) | Na6 (4.61) | Nc6 (4.62) | f6 (5.26) | unsure 1 | network 4 squares 52 ms | grid -15,774 976,711 685,273 139,269
+   284.2s f00232 TRACKING Tracking | top: no move (3.60) | Na6 (4.62) | Nc6 (4.63) | f6 (5.35) | unsure 1 | network 4 squares 58 ms | grid -15,774 976,711 685,273 139,269
+   284.5s f00233 TRACKING Tracking | top: no move (3.60) | Na6 (4.59) | Nc6 (4.60) | f6 (5.35) | unsure 1 | network 4 squares 59 ms | grid -15,774 977,711 685,273 139,269
+   284.7s f00234 TRACKING Tracking | top: no move (3.61) | Na6 (4.59) | Nc6 (4.60) | f6 (5.35) | unsure 1 | network 4 squares 45 ms | grid -15,774 976,711 685,273 139,269
+   284.9s f00235 TRACKING Tracking | top: no move (3.59) | Na6 (4.57) | Nc6 (4.58) | f6 (5.34) | unsure 1 | network 4 squares 80 ms | grid -15,774 976,711 685,273 139,269
+   285.1s f00236 TRACKING Tracking | top: no move (3.60) | Na6 (4.58) | Nc6 (4.59) | f6 (5.35) | unsure 1 | network 4 squares 55 ms | grid -15,774 977,711 685,273 139,269
+   285.3s f00237 TRACKING Tracking | top: no move (3.61) | Na6 (4.57) | Nc6 (4.60) | f6 (5.36) | unsure 1 | network 4 squares 67 ms | grid -15,774 976,711 685,273 139,269
+   285.5s f00238 TRACKING Tracking | top: no move (3.56) | Na6 (4.53) | Nc6 (4.55) | f6 (5.31) | unsure 1 | network 4 squares 59 ms | grid -15,774 976,711 685,273 139,269
+   285.7s f00239 TRACKING Tracking | top: no move (3.57) | Na6 (4.54) | Nc6 (4.56) | f6 (5.32) | unsure 1 | network 4 squares 49 ms | grid -15,774 976,711 685,273 139,269
+   285.9s f00240 TRACKING Tracking | top: no move (3.56) | Na6 (4.54) | Nc6 (4.55) | f6 (5.31) | unsure 1 | network 4 squares 54 ms | grid -15,775 977,711 685,274 139,269 | image f00240_sample.jpg
+   286.2s f00241 TRACKING Tracking | top: no move (3.57) | Na6 (4.54) | Nc6 (4.56) | f6 (5.32) | unsure 1 | network 4 squares 54 ms | grid -15,775 976,711 685,274 139,269
+   286.4s f00242 TRACKING Tracking | top: no move (3.58) | Na6 (4.55) | Nc6 (4.56) | f6 (5.32) | unsure 1 | network 4 squares 67 ms | grid -15,775 977,711 685,273 139,269
+   286.6s f00243 TRACKING Tracking | top: no move (3.57) | Na6 (4.55) | Nc6 (4.56) | f6 (5.32) | unsure 1 | network 4 squares 63 ms | grid -15,774 976,711 685,273 139,269
+   286.8s f00244 TRACKING Tracking | top: no move (3.59) | Na6 (4.56) | Nc6 (4.57) | f6 (5.34) | unsure 1 | network 4 squares 71 ms | grid -15,774 976,711 685,273 139,269
+   287.0s f00245 TRACKING Tracking | top: no move (3.58) | Na6 (4.55) | Nc6 (4.56) | f6 (5.34) | unsure 1 | network 4 squares 48 ms | grid -15,774 976,710 685,273 139,269
+   287.2s f00246 TRACKING Tracking | top: no move (3.60) | Na6 (4.57) | Nc6 (4.58) | f6 (5.36) | unsure 1 | network 4 squares 48 ms | grid -15,774 976,711 685,273 139,269
+   287.4s f00247 TRACKING Tracking | top: no move (3.45) | Na6 (4.63) | Nc6 (4.64) | f6 (5.21) | unsure 1 | network 4 squares 50 ms | grid -14,774 976,710 685,273 139,269
+   287.6s f00248 TRACKING Tracking | top: no move (3.43) | Na6 (4.69) | Nc6 (4.70) | f6 (5.19) | unsure 1 | network 4 squares 51 ms | grid -15,774 976,711 685,273 139,269
+   287.9s f00249 TRACKING Tracking | top: no move (3.43) | Na6 (4.72) | Nc6 (4.73) | f6 (5.18) | unsure 1 | network 4 squares 76 ms | grid -14,774 976,711 685,273 139,269
+   288.1s f00250 TRACKING Tracking | top: no move (3.42) | Na6 (4.72) | Nc6 (4.74) | f6 (5.17) | unsure 1 | network 4 squares 64 ms | grid -14,774 976,711 685,273 139,269
+   288.3s f00251 TRACKING Tracking | top: no move (3.40) | Na6 (4.71) | Nc6 (4.72) | f6 (5.16) | unsure 1 | network 4 squares 45 ms | grid -14,774 976,711 685,273 139,269
+   288.5s f00252 TRACKING Tracking | top: no move (3.46) | Na6 (4.77) | Nc6 (4.78) | f6 (5.22) | unsure 1 | network 4 squares 65 ms | grid -14,774 976,711 685,273 139,269
+   288.7s f00253 TRACKING Tracking | top: no move (3.48) | Na6 (4.78) | Nc6 (4.80) | f6 (5.24) | unsure 1 | network 4 squares 52 ms | grid -14,774 976,710 685,273 139,269
+   288.9s f00254 TRACKING Tracking | top: no move (3.46) | Na6 (4.77) | Nc6 (4.79) | f6 (5.22) | unsure 1 | network 4 squares 66 ms | grid -14,774 975,710 685,273 139,269
+   289.2s f00255 TRACKING Tracking | top: no move (3.49) | Na6 (4.79) | Nc6 (4.81) | f6 (5.24) | unsure 1 | network 4 squares 69 ms | grid -15,774 976,710 685,273 139,269
+   289.4s f00256 TRACKING Tracking | top: no move (3.54) | Na6 (4.83) | Nc6 (4.86) | f6 (5.29) | unsure 1 | network 4 squares 47 ms | grid -14,774 975,710 685,273 139,269
+   289.6s f00257 TRACKING Tracking | top: no move (3.53) | Na6 (4.82) | Nc6 (4.86) | f6 (5.29) | unsure 1 | network 4 squares 52 ms | grid -15,774 975,710 685,273 139,269
+   289.8s f00258 TRACKING Tracking | top: no move (3.49) | Na6 (4.79) | Nc6 (4.82) | f6 (5.25) | unsure 1 | network 4 squares 56 ms | grid -15,774 976,711 685,273 139,269
+   290.0s f00259 TRACKING Tracking | top: no move (3.52) | Na6 (4.81) | Nc6 (4.85) | f6 (5.28) | unsure 1 | network 4 squares 71 ms | grid -15,774 976,711 685,273 139,269
+   290.2s f00260 TRACKING Tracking | top: no move (3.51) | Na6 (4.81) | Nc6 (4.83) | f6 (5.23) | unsure 1 | network 4 squares 64 ms | grid -15,774 975,710 685,273 139,269 | image f00260_sample.jpg
+   290.4s f00261 TRACKING Tracking | top: no move (3.50) | Na6 (4.82) | Nc6 (4.83) | f6 (5.21) | unsure 1 | network 4 squares 69 ms | grid -15,774 976,711 685,273 139,269
+   290.6s f00262 TRACKING Tracking | top: no move (3.55) | Na6 (4.84) | Nc6 (4.87) | f6 (5.25) | unsure 1 | network 4 squares 50 ms | grid -15,774 976,710 685,273 139,269
+   290.8s f00263 TRACKING Tracking | top: no move (3.59) | Na6 (4.86) | Nc6 (4.88) | f6 (5.29) | unsure 1 | network 4 squares 44 ms | grid -15,774 975,710 685,273 139,269
+   291.1s f00264 TRACKING Tracking | top: no move (3.58) | Na6 (4.84) | Nc6 (4.86) | f6 (5.28) | unsure 1 | network 4 squares 58 ms | grid -15,774 976,710 685,273 139,269
+   291.3s f00265 TRACKING Tracking | top: no move (3.56) | Na6 (4.81) | Nc6 (4.83) | f6 (5.26) | unsure 1 | network 4 squares 51 ms | grid -15,774 975,710 685,273 139,269
+   291.5s f00266 TRACKING Tracking | top: no move (3.54) | Na6 (4.80) | Nc6 (4.81) | f6 (5.25) | unsure 1 | network 4 squares 56 ms | grid -15,774 976,711 685,273 139,269
+   291.7s f00267 TRACKING Tracking | top: no move (3.58) | Na6 (4.83) | Nc6 (4.85) | f6 (5.28) | unsure 1 | network 4 squares 41 ms | grid -15,774 975,710 685,273 139,269
+   292.0s f00268 TRACKING Tracking | top: no move (3.55) | Na6 (4.81) | Nc6 (4.82) | f6 (5.25) | unsure 1 | network 4 squares 59 ms | grid -15,774 976,710 685,273 139,269
+   292.2s f00269 TRACKING Tracking | top: no move (3.57) | Na6 (4.80) | Nc6 (4.83) | f6 (5.27) | unsure 1 | network 4 squares 59 ms | grid -15,774 975,710 685,273 139,269
+   292.3s f00270 TRACKING Tracking | top: no move (3.58) | Na6 (4.83) | Nc6 (4.85) | f6 (5.29) | unsure 1 | network 4 squares 46 ms | grid -15,774 976,710 685,273 139,269
+   292.6s f00271 TRACKING Tracking | top: no move (3.64) | Na6 (4.89) | Nc6 (4.91) | f6 (5.35) | unsure 1 | network 4 squares 64 ms | grid -14,774 975,710 685,274 139,269
+   292.8s f00272 TRACKING Tracking | top: no move (3.61) | Na6 (4.87) | Nc6 (4.88) | f6 (5.33) | unsure 1 | network 4 squares 57 ms | grid -14,774 975,710 685,274 139,269
+   293.0s f00273 TRACKING Tracking | top: no move (4.01) | Na6 (5.27) | Nc6 (5.28) | a5 (5.47) | unsure 2 | network 4 squares 63 ms | grid -14,774 974,710 685,274 139,270
+   293.2s f00274 TRACKING Tracking | top: no move (4.16) | a5 (5.35) | Na6 (5.41) | Nc6 (5.42) | unsure 2 | network 4 squares 45 ms | grid -14,774 974,710 684,274 140,270
+   293.4s f00275 TRACKING Tracking | top: no move (4.28) | a5 (5.36) | Na6 (5.54) | Nc6 (5.55) | unsure 2 | network 4 squares 57 ms | grid -14,774 973,710 684,274 140,270
+   293.7s f00276 TRACKING Tracking | top: no move (4.41) | a5 (5.44) | Na6 (5.66) | Nc6 (5.68) | unsure 2 | network 4 squares 49 ms | grid -14,774 973,710 684,274 140,270
+   293.8s f00277 TRACKING Tracking | top: no move (4.46) | a5 (5.48) | Na6 (5.71) | Nc6 (5.73) | unsure 2 | network 4 squares 56 ms | grid -13,774 973,710 684,274 140,270
+   294.1s f00278 TRACKING Tracking | top: no move (4.49) | a5 (5.50) | Na6 (5.74) | Nc6 (5.75) | unsure 2 | network 4 squares 49 ms | grid -13,774 973,710 684,274 140,270
+   294.3s f00279 TRACKING Tracking | top: no move (4.27) | a5 (5.28) | Na6 (5.38) | Nc6 (5.39) | unsure 3 | network 4 squares 58 ms | grid -13,774 973,710 684,274 140,270
+   294.5s f00280 TRACKING Tracking | top: no move (4.22) | a5 (5.23) | Na6 (5.28) | Nc6 (5.29) | unsure 3 | network 4 squares 60 ms | grid -13,774 972,709 684,274 140,270 | image f00280_sample.jpg
+   294.7s f00281 TRACKING Tracking | top: no move (4.18) | a5 (5.19) | Na6 (5.21) | Nc6 (5.22) | unsure 3 | network 4 squares 54 ms | grid -13,774 973,709 684,274 140,270
+   294.9s f00282 TRACKING Tracking | top: no move (4.17) | a5 (5.18) | Na6 (5.19) | Nc6 (5.20) | unsure 3 | network 4 squares 53 ms | grid -13,774 972,709 684,274 140,270
+   295.1s f00283 TRACKING Tracking | top: no move (4.18) | a5 (5.19) | Na6 (5.20) | Nc6 (5.21) | unsure 3 | network 4 squares 63 ms | grid -13,774 972,709 684,274 140,270
+   295.3s f00284 TRACKING Tracking | top: no move (4.13) | a5 (5.14) | Na6 (5.15) | Nc6 (5.16) | unsure 3 | network 4 squares 76 ms | grid -13,773 973,710 684,274 140,270
+   295.5s f00285 TRACKING Tracking | top: no move (4.12) | a5 (5.13) | Na6 (5.14) | Nc6 (5.15) | unsure 3 | network 4 squares 51 ms | grid -13,774 972,709 684,274 140,270
+   295.8s f00286 TRACKING Tracking | top: no move (4.10) | a5 (5.11) | Na6 (5.12) | Nc6 (5.13) | unsure 3 | network 4 squares 43 ms | grid -13,773 972,709 684,274 140,270
+   296.0s f00287 TRACKING Tracking | top: no move (4.05) | a5 (5.06) | Na6 (5.07) | Nc6 (5.08) | unsure 3 | network 4 squares 58 ms | grid -13,774 972,709 684,274 140,270
+   296.2s f00288 TRACKING Tracking | top: no move (4.04) | a5 (5.05) | Na6 (5.06) | Nc6 (5.07) | unsure 3 | network 4 squares 58 ms | grid -13,773 972,709 684,274 140,270
+   296.4s f00289 TRACKING Tracking | top: no move (3.80) | Na6 (4.82) | Nc6 (4.83) | a5 (5.18) | unsure 3 | network 4 squares 41 ms | grid -13,773 973,710 684,274 140,270
+   296.6s f00290 TRACKING Tracking | top: no move (3.74) | Na6 (4.76) | Nc6 (4.77) | a5 (5.27) | unsure 3 | network 4 squares 45 ms | grid -13,773 973,710 684,274 140,270
+   296.8s f00291 TRACKING Tracking | top: no move (3.70) | Na6 (4.72) | Nc6 (4.73) | f6 (5.23) | unsure 3 | network 4 squares 43 ms | grid -13,773 972,709 684,274 140,270
+   297.0s f00292 TRACKING Tracking | top: no move (3.70) | Na6 (4.72) | Nc6 (4.73) | f6 (5.16) | unsure 3 | network 4 squares 43 ms | grid -13,773 972,710 684,274 140,270
+   297.2s f00293 TRACKING Tracking | top: no move (3.73) | Na6 (4.74) | Nc6 (4.75) | f6 (5.15) | unsure 3 | network 4 squares 46 ms | grid -13,773 972,709 684,274 140,270
+   297.4s f00294 TRACKING Tracking | top: no move (3.72) | Na6 (4.74) | Nc6 (4.75) | f6 (5.14) | unsure 3 | network 4 squares 51 ms | grid -13,773 972,709 684,274 140,270
+   297.7s f00295 TRACKING Tracking | top: no move (3.78) | Na6 (4.74) | Nc6 (4.75) | f6 (5.19) | unsure 3 | network 4 squares 45 ms | grid -13,773 972,710 684,274 140,270
+   297.9s f00296 TRACKING Tracking | top: no move (3.89) | Na6 (4.82) | Nc6 (4.84) | f6 (5.30) | unsure 3 | network 4 squares 63 ms | grid -13,773 973,710 684,274 140,270
+   298.0s f00297 TRACKING Tracking | top: no move (3.88) | Na6 (4.81) | Nc6 (4.82) | f6 (5.30) | unsure 3 | network 4 squares 42 ms | grid -13,773 973,710 684,274 140,270
+   298.2s f00298 TRACKING Tracking | top: no move (3.90) | Na6 (4.83) | Nc6 (4.84) | f6 (5.31) | unsure 3 | network 4 squares 45 ms | grid -13,773 973,710 684,274 140,270
+   298.5s f00299 TRACKING Tracking | top: no move (3.87) | Na6 (4.80) | Nc6 (4.81) | f6 (5.28) | unsure 3 | network 4 squares 42 ms | grid -13,773 973,710 684,274 140,270
+   298.7s f00300 TRACKING Tracking | top: no move (3.86) | Na6 (4.79) | Nc6 (4.80) | f6 (5.27) | unsure 3 | network 4 squares 49 ms | grid -13,773 973,710 684,274 140,270 | image f00300_sample.jpg
+   298.9s f00301 TRACKING Tracking | top: no move (3.87) | Na6 (4.79) | Nc6 (4.80) | f6 (5.28) | unsure 3 | network 4 squares 43 ms | grid -12,773 973,710 684,274 140,270
+   299.1s f00302 TRACKING Tracking | top: no move (3.87) | Na6 (4.80) | Nc6 (4.81) | f6 (5.28) | unsure 3 | network 4 squares 45 ms | grid -12,773 973,710 684,274 140,270
+   299.3s f00303 TRACKING Tracking | top: no move (3.89) | Na6 (4.82) | Nc6 (4.83) | f6 (5.31) | unsure 3 | network 4 squares 49 ms | grid -12,773 973,710 684,274 140,270
+   299.6s f00304 TRACKING Tracking | top: no move (3.92) | Na6 (4.83) | Nc6 (4.86) | f6 (5.33) | unsure 3 | network 4 squares 46 ms | grid -12,773 973,710 684,274 140,270
+   299.8s f00305 TRACKING Tracking | top: no move (3.89) | Na6 (4.81) | Nc6 (4.83) | f6 (5.30) | unsure 3 | network 4 squares 47 ms | grid -13,773 973,710 684,274 140,270
+   300.0s f00306 TRACKING Tracking | top: no move (3.90) | Na6 (4.82) | Nc6 (4.83) | f6 (5.31) | unsure 3 | network 4 squares 46 ms | grid -13,773 973,710 684,274 140,270
+   300.2s f00307 TRACKING Tracking | top: no move (3.92) | Na6 (4.85) | Nc6 (4.86) | f6 (5.33) | unsure 3 | network 4 squares 44 ms | grid -13,773 973,710 684,274 140,270
+   300.4s f00308 TRACKING Tracking | top: no move (3.93) | Na6 (4.85) | Nc6 (4.86) | f6 (5.39) | unsure 3 | network 4 squares 44 ms | grid -13,773 973,710 684,274 140,270
+   300.7s f00309 TRACKING Tracking | top: no move (3.91) | Na6 (4.83) | Nc6 (4.84) | f6 (5.38) | unsure 3 | network 4 squares 61 ms | grid -13,773 973,710 684,274 140,270
+   300.8s f00310 TRACKING Tracking | top: no move (3.87) | Na6 (4.80) | Nc6 (4.81) | f6 (5.36) | unsure 3 | network 4 squares 43 ms | grid -13,773 973,710 684,274 140,270
+   301.1s f00311 TRACKING Tracking | top: no move (3.76) | Na6 (4.66) | Nc6 (4.68) | f6 (5.25) | unsure 2 | network 4 squares 44 ms | grid -13,773 973,710 684,274 140,270
+   301.3s f00312 TRACKING Tracking | top: no move (3.73) | Na6 (4.63) | Nc6 (4.64) | f6 (5.22) | unsure 2 | network 4 squares 53 ms | grid -13,773 973,710 684,274 140,270
+   301.5s f00313 TRACKING Tracking | top: no move (3.71) | Na6 (4.61) | Nc6 (4.62) | f6 (5.21) | unsure 2 | network 4 squares 46 ms | grid -13,773 973,710 684,274 140,270
+   301.7s f00314 TRACKING Tracking | top: no move (3.71) | Na6 (4.61) | Nc6 (4.62) | f6 (5.21) | unsure 2 | network 4 squares 52 ms | grid -13,773 973,710 684,274 140,270
+   301.9s f00315 TRACKING Tracking | top: no move (3.67) | Na6 (4.57) | Nc6 (4.58) | f6 (5.17) | unsure 2 | network 4 squares 43 ms | grid -13,773 973,710 684,274 140,270
+   302.1s f00316 TRACKING Tracking | top: no move (3.69) | Na6 (4.58) | Nc6 (4.59) | f6 (5.18) | unsure 2 | network 4 squares 41 ms | grid -13,773 973,710 684,274 140,270
+   302.3s f00317 TRACKING Tracking | top: no move (3.71) | Na6 (4.60) | Nc6 (4.62) | f6 (5.20) | unsure 2 | network 4 squares 44 ms | grid -13,773 973,710 684,274 140,270
+   302.6s f00318 TRACKING Tracking | top: no move (3.73) | Na6 (4.62) | Nc6 (4.63) | f6 (5.22) | unsure 2 | network 4 squares 54 ms | grid -13,773 973,710 684,274 140,270
+   302.8s f00319 TRACKING Tracking | top: no move (3.71) | Na6 (4.60) | Nc6 (4.62) | f6 (5.20) | unsure 2 | network 4 squares 45 ms | grid -13,773 974,710 684,274 140,270
+   303.0s f00320 TRACKING Tracking | top: no move (3.72) | Na6 (4.61) | Nc6 (4.63) | f6 (5.21) | unsure 2 | network 4 squares 42 ms | grid -13,773 974,710 684,274 140,270 | image f00320_sample.jpg
+   303.2s f00321 TRACKING Tracking | top: no move (3.91) | Na6 (4.79) | Nc6 (4.82) | a5 (5.15) | unsure 2 | network 4 squares 38 ms | grid -13,773 973,710 684,274 140,270
+   303.5s f00322 TRACKING Tracking | top: no move (3.93) | Na6 (4.80) | Nc6 (4.83) | a5 (5.04) | unsure 2 | network 4 squares 52 ms | grid -13,773 972,709 684,274 140,270
+   303.7s f00323 TRACKING Tracking | top: no move (3.97) | Na6 (4.86) | Nc6 (4.88) | a5 (5.06) | unsure 2 | network 4 squares 46 ms | grid -13,773 973,709 684,274 140,270
+   303.9s f00324 TRACKING Tracking | top: no move (3.92) | Na6 (4.81) | Nc6 (4.83) | a5 (5.00) | unsure 2 | network 4 squares 49 ms | grid -13,773 973,710 684,275 140,270
+   304.1s f00325 TRACKING Tracking | top: no move (3.93) | Na6 (4.81) | Nc6 (4.83) | a5 (4.98) | unsure 2 | network 4 squares 53 ms | grid -13,773 973,710 684,274 140,270
+   304.3s f00326 TRACKING Tracking | top: no move (3.90) | Na6 (4.79) | Nc6 (4.81) | a5 (4.97) | unsure 2 | network 4 squares 49 ms | grid -13,773 973,710 684,274 140,270
+   304.5s f00327 TRACKING Tracking | top: no move (3.99) | Na6 (4.95) | Nc6 (4.98) | a5 (5.04) | unsure 3 | network 4 squares 42 ms | grid -13,773 972,709 684,274 140,270
+   304.7s f00328 TRACKING Tracking | top: no move (3.96) | Na6 (4.95) | Nc6 (4.98) | a5 (5.00) | unsure 3 | network 4 squares 43 ms | grid -13,773 973,710 684,274 140,270
+   304.9s f00329 TRACKING Tracking | top: no move (3.93) | Na6 (4.94) | Nc6 (4.96) | a5 (4.99) | unsure 3 | network 4 squares 45 ms | grid -13,773 973,710 684,274 140,270
+   305.2s f00330 TRACKING Tracking | top: no move (3.91) | Na6 (4.94) | Nc6 (4.95) | a5 (4.99) | unsure 3 | network 4 squares 63 ms | grid -13,773 972,709 684,274 140,270
+   305.4s f00331 TRACKING Tracking | top: no move (3.94) | Na6 (4.97) | Nc6 (4.98) | a5 (5.01) | unsure 3 | network 4 squares 45 ms | grid -13,773 973,710 684,274 140,270
+   305.6s f00332 TRACKING Tracking | top: no move (3.97) | Na6 (4.98) | Nc6 (5.00) | a5 (5.01) | unsure 3 | network 4 squares 46 ms | grid -13,773 972,709 684,274 140,270
+   305.8s f00333 TRACKING Tracking | top: no move (3.95) | Na6 (4.97) | Nc6 (4.99) | a5 (5.01) | unsure 3 | network 4 squares 52 ms | grid -13,774 972,709 684,274 140,270
+   306.1s f00334 TRACKING Tracking | top: no move (3.97) | Na6 (4.98) | Nc6 (5.00) | a5 (5.01) | unsure 3 | network 4 squares 48 ms | grid -13,773 972,709 684,275 140,270
+   306.2s f00335 TRACKING Tracking | top: no move (4.00) | Na6 (5.00) | a5 (5.02) | Nc6 (5.04) | unsure 3 | network 4 squares 41 ms | grid -13,774 972,709 684,275 140,270
+   306.5s f00336 TRACKING Tracking | top: no move (3.92) | Na6 (4.94) | Nc6 (4.96) | a5 (4.98) | unsure 3 | network 4 squares 49 ms | grid -13,774 971,709 684,275 140,270
+   306.7s f00337 TRACKING Tracking | top: no move (3.90) | Na6 (4.90) | Nc6 (4.94) | a5 (4.99) | unsure 3 | network 4 squares 45 ms | grid -13,774 972,709 684,275 140,270
+   306.9s f00338 TRACKING Tracking | top: no move (3.89) | Na6 (4.90) | Nc6 (4.93) | a5 (4.99) | unsure 3 | network 4 squares 45 ms | grid -13,773 972,709 684,275 140,270
+   307.1s f00339 TRACKING Tracking | top: no move (3.93) | Na6 (4.93) | Nc6 (4.97) | a5 (5.04) | unsure 3 | network 4 squares 48 ms | grid -13,773 973,709 684,275 140,270
+   307.3s f00340 TRACKING Tracking | top: no move (4.16) | Na6 (5.17) | Nc6 (5.20) | a5 (5.28) | unsure 3 | network 4 squares 52 ms | grid -13,773 973,710 684,275 140,270 | image f00340_sample.jpg
+   307.5s f00341 TRACKING Tracking | top: no move (4.23) | Na6 (5.24) | Nc6 (5.26) | a5 (5.36) | unsure 4 | network 4 squares 45 ms | grid -13,773 973,710 684,275 140,270
+   307.8s f00342 TRACKING Tracking | top: no move (4.23) | Na6 (5.25) | Nc6 (5.26) | f6 (5.31) | unsure 4 | network 4 squares 42 ms | grid -13,773 973,710 684,275 140,270
+   308.0s f00343 TRACKING Tracking | top: no move (4.18) | f6 (5.24) | Nf6 (5.26) | a5 (5.33) | unsure 4 | network 4 squares 48 ms | grid -13,773 973,710 684,275 140,270
+   308.2s f00344 TRACKING Tracking | top: no move (4.24) | f6 (5.29) | Nf6 (5.32) | a5 (5.40) | unsure 4 | network 4 squares 49 ms | grid -13,773 973,710 684,274 140,270
+   308.4s f00345 TRACKING Tracking | top: no move (4.28) | f6 (5.32) | Nf6 (5.35) | a5 (5.41) | unsure 4 | network 4 squares 46 ms | grid -13,773 973,710 684,274 140,270
+   308.6s f00346 TRACKING Tracking | top: no move (4.27) | f6 (5.31) | Nf6 (5.34) | a5 (5.41) | unsure 5 | network 4 squares 45 ms | grid -13,773 974,710 684,275 140,270
+   308.9s f00347 TRACKING Tracking | top: no move (4.24) | f6 (5.27) | Nf6 (5.30) | a5 (5.39) | unsure 5 | network 4 squares 48 ms | grid -13,773 974,710 684,275 140,270
+   309.1s f00348 TRACKING Tracking | top: no move (4.25) | f6 (5.28) | Nf6 (5.32) | a5 (5.41) | unsure 5 | network 4 squares 48 ms | grid -13,773 974,710 684,274 140,270
+   309.3s f00349 TRACKING Tracking | top: no move (4.31) | f6 (5.35) | Nf6 (5.38) | a5 (5.47) | unsure 5 | network 4 squares 55 ms | grid -13,773 973,710 684,274 140,270
+   309.5s f00350 TRACKING Tracking | top: no move (4.31) | f6 (5.35) | Nf6 (5.38) | a5 (5.47) | unsure 5 | network 4 squares 56 ms | grid -13,773 973,710 684,274 140,270
+   309.8s f00351 TRACKING Tracking | top: no move (4.30) | f6 (5.35) | Nf6 (5.37) | a5 (5.46) | unsure 5 | network 4 squares 48 ms | grid -13,773 973,710 684,274 140,270
+   310.0s f00352 TRACKING Tracking | top: no move (4.28) | f6 (5.32) | Nf6 (5.35) | a5 (5.44) | unsure 5 | network 4 squares 49 ms | grid -13,773 973,710 684,274 140,270
+   310.1s f00353 TRACKING Tracking | top: no move (4.14) | f6 (5.18) | Nf6 (5.21) | Na6 (5.40) | unsure 5 | network 4 squares 45 ms | grid -13,773 973,710 684,274 140,270
+   310.4s f00354 TRACKING Tracking | top: no move (4.12) | f6 (5.16) | Nf6 (5.18) | Na6 (5.36) | unsure 5 | network 4 squares 42 ms | grid -13,773 974,710 684,274 140,270
+   310.6s f00355 TRACKING Tracking | top: no move (4.04) | f6 (5.07) | Nf6 (5.10) | Na6 (5.29) | unsure 5 | network 4 squares 55 ms | grid -13,773 974,710 684,275 140,270
+   310.8s f00356 TRACKING Tracking | top: no move (3.80) | Na6 (5.06) | Nc6 (5.07) | f6 (5.20) | unsure 4 | network 4 squares 41 ms | grid -13,773 973,710 684,274 140,270
+   311.1s f00357 TRACKING Tracking | top: no move (3.71) | Na6 (4.97) | Nc6 (4.99) | f6 (5.26) | unsure 4 | network 4 squares 60 ms | grid -13,773 973,710 684,274 140,270
+   311.2s f00358 TRACKING Tracking | top: no move (3.67) | Na6 (4.94) | Nc6 (4.95) | f6 (5.29) | unsure 4 | network 4 squares 58 ms | grid -13,773 973,710 684,274 140,270
+   311.4s f00359 TRACKING Tracking | top: no move (3.83) | Na6 (4.88) | Nc6 (4.89) | a5 (5.47) | unsure 4 | network 4 squares 48 ms | grid -13,773 973,710 684,274 140,270
+   311.7s f00360 TRACKING Tracking | top: no move (3.81) | Na6 (4.78) | Nc6 (4.79) | a5 (5.45) | unsure 3 | network 4 squares 51 ms | grid -13,773 973,710 684,274 140,270 | image f00360_sample.jpg
+   311.9s f00361 TRACKING Tracking | top: no move (3.81) | Na6 (4.75) | Nc6 (4.77) | a5 (5.46) | unsure 3 | network 4 squares 54 ms | grid -13,773 973,710 684,274 140,270
+   312.1s f00362 TRACKING Tracking | top: no move (3.84) | Na6 (4.77) | Nc6 (4.78) | a5 (5.48) | unsure 3 | network 4 squares 56 ms | grid -13,773 973,710 684,274 140,270
+   312.3s f00363 TRACKING Tracking | top: no move (3.79) | Na6 (4.72) | Nc6 (4.73) | a5 (5.44) | unsure 3 | network 4 squares 49 ms | grid -13,773 973,710 684,274 140,270
+   312.5s f00364 TRACKING Tracking | top: no move (3.76) | Na6 (4.69) | Nc6 (4.70) | a5 (5.41) | unsure 3 | network 4 squares 46 ms | grid -13,773 973,710 684,274 140,270
+   312.8s f00365 TRACKING Tracking | top: no move (3.73) | Na6 (4.65) | Nc6 (4.66) | a5 (5.38) | unsure 3 | network 4 squares 43 ms | grid -13,773 973,710 684,274 140,270
+   313.0s f00366 TRACKING Tracking | top: no move (3.72) | Na6 (4.64) | Nc6 (4.65) | a5 (5.37) | unsure 3 | network 4 squares 44 ms | grid -13,773 973,710 684,274 140,270
+   313.2s f00367 TRACKING Tracking | top: no move (3.72) | Na6 (4.64) | Nc6 (4.65) | a5 (5.37) | unsure 3 | network 4 squares 45 ms | grid -13,773 973,710 684,274 140,270
+   313.4s f00368 TRACKING Tracking | top: no move (3.73) | Na6 (4.64) | Nc6 (4.66) | a5 (5.37) | unsure 3 | network 4 squares 50 ms | grid -13,773 973,710 684,274 140,270
+   313.6s f00369 TRACKING Tracking | top: no move (3.82) | Na6 (4.74) | Nc6 (4.75) | a5 (5.26) | unsure 3 | network 4 squares 45 ms | grid -13,773 972,709 684,274 140,270
+   313.8s f00370 TRACKING Tracking | top: no move (3.88) | Na6 (4.80) | Nc6 (4.81) | a5 (5.23) | unsure 3 | network 4 squares 48 ms | grid -13,773 973,710 684,274 140,270
+   314.0s f00371 TRACKING Tracking | top: no move (3.87) | Na6 (4.78) | Nc6 (4.80) | a5 (5.19) | unsure 3 | network 4 squares 54 ms | grid -13,773 973,710 684,275 140,270
+   314.3s f00372 TRACKING Tracking | top: no move (3.95) | Na6 (4.87) | Nc6 (4.88) | a5 (5.26) | unsure 3 | network 10 squares 106 ms | grid -13,773 973,709 684,275 140,270
+   314.4s f00373 TRACKING Tracking | top: no move (3.99) | Na6 (4.89) | Nc6 (4.92) | a5 (5.26) | unsure 3 | network 4 squares 60 ms | grid -13,773 973,710 684,275 140,270
+   314.6s f00374 TRACKING Tracking | top: no move (4.02) | Na6 (4.92) | Nc6 (4.95) | a5 (5.28) | unsure 3 | network 4 squares 55 ms | grid -13,773 974,710 684,274 140,270
+   314.9s f00375 TRACKING Tracking | top: no move (3.93) | Na6 (5.02) | Nc6 (5.06) | a5 (5.18) | unsure 2 | network 13 squares 150 ms | grid -13,773 975,711 684,274 140,270
+   315.1s f00376 TRACKING Tracking | top: no move (3.68) | Na6 (4.87) | Nc6 (4.89) | a5 (4.96) | unsure 2 | network 4 squares 49 ms | grid -13,773 975,711 684,274 140,270
+   315.3s f00377 TRACKING Tracking | top: no move (3.67) | Na6 (4.89) | Nc6 (4.92) | a5 (4.94) | unsure 2 | network 4 squares 49 ms | grid -13,773 976,712 684,274 140,270
+   315.5s f00378 TRACKING Tracking | top: no move (3.55) | Na6 (4.79) | Nc6 (4.81) | a5 (4.84) | unsure 2 | network 4 squares 53 ms | grid -13,773 976,712 684,274 140,270
+   315.8s f00379 TRACKING Tracking | top: no move (3.58) | Na6 (4.83) | Nc6 (4.85) | a5 (4.88) | unsure 2 | network 4 squares 54 ms | grid -13,773 976,712 684,274 140,270
+   316.0s f00380 TRACKING Tracking | top: no move (3.66) | Na6 (4.91) | Nc6 (4.92) | a5 (4.96) | unsure 2 | network 4 squares 57 ms | grid -13,773 975,712 684,274 140,270 | image f00380_sample.jpg
+   316.2s f00381 TRACKING Tracking | top: no move (3.71) | Na6 (4.97) | Nc6 (4.98) | a5 (5.02) | unsure 2 | network 4 squares 57 ms | grid -13,773 975,712 684,274 140,270
+   316.5s f00382 TRACKING Tracking | top: no move (5.33) | Nf6 (6.54) | h6 (6.55) | Nh6 (6.55) | unsure 2 | network 14 squares 155 ms | grid -13,773 975,711 684,274 140,270
+   316.9s f00383 TRACKING Tracking | top: no move (7.63) | g6 (7.89) | Nf6 (8.39) | f6 (8.40) | unsure 4 | network 21 squares 249 ms | grid -13,773 975,711 684,274 140,270
+   317.3s f00384 TRACKING Tracking | top: no move (9.08) | Nf6 (9.43) | Nh6 (9.78) | e5 (9.87) | unsure 6 | network 24 squares 272 ms | grid -13,773 975,711 684,274 140,270
+   317.8s f00385 TRACKING Tracking | top: no move (7.83) | e5 (7.86) | e6 (8.18) | a5 (8.96) | unsure 4 | network 32 squares 356 ms | grid -13,773 975,711 684,275 140,270
+   318.2s f00386 TRACKING Seeing e5 (1/3) | top: e5 (5.58) | e6 (6.34) | no move (6.59) | e5 a4 (6.76) | unsure 2 | network 22 squares 267 ms | grid -13,773 975,712 684,275 140,270
+   319.3s f00387 TRACKING Seeing e5 (2/3) | top: e5 (5.13) | e6 (5.94) | no move (6.30) | e5 a4 (6.31) | unsure 2 | network 64 squares 934 ms | grid -13,773 976,712 684,275 140,270
+   319.6s f00388 MOVE_PLAYED Played e5 | top: e5 (4.81) | e6 (5.60) | e5 a4 (6.00) | no move (6.00) | unsure 2 | network 4 squares 60 ms | grid -14,773 976,712 684,275 140,270 | image f00388_played.jpg
+   320.0s f00389 TRACKING Tracking | top: no move (4.11) | a4 (5.31) | a3 (5.49) | f4 (5.69) | unsure 2 | network 4 squares 178 ms | grid -14,773 976,712 684,275 140,270
+   320.5s f00390 TRACKING Tracking | top: no move (4.33) | a4 (5.45) | a3 (5.62) | f4 (5.92) | unsure 2 | network 4 squares 162 ms | grid -14,773 976,712 684,275 140,270
+   321.1s f00391 TRACKING Tracking | top: no move (4.07) | a4 (5.28) | a3 (5.45) | f4 (5.65) | unsure 2 | network 4 squares 185 ms | grid -14,773 976,712 684,275 140,270
+   321.5s f00392 TRACKING Tracking | top: no move (4.18) | a4 (5.39) | a3 (5.57) | f4 (5.77) | unsure 2 | network 4 squares 160 ms | grid -14,773 975,712 684,275 140,270
+   321.8s f00393 TRACKING Tracking | top: no move (4.25) | a4 (5.46) | a3 (5.63) | f4 (5.83) | unsure 2 | network 4 squares 69 ms | grid -14,773 976,712 684,275 140,270
+   322.0s f00394 TRACKING Tracking | top: no move (4.23) | a4 (5.44) | a3 (5.62) | f4 (5.82) | unsure 2 | network 4 squares 59 ms | grid -13,773 976,712 684,275 140,270
+   322.1s f00395 TRACKING Tracking | top: no move (4.27) | a4 (5.48) | a3 (5.65) | f4 (5.85) | unsure 2 | network 4 squares 58 ms | grid -14,773 976,712 684,275 140,270
+   322.5s f00396 TRACKING Tracking | top: no move (4.67) | a4 (5.87) | a3 (6.04) | f4 (6.25) | unsure 2 | network 8 squares 101 ms | grid -13,773 976,712 684,275 140,270
+   323.4s f00397 TRACKING Tracking | top: no move (6.81) | h4 (7.32) | h3 (7.32) | a4 (8.03) | unsure 5 | network 64 squares 805 ms | grid -13,773 972,710 684,275 140,269
+   323.9s f00398 TRACKING Seeing Nf3 (1/3) | top: Nf3 (11.93) | Nf3 h6 (12.13) | Nf3 Qg5 (12.24) | Nf3 h5 (12.45) | unsure 10 | network 26 squares 318 ms | grid -13,773 972,710 684,275 140,270
+   324.4s f00399 TRACKING Seeing Nf3 (2/3) | top: Nf3 (8.16) | Nf3 Na6 (8.86) | Nf3 Nc6 (8.88) | Nf3 a5 (9.09) | unsure 2 | network 25 squares 358 ms | grid -14,773 973,711 684,275 140,270
+   325.5s f00400 TRACKING Seeing Nf3, but more changed (7.6, quiet is 4.3) | top: Nf3 (7.61) | Nf3 a5 (8.38) | Nf3 Na6 (8.46) | Nf3 Nc6 (8.47) | offers: Nf3 (7.6) | unsure 2 | network 64 squares 920 ms | grid -14,773 973,710 684,275 140,270 | image f00400_offer.jpg
+   325.7s f00401 TRACKING Seeing Nf3, but more changed (7.3, quiet is 4.3) | top: Nf3 (7.27) | Nf3 a5 (7.99) | Nf3 Na6 (8.18) | Nf3 Nc6 (8.19) | offers: Nf3 (7.6) | unsure 2 | network 4 squares 53 ms | grid -14,773 973,710 684,275 140,270
+   325.9s f00402 TRACKING Seeing Nf3, but more changed (7.2, quiet is 4.3) | top: Nf3 (7.20) | Nf3 a5 (7.89) | Nf3 Na6 (8.13) | Nf3 Nc6 (8.15) | offers: Nf3 (7.6) | unsure 3 | network 4 squares 52 ms | grid -14,773 974,710 684,275 140,270
+   326.8s f00403 MOVE_PLAYED Played Nf3 | top: Nf3 (7.13) | Nf3 a5 (7.81) | Nf3 Na6 (8.07) | Nf3 Nc6 (8.08) | unsure 3 | network 4 squares 57 ms | grid -14,773 974,710 684,275 140,270 | image f00403_played.jpg
+   327.0s f00404 TRACKING Tracking | top: no move (5.91) | Na6 (6.85) | Nc6 (6.86) | Na6 Nxe5 (6.99) | unsure 5 | network 4 squares 48 ms | grid -14,773 975,711 684,275 140,270
+   327.2s f00405 TRACKING Tracking | top: no move (5.81) | Na6 (6.76) | Nc6 (6.77) | Na6 Nxe5 (6.90) | unsure 5 | network 4 squares 50 ms | grid -14,773 974,711 684,275 140,270
+   327.4s f00406 TRACKING Tracking | top: no move (5.66) | Na6 (6.60) | Nc6 (6.62) | Na6 Nxe5 (6.74) | unsure 4 | network 4 squares 47 ms | grid -14,773 975,711 684,275 140,270
+   327.6s f00407 TRACKING Tracking | top: no move (5.50) | Na6 (6.44) | Nc6 (6.46) | Na6 Nxe5 (6.59) | unsure 4 | network 4 squares 45 ms | grid -14,773 974,710 684,275 140,270
+   327.9s f00408 TRACKING Tracking | top: no move (5.45) | Na6 (6.38) | Nc6 (6.41) | Na6 Nxe5 (6.52) | unsure 4 | network 4 squares 52 ms | grid -14,773 974,710 684,275 140,270
+   328.1s f00409 TRACKING Tracking | top: no move (5.42) | Na6 (6.34) | Nc6 (6.38) | Na6 Nxe5 (6.50) | unsure 4 | network 4 squares 48 ms | grid -14,773 974,710 684,275 140,270
+   328.3s f00410 TRACKING Tracking | top: no move (5.27) | Na6 (6.30) | Nc6 (6.34) | Na6 Nxe5 (6.45) | unsure 4 | network 4 squares 50 ms | grid -14,773 974,710 684,275 140,270
+   328.5s f00411 TRACKING Tracking | top: no move (5.17) | Na6 (6.25) | Nc6 (6.28) | Na6 Nxe5 (6.40) | unsure 3 | network 4 squares 49 ms | grid -14,773 974,710 684,275 140,270
+   328.7s f00412 TRACKING Tracking | top: no move (5.20) | Na6 (6.29) | Nc6 (6.33) | Na6 Nxe5 (6.43) | unsure 3 | network 4 squares 53 ms | grid -14,773 974,710 684,275 140,270
+   329.0s f00413 TRACKING Tracking | top: no move (5.20) | Na6 (6.29) | Nc6 (6.33) | Na6 Nxe5 (6.43) | unsure 3 | network 4 squares 57 ms | grid -14,773 974,710 684,275 139,270
+   329.2s f00414 TRACKING Tracking | top: no move (5.21) | Na6 (6.30) | Nc6 (6.34) | Na6 Nxe5 (6.44) | unsure 3 | network 4 squares 57 ms | grid -14,773 974,710 684,275 139,270
+   329.4s f00415 TRACKING Tracking | top: no move (5.22) | Na6 (6.31) | Nc6 (6.35) | Na6 Nxe5 (6.45) | unsure 3 | network 4 squares 51 ms | grid -14,773 974,710 684,275 140,270
+   329.6s f00416 TRACKING Tracking | top: no move (5.12) | Na6 (6.23) | Nc6 (6.26) | Na6 Nxe5 (6.38) | unsure 3 | network 4 squares 61 ms | grid -14,773 975,710 684,275 140,270
+   329.9s f00417 TRACKING Tracking | top: no move (5.27) | Na6 (6.38) | Nc6 (6.41) | Na6 Nxe5 (6.43) | unsure 4 | network 4 squares 76 ms | grid -14,773 974,710 684,275 140,270
+   330.1s f00418 TRACKING Tracking | top: no move (5.33) | Na6 (6.43) | Na6 Nxe5 (6.45) | Nc6 (6.47) | unsure 4 | network 4 squares 86 ms | grid -14,773 974,710 684,275 140,270
+   330.3s f00419 TRACKING Tracking | top: no move (5.33) | Na6 (6.45) | Na6 Nxe5 (6.45) | Nc6 (6.47) | unsure 3 | network 4 squares 44 ms | grid -14,773 974,710 684,275 139,270
+   330.5s f00420 TRACKING Tracking | top: no move (5.64) | a5 (6.53) | a5 Nxe5 (6.54) | Na6 (6.74) | unsure 2 | network 4 squares 72 ms | grid -14,773 974,710 684,275 139,270 | image f00420_sample.jpg
+   330.7s f00421 TRACKING Tracking | top: no move (5.72) | a5 (6.42) | a5 Nxe5 (6.43) | Na6 (6.82) | unsure 2 | network 4 squares 52 ms | grid -14,773 974,710 684,275 140,270
+   330.9s f00422 TRACKING Tracking | top: no move (5.76) | a5 (6.38) | a5 Nxe5 (6.38) | Na6 (6.85) | unsure 2 | network 4 squares 50 ms | grid -14,773 974,710 684,275 140,270
+   331.1s f00423 TRACKING Tracking | top: no move (5.74) | a5 (6.33) | a5 Nxe5 (6.34) | Na6 (6.84) | unsure 2 | network 4 squares 47 ms | grid -14,773 974,710 684,275 139,270
+   331.3s f00424 TRACKING Tracking | top: no move (5.70) | a5 Nxe5 (6.28) | a5 (6.28) | Na6 Nxe5 (6.80) | unsure 2 | network 4 squares 55 ms | grid -14,773 974,710 684,275 139,270
+   331.6s f00425 TRACKING Tracking | top: no move (5.67) | a5 (6.25) | a5 Nxe5 (6.26) | Na6 (6.77) | unsure 2 | network 4 squares 60 ms | grid -14,773 974,710 684,275 139,270
+   331.8s f00426 TRACKING Tracking | top: no move (5.62) | a5 (6.20) | a5 Nxe5 (6.21) | Na6 (6.78) | unsure 2 | network 4 squares 60 ms | grid -14,773 974,710 684,275 139,270
+   332.1s f00427 TRACKING Tracking | top: no move (6.80) | a5 (7.42) | a5 Nxe5 (7.44) | Na6 (8.01) | unsure 3 | network 10 squares 148 ms | grid -14,773 974,710 684,275 139,270
+   332.5s f00428 TRACKING Tracking | top: no move (9.46) | a5 (10.05) | g6 (10.06) | a5 Nxe5 (10.06) | unsure 3 | network 20 squares 222 ms | grid -14,773 974,710 684,275 139,270
+   333.0s f00429 TRACKING Maybe Nf6 Nxe5 (10.51) or Nf6 (10.51); unchanged 11.27 [margin 0.00] | top: Nf6 Nxe5 (10.51) | Nf6 (10.51) | f6 Nxe5 (11.01) | f6 (11.01) | unsure 4 | network 22 squares 371 ms | grid -14,773 974,710 684,275 139,270
+   333.4s f00430 TRACKING Maybe f6 Nxe5 (6.70) or f6 (6.71); unchanged 8.25 [margin 0.00] | top: f6 Nxe5 (6.70) | f6 (6.71) | Nf6 Nxe5 (7.81) | Nf6 (7.81) | unsure 5 | network 22 squares 281 ms | grid -14,773 974,710 684,275 139,270
+   334.5s f00431 TRACKING Seeing f6 (1/3) | top: f6 (6.11) | f6 Nxe5 (6.22) | f6 a4 (7.24) | f6 a3 (7.47) | offers: f6 (6.1) | unsure 4 | network 64 squares 884 ms | grid -14,773 974,710 684,275 139,270 | image f00431_offer.jpg
+   334.7s f00432 TRACKING Seeing f6 (2/3) | top: f6 (5.91) | f6 Nxe5 (6.05) | f6 a4 (7.04) | f6 a3 (7.26) | offers: f6 (6.1) | unsure 4 | network 4 squares 56 ms | grid -14,773 974,710 684,275 139,270
+   334.9s f00433 MOVE_PLAYED Played f6 | top: f6 (5.86) | f6 Nxe5 (6.04) | f6 a4 (7.00) | f6 a3 (7.23) | unsure 4 | network 4 squares 58 ms | grid -14,773 974,710 684,275 139,270 | image f00433_played.jpg
+   335.4s f00434 TRACKING Tracking | top: no move (5.58) | Nxe5 (5.66) | Nxe5 a5 (6.43) | a4 (6.71) | unsure 4 | network 4 squares 205 ms | grid -14,773 974,710 684,275 139,270
+   335.8s f00435 TRACKING Tracking | top: no move (5.60) | Nxe5 (5.65) | Nxe5 a5 (6.42) | Nxe5 Na6 (6.73) | unsure 4 | network 4 squares 171 ms | grid -14,773 974,710 684,275 139,270
+   336.2s f00436 TRACKING Tracking | top: no move (5.59) | Nxe5 (5.62) | Nxe5 a5 (6.43) | Nxe5 Na6 (6.72) | unsure 3 | network 4 squares 138 ms | grid -14,773 974,709 684,275 139,270
+   336.8s f00437 TRACKING Tracking | top: no move (5.55) | Nxe5 (5.59) | Nxe5 a5 (6.49) | Nxe5 Na6 (6.67) | unsure 3 | network 4 squares 173 ms | grid -14,773 974,710 684,275 139,270
+   337.1s f00438 TRACKING Tracking | top: no move (5.54) | Nxe5 (5.58) | Nxe5 a5 (6.52) | Nxe5 Na6 (6.66) | unsure 4 | network 4 squares 70 ms | grid -14,773 974,710 684,275 139,270
+   337.3s f00439 TRACKING Tracking | top: no move (5.57) | Nxe5 (5.61) | Nxe5 a5 (6.57) | Nxe5 Na6 (6.69) | unsure 4 | network 4 squares 54 ms | grid -14,773 974,710 684,275 139,270
+   337.5s f00440 TRACKING Tracking | top: no move (5.56) | Nxe5 (5.62) | Nxe5 a5 (6.58) | Nxe5 Na6 (6.70) | unsure 4 | network 4 squares 49 ms | grid -14,773 974,710 684,275 139,270 | image f00440_sample.jpg
+   337.7s f00441 TRACKING Tracking | top: no move (5.54) | Nxe5 (5.59) | Nxe5 a5 (6.55) | Nxe5 Na6 (6.67) | unsure 4 | network 4 squares 59 ms | grid -14,773 974,709 684,275 139,270
+   337.9s f00442 TRACKING Tracking | top: no move (5.53) | Nxe5 (5.58) | Nxe5 a5 (6.54) | Nxe5 Na6 (6.65) | unsure 4 | network 4 squares 53 ms | grid -14,773 974,709 684,275 139,270
+   338.1s f00443 TRACKING Tracking | top: no move (5.61) | Nxe5 (5.66) | Nxe5 a5 (6.62) | Nxe5 Na6 (6.70) | unsure 4 | network 4 squares 65 ms | grid -14,773 974,709 684,275 139,270
+   338.4s f00444 TRACKING Tracking | top: no move (5.63) | Nxe5 (5.68) | Nxe5 a5 (6.64) | Nxe5 Na6 (6.71) | unsure 4 | network 4 squares 65 ms | grid -14,773 974,709 684,275 139,270
+   338.6s f00445 TRACKING Tracking | top: no move (5.67) | Nxe5 (5.72) | Nxe5 a5 (6.68) | Nxe5 Na6 (6.75) | unsure 4 | network 4 squares 61 ms | grid -14,773 974,710 684,275 139,270
+   338.8s f00446 TRACKING Tracking | top: no move (5.70) | Nxe5 (5.75) | Nxe5 a5 (6.71) | Nxe5 Na6 (6.78) | unsure 4 | network 4 squares 59 ms | grid -14,773 974,709 684,275 139,270
+   339.0s f00447 TRACKING Tracking | top: no move (5.75) | Nxe5 (5.79) | Nxe5 a5 (6.75) | Nxe5 Na6 (6.82) | unsure 4 | network 4 squares 60 ms | grid -14,773 974,710 684,274 139,270
+   339.3s f00448 TRACKING Tracking | top: no move (5.77) | Nxe5 (5.82) | Nxe5 a5 (6.78) | Nxe5 Na6 (6.84) | unsure 4 | network 4 squares 60 ms | grid -14,773 974,710 684,274 139,270
+   339.5s f00449 TRACKING Tracking | top: no move (5.74) | Nxe5 (5.79) | Nxe5 a5 (6.74) | Nxe5 Na6 (6.81) | unsure 4 | network 4 squares 64 ms | grid -14,773 975,710 684,274 139,270
+   339.8s f00450 TRACKING Tracking | top: no move (6.32) | Nxe5 (6.45) | Nxe5 a5 (7.41) | a4 (7.46) | unsure 3 | network 10 squares 147 ms | grid -14,773 975,710 684,274 139,270
+   340.2s f00451 TRACKING Tracking | top: no move (8.62) | Nxe5 (8.78) | Nxe5 h6 (9.13) | Nxe5 Nh6 (9.63) | unsure 5 | network 18 squares 242 ms | grid -14,774 974,709 684,274 139,270
+   340.6s f00452 TRACKING Tracking | top: no move (10.31) | Nxe5 h6 (10.43) | Nxe5 (10.49) | Nxe5 h5 (10.73) | unsure 5 | network 19 squares 262 ms | grid -14,773 974,710 684,275 139,270
+   341.1s f00453 TRACKING Tracking | top: Ng5 h6 (11.89) | Ng5 h5 (12.03) | Nxe5 h6 (12.04) | no move (12.08) | unsure 4 | network 25 squares 348 ms | grid -14,773 975,711 684,275 139,270
+   341.6s f00454 TRACKING Tracking | top: Nxe5 h6 (11.89) | Nxe5 g6 (11.93) | no move (12.15) | Nxe5 (12.24) | unsure 5 | network 25 squares 359 ms | grid -14,773 975,711 685,275 139,270
+   342.7s f00455 TRACKING Maybe Nxe5 g6 (11.68) or Nxe5 g5 (12.12); unchanged 13.43 [arrival unseen] | top: Nxe5 g6 (11.68) | Nxe5 g5 (12.12) | Nxe5 (12.41) | Ng5 g6 (12.58) | unsure 8 | network 64 squares 849 ms | grid -14,773 975,711 685,275 139,270
+   343.3s f00456 TRACKING Maybe Nxe5 Bd6 (10.22) or Nxe5 (10.52); unchanged 11.26 [margin 0.30] | top: Nxe5 Bd6 (10.22) | Nxe5 (10.52) | Nxe5 g6 (10.66) | Nxe5 g5 (10.87) | unsure 7 | network 23 squares 433 ms | grid -13,773 976,712 685,275 139,270
+   343.5s f00457 TRACKING Seeing Nxe5 Bd6 (1/3) | top: Nxe5 Bd6 (11.40) | Nxe5 (12.47) | Nxe5 Ne7 (12.53) | Nxe5 d6 (12.61) | offers: Nxe5 (11.4) | unsure 3 | network 4 squares 78 ms | grid -14,773 976,712 685,275 139,270 | image f00457_offer.jpg
+   344.1s f00458 TRACKING Seeing Nxe5 (1/3) | top: Nxe5 (8.61) | Nxe5 Bd6 (9.15) | Nxe5 d6 (9.41) | Nxe5 Ke7 (9.44) | offers: Nxe5 (11.4) | unsure 8 | network 30 squares 435 ms | grid -13,773 975,711 685,275 139,270
+   344.4s f00459 TRACKING Seeing Nxe5 (2/3) | top: Nxe5 (7.00) | Nxe5 a5 (7.96) | Nxe5 Na6 (8.02) | Nxe5 Nc6 (8.03) | offers: Nxe5 (11.4) | unsure 3 | network 4 squares 61 ms | grid -14,773 975,711 685,275 139,270
+   344.6s f00460 MOVE_PLAYED Played Nxe5 | top: Nxe5 (6.31) | Nxe5 a5 (7.27) | Nxe5 d6 (7.49) | Nxe5 Ke7 (7.50) | unsure 4 | network 4 squares 79 ms | grid -14,773 976,711 685,275 139,270 | image f00460_played.jpg
+   344.8s f00461 TRACKING Tracking | top: no move (4.20) | a5 (5.17) | d6 (5.43) | Na6 (5.52) | unsure 4 | network 4 squares 65 ms | grid -14,773 976,711 685,275 140,270
+   345.1s f00462 TRACKING Tracking | top: no move (4.04) | a5 (5.00) | d6 (5.29) | Na6 (5.40) | unsure 4 | network 4 squares 57 ms | grid -14,773 975,711 685,275 140,270
+   345.4s f00463 TRACKING Tracking | top: no move (4.04) | a5 (5.00) | d6 (5.30) | Na6 (5.41) | unsure 4 | network 4 squares 62 ms | grid -14,773 975,711 685,275 140,270
+   345.6s f00464 TRACKING Tracking | top: no move (4.07) | a5 (5.03) | d6 (5.33) | Na6 (5.44) | unsure 4 | network 4 squares 71 ms | grid -14,773 975,711 685,275 140,270
+   345.8s f00465 TRACKING Tracking | top: no move (4.04) | a5 (5.01) | d6 (5.31) | Na6 (5.42) | unsure 4 | network 4 squares 65 ms | grid -14,773 976,712 685,275 140,270
+   346.0s f00466 TRACKING Tracking | top: no move (4.05) | a5 (5.01) | d6 (5.31) | Na6 (5.42) | unsure 4 | network 4 squares 59 ms | grid -13,773 976,712 685,275 140,270
+   346.3s f00467 TRACKING Tracking | top: no move (4.13) | a5 (5.09) | d6 (5.39) | Na6 (5.50) | unsure 4 | network 4 squares 68 ms | grid -13,773 977,712 685,274 140,270
+   346.5s f00468 TRACKING Tracking | top: no move (4.19) | a5 (5.15) | d6 (5.44) | Na6 (5.56) | unsure 4 | network 4 squares 67 ms | grid -13,773 977,712 685,274 140,270
+   346.7s f00469 TRACKING Tracking | top: no move (4.21) | a5 (5.18) | d6 (5.47) | Na6 (5.59) | unsure 4 | network 4 squares 73 ms | grid -13,773 977,713 685,274 140,270
+   347.0s f00470 TRACKING Tracking | top: no move (3.92) | d6 (5.18) | Na6 (5.30) | Nc6 (5.31) | unsure 4 | network 4 squares 68 ms | grid -13,773 977,712 685,274 140,270
+   347.2s f00471 TRACKING Tracking | top: no move (3.75) | d6 (5.01) | Na6 (5.13) | Nc6 (5.14) | unsure 3 | network 4 squares 81 ms | grid -13,773 976,712 685,274 140,270
+   347.4s f00472 TRACKING Tracking | top: no move (3.62) | Na6 (5.00) | d6 (5.01) | Nc6 (5.01) | unsure 2 | network 4 squares 73 ms | grid -13,773 976,712 685,274 140,270
+   347.7s f00473 TRACKING Tracking | top: no move (3.55) | Na6 (4.93) | Nc6 (4.94) | d6 (4.99) | unsure 2 | network 4 squares 66 ms | grid -13,773 976,712 685,274 140,270
+   347.9s f00474 TRACKING Tracking | top: no move (3.55) | Na6 (4.92) | Nc6 (4.94) | d6 (5.00) | unsure 2 | network 4 squares 65 ms | grid -13,773 977,712 685,274 140,270
+   348.1s f00475 TRACKING Tracking | top: no move (3.49) | Na6 (4.87) | Nc6 (4.88) | d6 (4.95) | unsure 2 | network 4 squares 69 ms | grid -13,773 976,712 685,274 140,270
+   348.4s f00476 TRACKING Tracking | top: no move (3.43) | Na6 (4.79) | Nc6 (4.80) | d6 (4.89) | unsure 2 | network 4 squares 77 ms | grid -13,773 976,712 685,274 140,270
+   348.6s f00477 TRACKING Tracking | top: no move (3.34) | Na6 (4.71) | Nc6 (4.72) | d6 (4.81) | unsure 2 | network 4 squares 69 ms | grid -13,773 976,712 685,274 140,270
+   348.9s f00478 TRACKING Tracking | top: no move (4.24) | h6 (5.54) | Na6 (5.60) | Nc6 (5.61) | unsure 2 | network 14 squares 221 ms | grid -13,773 976,712 685,274 140,270
+   349.5s f00479 TRACKING Tracking | top: no move (9.90) | g6 (10.09) | g5 (10.26) | h6 (10.58) | unsure 5 | network 24 squares 352 ms | grid -13,773 976,712 685,275 140,270
+   350.1s f00480 TRACKING Tracking | top: Ne7 (8.29) | no move (8.80) | Nh6 (9.24) | g6 (9.27) | unsure 4 | network 28 squares 400 ms | grid -13,773 975,712 685,275 140,270 | image f00480_sample.jpg
+   350.7s f00481 TRACKING Seeing Bd6 (1/3) | top: Bd6 (8.95) | Bd6 Nxd7 (9.50) | fxe5 (9.55) | no move (9.59) | unsure 9 | network 29 squares 408 ms | grid -13,773 976,712 685,275 140,270
+   351.9s f00482 TRACKING Reading the move... | top: no move (7.21) | fxe5 (7.24) | f5 (7.84) | Ke7 (7.95) | unsure 4 | network 64 squares 1016 ms | grid -13,773 975,711 685,275 140,270
+   352.1s f00483 TRACKING Reading the move... | top: no move (5.98) | fxe5 (6.17) | f5 (6.86) | Ke7 (7.04) | unsure 2 | network 4 squares 70 ms | grid -13,773 976,712 684,275 140,270
+   352.4s f00484 TRACKING Reading the move... | top: no move (5.56) | fxe5 (5.82) | f5 (6.49) | Ke7 (6.75) | unsure 2 | network 4 squares 81 ms | grid -13,773 976,712 684,275 140,270
+   352.7s f00485 TRACKING Reading the move... | top: no move (5.39) | fxe5 (5.68) | f5 (6.33) | Ke7 (6.62) | unsure 2 | network 4 squares 72 ms | grid -13,773 976,712 684,275 140,270
+   352.9s f00486 TRACKING Reading the move... | top: no move (5.32) | fxe5 (5.62) | f5 (6.27) | Ke7 (6.57) | unsure 2 | network 4 squares 74 ms | grid -14,773 976,712 684,275 140,270
+   353.2s f00487 TRACKING Tracking | top: no move (5.38) | fxe5 (5.68) | f5 (6.34) | Ke7 (6.64) | unsure 2 | network 4 squares 75 ms | grid -14,773 977,712 684,275 140,270
+   353.4s f00488 TRACKING Tracking | top: no move (5.40) | fxe5 (5.70) | f5 (6.35) | Ke7 (6.66) | unsure 3 | network 4 squares 74 ms | grid -14,773 977,712 684,275 140,270
+   353.7s f00489 TRACKING Tracking | top: no move (5.39) | fxe5 (5.71) | f5 (6.35) | Ke7 (6.66) | unsure 3 | network 4 squares 68 ms | grid -14,773 977,712 684,275 140,270
+   353.9s f00490 TRACKING Tracking | top: fxe5 (5.42) | no move (5.60) | f5 (6.15) | fxe5 a4 (6.69) | unsure 3 | network 4 squares 66 ms | grid -14,773 977,712 684,275 140,270
+   354.1s f00491 TRACKING Tracking | top: fxe5 (5.29) | no move (5.69) | f5 (6.08) | fxe5 a4 (6.56) | unsure 2 | network 4 squares 74 ms | grid -14,773 976,712 684,275 140,270
+   354.4s f00492 TRACKING Tracking | top: fxe5 (5.28) | no move (5.76) | f5 (6.08) | fxe5 a4 (6.56) | unsure 2 | network 4 squares 64 ms | grid -14,773 976,712 684,275 140,270
+   354.6s f00493 TRACKING Tracking | top: fxe5 (5.32) | no move (5.83) | f5 (6.13) | fxe5 a4 (6.60) | unsure 2 | network 4 squares 74 ms | grid -14,773 977,712 684,275 140,270
+   354.9s f00494 TRACKING Tracking | top: fxe5 (5.44) | no move (5.98) | f5 (6.21) | fxe5 a4 (6.72) | unsure 2 | network 4 squares 65 ms | grid -14,773 977,712 684,275 140,270
+   355.2s f00495 TRACKING Tracking | top: fxe5 (5.44) | no move (5.99) | f5 (6.27) | fxe5 a4 (6.72) | unsure 2 | network 4 squares 67 ms | grid -14,773 977,712 684,275 140,270
+   355.4s f00496 TRACKING Tracking | top: fxe5 (5.49) | no move (6.03) | f5 (6.31) | fxe5 a4 (6.77) | unsure 2 | network 4 squares 63 ms | grid -14,773 977,712 684,275 140,270
+   355.7s f00497 TRACKING Tracking | top: fxe5 (5.48) | no move (6.02) | f5 (6.30) | fxe5 a4 (6.77) | unsure 2 | network 4 squares 68 ms | grid -14,773 977,712 684,275 140,270
+   355.9s f00498 TRACKING Tracking | top: fxe5 (5.61) | no move (6.17) | f5 (6.37) | fxe5 a4 (6.91) | unsure 2 | network 4 squares 72 ms | grid -14,773 976,712 684,275 140,270
+   356.2s f00499 TRACKING Tracking | top: fxe5 (5.54) | no move (6.09) | f5 (6.37) | fxe5 a4 (6.84) | unsure 2 | network 8 squares 127 ms | grid -14,773 976,711 684,275 140,270
+   356.4s f00500 TRACKING Tracking | top: fxe5 (5.61) | no move (6.16) | f5 (6.44) | fxe5 a4 (6.91) | unsure 2 | network 4 squares 67 ms | grid -14,773 975,711 684,275 140,270 | image f00500_sample.jpg
+   356.8s f00501 TRACKING Tracking | top: fxe5 (5.64) | no move (6.18) | f5 (6.46) | fxe5 a4 (6.93) | unsure 2 | network 4 squares 60 ms | grid -14,773 975,711 684,275 140,270
+   357.0s f00502 TRACKING Tracking | top: fxe5 (5.67) | no move (6.23) | f5 (6.51) | fxe5 a4 (6.97) | unsure 2 | network 4 squares 70 ms | grid -13,773 975,711 684,275 140,270
+   357.2s f00503 TRACKING Tracking | top: fxe5 (5.90) | no move (6.45) | f5 (6.59) | fxe5 a4 (7.17) | unsure 2 | network 4 squares 76 ms | grid -13,773 975,711 684,275 139,270
+   357.5s f00504 TRACKING Tracking | top: fxe5 (5.70) | no move (6.27) | f5 (6.55) | fxe5 a4 (6.96) | unsure 2 | network 4 squares 72 ms | grid -13,773 974,710 684,275 139,270
+   357.7s f00505 TRACKING Tracking | top: fxe5 (5.70) | no move (6.26) | f5 (6.54) | fxe5 a4 (6.94) | unsure 2 | network 4 squares 66 ms | grid -13,773 974,710 684,275 139,270
+   357.9s f00506 TRACKING Seeing fxe5 (1/3) | top: fxe5 (5.73) | no move (6.35) | f5 (6.57) | fxe5 a4 (6.95) | unsure 2 | network 4 squares 72 ms | grid -13,773 975,711 684,275 139,270
+   358.2s f00507 TRACKING Seeing fxe5 (2/3) | top: fxe5 (5.71) | no move (6.36) | f5 (6.56) | fxe5 a4 (6.93) | unsure 2 | network 4 squares 70 ms | grid -13,773 974,711 684,275 139,270
+   358.4s f00508 MOVE_PLAYED Played fxe5 | top: fxe5 (5.71) | no move (6.37) | f5 (6.56) | fxe5 a4 (6.93) | unsure 2 | network 4 squares 72 ms | grid -13,773 975,711 684,275 140,270 | image f00508_played.jpg
+   358.9s f00509 TRACKING Tracking | top: no move (4.47) | a4 (5.68) | a3 (5.82) | f4 (5.99) | unsure 3 | network 4 squares 159 ms | grid -13,773 975,711 684,275 140,270
+   359.5s f00510 TRACKING Tracking | top: no move (4.45) | a4 (5.66) | a3 (5.80) | f4 (5.97) | unsure 3 | network 4 squares 193 ms | grid -13,773 976,712 684,275 140,270
+   360.1s f00511 TRACKING Tracking | top: no move (4.37) | a4 (5.61) | a3 (5.74) | f4 (5.89) | unsure 3 | network 4 squares 194 ms | grid -13,773 976,712 684,275 140,270
+   360.6s f00512 TRACKING Tracking | top: no move (4.31) | a4 (5.56) | a3 (5.69) | f4 (5.83) | unsure 3 | network 4 squares 70 ms | grid -13,773 976,711 684,275 140,270
+   360.8s f00513 TRACKING Tracking | top: no move (4.25) | a4 (5.53) | a3 (5.67) | f4 (5.78) | unsure 3 | network 4 squares 79 ms | grid -13,773 976,712 684,275 140,270
+   361.1s f00514 TRACKING Tracking | top: no move (4.34) | a4 (5.62) | a3 (5.75) | f4 (5.78) | unsure 3 | network 4 squares 61 ms | grid -13,773 975,711 684,275 140,270
+   361.3s f00515 TRACKING Tracking | top: no move (4.35) | a4 (5.63) | f4 (5.76) | f3 (5.76) | unsure 3 | network 4 squares 65 ms | grid -13,773 976,712 684,275 140,270
+   361.5s f00516 TRACKING Tracking | top: no move (4.35) | a4 (5.64) | f4 (5.74) | f3 (5.74) | unsure 3 | network 4 squares 66 ms | grid -13,773 976,712 684,275 140,270
+   361.7s f00517 TRACKING Tracking | top: no move (4.39) | a4 (5.69) | f4 (5.78) | f3 (5.78) | unsure 3 | network 4 squares 69 ms | grid -13,773 976,712 684,275 140,270
+   361.9s f00518 TRACKING Tracking | top: no move (4.43) | a4 (5.70) | f4 (5.81) | f3 (5.81) | unsure 3 | network 4 squares 60 ms | grid -13,773 976,712 684,275 140,270
+   362.1s f00519 TRACKING Tracking | top: no move (4.47) | a4 (5.72) | f4 (5.85) | f3 (5.85) | unsure 3 | network 4 squares 68 ms | grid -13,773 975,711 684,275 140,270
+   362.4s f00520 TRACKING Tracking | top: no move (4.46) | a4 (5.71) | f4 (5.84) | f3 (5.84) | unsure 3 | network 4 squares 61 ms | grid -13,773 975,711 684,275 140,270 | image f00520_sample.jpg
+   362.7s f00521 TRACKING Tracking | top: no move (4.48) | a4 (5.72) | f4 (5.87) | f3 (5.87) | unsure 3 | network 4 squares 73 ms | grid -13,773 975,711 684,275 140,270
+   363.2s f00522 TRACKING Tracking | top: no move (8.28) | a4 (9.53) | h4 (9.64) | h3 (9.65) | unsure 4 | network 22 squares 341 ms | grid -14,773 975,711 684,275 140,270
+   364.3s f00523 TRACKING Tracking | top: no move (12.03) | f3 (12.14) | Bd3 (12.65) | f4 (12.68) | unsure 15 | network 64 squares 904 ms | grid -14,773 975,712 684,275 139,270
+   364.5s f00524 TRACKING Tracking | top: f3 (14.55) | f3 h6 (14.64) | f3 h5 (14.70) | no move (15.04) | unsure 6 | network 4 squares 61 ms | grid -14,773 975,711 684,275 140,270
+   364.7s f00525 TRACKING Seeing f3 (1/3) | top: f3 (13.94) | Bd3 (14.64) | no move (14.69) | Ke2 (14.87) | unsure 8 | network 4 squares 63 ms | grid -14,773 975,711 684,275 140,270
+   364.9s f00526 TRACKING Seeing f3 (2/3) | top: f3 (13.69) | Bd3 (14.39) | no move (14.54) | Ke2 (14.64) | unsure 6 | network 4 squares 78 ms | grid -14,773 975,711 684,275 140,270
+   365.2s f00527 TRACKING Seeing f3, but more changed (13.3, quiet is 4.5) | top: f3 (13.29) | Bd3 (14.02) | Ke2 (14.23) | no move (14.26) | offers: f3 (13.3) | Bd3 (14.0) | Ke2 (14.2) | unsure 6 | network 4 squares 85 ms | grid -14,773 975,711 684,275 139,270 | image f00527_offer.jpg
+   365.7s f00528 TRACKING Maybe Qh5+ (10.93) or Qf3 (11.14); unchanged 11.76 [margin 0.21] | top: Qh5+ (10.93) | Qf3 (11.14) | f3 (11.49) | no move (11.76) | offers: f3 (13.3) | Bd3 (14.0) | Ke2 (14.2) | Qh5+ (10.9) | Qf3 (11.1) | unsure 13 | network 18 squares 261 ms | grid -14,773 975,711 684,275 140,270 | image f00528_offer.jpg
+   366.4s f00529 TRACKING Seeing Qh5+ (1/3) | top: Qh5+ (7.34) | Qf3 (8.75) | Qh5+ Ke7 (8.96) | no move (9.03) | offers: f3 (13.3) | Bd3 (14.0) | Ke2 (14.2) | Qh5+ (10.9) | Qf3 (11.1) | unsure 5 | network 37 squares 571 ms | grid -14,773 976,711 684,275 140,270
+   366.6s f00530 TRACKING Seeing Qh5+ (2/3) | top: Qh5+ (6.06) | Qh5+ Ke7 (7.67) | Qh5+ g6 (7.91) | Qf3 (7.95) | offers: f3 (13.3) | Bd3 (14.0) | Ke2 (14.2) | Qh5+ (10.9) | Qf3 (11.1) | unsure 2 | network 4 squares 65 ms | grid -14,773 976,711 684,275 140,270
+   366.8s f00531 MOVE_PLAYED Played Qh5+ | top: Qh5+ (5.48) | Qh5+ Ke7 (7.09) | Qh5+ g6 (7.34) | Qf3 (7.57) | unsure 2 | network 4 squares 64 ms | grid -14,773 976,711 684,275 140,270 | image f00531_played.jpg
+   367.1s f00532 TRACKING Tracking | top: no move (4.59) | Ke7 (6.20) | g6 (6.45) | Ke7 Qxe5+ (6.89) | unsure 2 | network 4 squares 87 ms | grid -14,773 976,711 684,275 140,270
+   367.3s f00533 TRACKING Tracking | top: no move (4.56) | Ke7 (6.18) | g6 (6.42) | Ke7 Qxe5+ (6.87) | unsure 2 | network 4 squares 69 ms | grid -14,773 976,711 684,275 140,270
+   367.5s f00534 TRACKING Tracking | top: no move (4.51) | Ke7 (6.12) | g6 (6.37) | Ke7 Qxe5+ (6.82) | unsure 2 | network 4 squares 60 ms | grid -14,773 977,711 684,275 140,270
+   367.7s f00535 TRACKING Tracking | top: no move (4.56) | Ke7 (6.17) | g6 (6.42) | Ke7 Qxe5+ (6.88) | unsure 2 | network 4 squares 64 ms | grid -14,773 977,712 684,275 140,270
+   367.9s f00536 TRACKING Tracking | top: no move (4.51) | Ke7 (6.13) | g6 (6.38) | Ke7 Qxe5+ (6.82) | unsure 2 | network 4 squares 59 ms | grid -14,773 976,712 684,275 140,270
+   368.1s f00537 TRACKING Tracking | top: no move (4.45) | Ke7 (6.06) | g6 (6.31) | Ke7 Qxe5+ (6.76) | unsure 2 | network 4 squares 66 ms | grid -14,773 977,712 684,275 140,270
+   368.3s f00538 TRACKING Tracking | top: no move (4.46) | Ke7 (6.07) | g6 (6.32) | Ke7 Qxe5+ (6.77) | unsure 2 | network 4 squares 69 ms | grid -14,773 976,711 684,275 140,270
+   368.5s f00539 TRACKING Tracking | top: no move (4.60) | Ke7 (6.21) | g6 (6.47) | Ke7 Qxe5+ (6.91) | unsure 3 | network 4 squares 66 ms | grid -14,773 976,712 684,275 140,270
+   368.8s f00540 TRACKING Tracking | top: no move (4.70) | Ke7 (6.31) | g6 (6.56) | Ke7 Qxe5+ (6.97) | unsure 3 | network 4 squares 74 ms | grid -14,773 976,712 684,275 140,270 | image f00540_sample.jpg
+   369.0s f00541 TRACKING Tracking | top: no move (4.70) | Ke7 (6.31) | g6 (6.56) | Ke7 Qxe5+ (6.99) | unsure 3 | network 4 squares 65 ms | grid -13,773 976,712 684,275 140,270
+   369.3s f00542 TRACKING Tracking | top: no move (4.82) | Ke7 (6.44) | g6 (6.69) | Ke7 Qxe5+ (7.12) | unsure 3 | network 10 squares 149 ms | grid -13,773 976,712 684,275 140,270
+   369.5s f00543 TRACKING Tracking | top: no move (4.88) | Ke7 (6.49) | g6 (6.74) | Ke7 Qxe5+ (7.17) | unsure 4 | network 4 squares 68 ms | grid -14,773 976,712 684,275 140,270
+   369.8s f00544 TRACKING Tracking | top: no move (4.89) | Ke7 (6.50) | g6 (6.76) | Ke7 Qxe5+ (7.20) | unsure 4 | network 4 squares 71 ms | grid -14,773 976,711 684,275 140,270
+   369.9s f00545 TRACKING Tracking | top: no move (4.86) | Ke7 (6.47) | g6 (6.73) | Ke7 Qxe5+ (7.15) | unsure 4 | network 4 squares 71 ms | grid -14,773 976,711 684,275 140,270
+   370.2s f00546 TRACKING Tracking | top: no move (4.83) | Ke7 (6.44) | g6 (6.70) | Ke7 Qxe5+ (7.11) | unsure 4 | network 4 squares 67 ms | grid -14,773 976,711 684,275 139,270
+   370.4s f00547 TRACKING Tracking | top: no move (4.74) | Ke7 (6.35) | g6 (6.60) | Ke7 Qxe5+ (7.01) | unsure 4 | network 4 squares 65 ms | grid -14,773 975,711 684,275 139,270
+   370.6s f00548 TRACKING Tracking | top: no move (4.73) | Ke7 (6.34) | g6 (6.59) | Ke7 Qxe5+ (6.99) | unsure 4 | network 4 squares 67 ms | grid -14,773 975,711 684,275 139,270
+   370.8s f00549 TRACKING Tracking | top: no move (4.75) | Ke7 (6.36) | g6 (6.62) | Ke7 Qxe5+ (7.01) | unsure 4 | network 4 squares 84 ms | grid -14,773 976,711 684,275 139,270
+   371.0s f00550 TRACKING Tracking | top: no move (4.71) | Ke7 (6.32) | g6 (6.58) | Ke7 Qxe5+ (6.97) | unsure 4 | network 4 squares 69 ms | grid -14,773 976,711 684,275 139,270
+   371.3s f00551 TRACKING Tracking | top: no move (4.75) | Ke7 (6.36) | g6 (6.61) | Ke7 Qxe5+ (7.00) | unsure 4 | network 4 squares 65 ms | grid -14,773 976,711 684,275 139,270
+   371.5s f00552 TRACKING Tracking | top: no move (4.70) | Ke7 (6.32) | g6 (6.57) | Ke7 Qxe5+ (6.95) | unsure 4 | network 4 squares 60 ms | grid -14,773 976,711 684,275 139,270
+   371.7s f00553 TRACKING Tracking | top: no move (4.65) | Ke7 (6.27) | g6 (6.52) | Ke7 Qxe5+ (6.91) | unsure 3 | network 4 squares 64 ms | grid -14,773 976,711 684,275 139,270
+   372.0s f00554 TRACKING Tracking | top: no move (5.04) | Ke7 (6.66) | g6 (6.91) | Ke7 Qxe5+ (7.30) | unsure 3 | network 8 squares 121 ms | grid -14,773 976,711 684,275 139,270
+   372.1s f00555 TRACKING Tracking | top: no move (4.85) | Ke7 (6.47) | g6 (6.72) | Ke7 Qxe5+ (7.11) | unsure 3 | network 4 squares 62 ms | grid -14,773 976,711 684,275 139,270
+   372.3s f00556 TRACKING Tracking | top: no move (4.78) | Ke7 (6.39) | g6 (6.64) | Ke7 Qxe5+ (7.04) | unsure 2 | network 4 squares 69 ms | grid -14,773 976,711 684,275 139,270
+   372.6s f00557 TRACKING Tracking | top: no move (4.76) | Ke7 (6.37) | g6 (6.62) | Ke7 Qxe5+ (7.01) | unsure 2 | network 4 squares 67 ms | grid -14,773 976,711 684,275 139,270
+   372.9s f00558 TRACKING Tracking | top: no move (4.65) | Ke7 (6.26) | g6 (6.51) | Ke7 Qxe5+ (6.90) | unsure 1 | network 4 squares 63 ms | grid -14,773 976,711 684,275 139,270
+   373.1s f00559 TRACKING Tracking | top: no move (4.55) | Ke7 (6.16) | g6 (6.41) | Ke7 Qxe5+ (6.80) | unsure 2 | network 4 squares 69 ms | grid -14,773 976,711 684,275 139,270
+   373.3s f00560 TRACKING Tracking | top: no move (4.40) | Ke7 (6.01) | g6 (6.26) | Ke7 Qxe5+ (6.65) | unsure 2 | network 4 squares 74 ms | grid -14,773 976,711 684,275 139,270 | image f00560_sample.jpg
+   373.5s f00561 TRACKING Tracking | top: no move (4.24) | Ke7 (5.86) | g6 (6.11) | Ke7 Qxe5+ (6.49) | unsure 1 | network 8 squares 112 ms | grid -14,773 976,711 684,275 139,270
+   373.7s f00562 TRACKING Tracking | top: no move (4.21) | Ke7 (5.82) | g6 (6.07) | Ke7 Qxe5+ (6.45) | unsure 1 | network 4 squares 69 ms | grid -14,773 976,711 684,275 139,270
+   373.9s f00563 TRACKING Tracking | top: no move (4.17) | Ke7 (5.79) | g6 (6.04) | Ke7 Qxe5+ (6.45) | unsure 1 | network 4 squares 69 ms | grid -14,773 976,711 684,275 139,270
+   374.2s f00564 TRACKING Tracking | top: no move (4.12) | Ke7 (5.73) | g6 (5.98) | Ke7 Qxe5+ (6.38) | unsure 1 | network 4 squares 81 ms | grid -14,773 976,711 684,275 139,270
+   374.4s f00565 TRACKING Tracking | top: no move (4.14) | Ke7 (5.75) | g6 (6.00) | Ke7 Qxe5+ (6.40) | unsure 1 | network 4 squares 66 ms | grid -14,773 976,711 684,275 139,270
+   374.7s f00566 TRACKING Tracking | top: no move (4.83) | Ke7 (6.44) | g6 (6.69) | Ke7 Qxe5+ (7.09) | unsure 2 | network 8 squares 126 ms | grid -14,773 976,711 684,275 139,270
+   374.9s f00567 TRACKING Tracking | top: no move (4.94) | Ke7 (6.56) | g6 (6.81) | Ke7 Qxe5+ (7.21) | unsure 2 | network 4 squares 71 ms | grid -14,773 976,711 684,275 139,270
+   375.3s f00568 TRACKING Tracking | top: no move (5.76) | Ke7 (7.37) | g6 (7.41) | Ke7 Qxe5+ (8.03) | unsure 2 | network 13 squares 223 ms | grid -14,773 976,711 684,275 139,270
+   375.6s f00569 TRACKING Seeing g6 (1/3) | top: g6 (6.71) | g6 Qxe5+ (7.37) | no move (7.51) | g6 a4 (7.91) | unsure 6 | network 13 squares 207 ms | grid -14,773 976,711 684,275 139,270
+   376.0s f00570 TRACKING Seeing g6 (2/3) | top: g6 (6.26) | g6 Qxe5+ (6.92) | g6 a4 (7.45) | g6 Qxh7 (7.60) | unsure 3 | network 15 squares 250 ms | grid -14,773 976,711 684,275 139,270
+   376.3s f00571 TRACKING Seeing g6, but more changed (5.5, quiet is 4.2) | top: g6 (5.50) | g6 Qxe5+ (6.18) | g6 a4 (6.68) | g6 a3 (6.87) | offers: g6 (5.5) | unsure 3 | network 10 squares 176 ms | grid -14,773 976,711 684,275 139,270 | image f00571_offer.jpg
+   376.5s f00572 MOVE_PLAYED Played g6 | top: g6 (5.32) | g6 Qxe5+ (6.00) | g6 a4 (6.50) | g6 a3 (6.69) | unsure 3 | network 4 squares 68 ms | grid -14,773 976,711 684,275 139,270 | image f00572_played.jpg
+   377.2s f00573 TRACKING Tracking | top: no move (4.85) | Qxe5+ (5.54) | a4 (6.05) | a3 (6.24) | unsure 2 | network 4 squares 171 ms | grid -14,773 976,711 684,275 139,270
+   378.2s f00574 TRACKING Tracking | top: no move (5.00) | Qxe5+ (5.69) | a4 (6.20) | a3 (6.39) | unsure 2 | network 13 squares 517 ms | grid -14,773 976,712 684,275 140,270
+   378.6s f00575 TRACKING Tracking | top: no move (5.08) | Qxe5+ (5.79) | a4 (6.26) | a3 (6.45) | unsure 2 | network 4 squares 102 ms | grid -14,773 976,711 684,275 139,270
+   378.9s f00576 TRACKING Tracking | top: no move (5.05) | Qxe5+ (5.77) | a4 (6.23) | a3 (6.42) | unsure 2 | network 4 squares 62 ms | grid -14,773 976,711 684,275 139,270
+   379.1s f00577 TRACKING Tracking | top: no move (5.07) | Qxe5+ (5.78) | a4 (6.25) | a3 (6.44) | unsure 2 | network 4 squares 65 ms | grid -14,773 976,711 684,275 139,270
+   379.3s f00578 TRACKING Tracking | top: no move (5.01) | Qxe5+ (5.71) | a4 (6.22) | a3 (6.40) | unsure 2 | network 4 squares 64 ms | grid -14,773 976,711 684,275 140,270
+   379.6s f00579 TRACKING Tracking | top: no move (5.00) | Qxe5+ (5.70) | a4 (6.24) | a3 (6.42) | unsure 2 | network 4 squares 80 ms | grid -14,773 976,711 684,275 140,270
+   379.8s f00580 TRACKING Tracking | top: no move (5.06) | Qxe5+ (5.76) | a4 (6.28) | a3 (6.44) | unsure 2 | network 4 squares 62 ms | grid -14,773 976,712 684,275 140,270 | image f00580_sample.jpg
+   380.0s f00581 TRACKING Tracking | top: no move (5.08) | Qxe5+ (5.77) | a4 (6.30) | a3 (6.45) | unsure 2 | network 4 squares 69 ms | grid -14,773 976,712 684,275 140,270
+   380.3s f00582 TRACKING Tracking | top: no move (5.11) | Qxe5+ (5.80) | a4 (6.34) | a3 (6.48) | unsure 2 | network 4 squares 68 ms | grid -14,773 977,712 684,275 140,270
+   380.5s f00583 TRACKING Tracking | top: no move (5.12) | Qxe5+ (5.81) | a4 (6.34) | a3 (6.49) | unsure 2 | network 4 squares 68 ms | grid -14,773 977,712 684,275 140,270
+   380.8s f00584 TRACKING Tracking | top: no move (4.93) | Qxe5+ (5.62) | a4 (6.21) | a3 (6.30) | unsure 2 | network 4 squares 65 ms | grid -14,773 977,712 684,275 140,270
+   381.1s f00585 TRACKING Tracking | top: no move (5.00) | Qxe5+ (5.67) | a4 (6.30) | a3 (6.36) | unsure 2 | network 10 squares 155 ms | grid -14,773 977,712 684,275 140,270
+   381.4s f00586 TRACKING Tracking | top: no move (5.02) | Qxe5+ (5.69) | a4 (6.33) | a3 (6.38) | unsure 3 | network 4 squares 70 ms | grid -14,773 977,712 684,275 140,270
+   381.7s f00587 TRACKING Tracking | top: no move (5.64) | Qxe5+ (5.97) | Qh4 (6.76) | Qh6 (6.94) | unsure 4 | network 10 squares 147 ms | grid -14,773 977,712 684,275 140,270
+   382.2s f00588 TRACKING Maybe Qxh7 Nf6 (11.79) or Qxe5+ (11.97); unchanged 13.01 [arrival unseen, margin 0.18] | top: Qxh7 Nf6 (11.79) | Qxe5+ (11.97) | Qxh7 Rxh7 (12.01) | Qxg6+ hxg6 (12.10) | unsure 11 | network 27 squares 383 ms | grid -15,773 977,712 684,275 139,270
+   383.0s f00589 TRACKING Maybe Qxe5+ Ne7 (9.43) or Qxe5+ (9.67); unchanged 11.46 [arrival unseen, margin 0.24] | top: Qxe5+ Ne7 (9.43) | Qxe5+ (9.67) | Qxe5+ Be7 (9.77) | Qxh7 Nf6 (9.98) | unsure 8 | network 31 squares 518 ms | grid -15,774 977,712 684,275 139,270
+   384.3s f00590 TRACKING Maybe Qxe5+ (8.15) or Qxh7 (9.35); unchanged 10.14 [hidden] | top: Qxe5+ (8.15) | Qxe5+ Be7 (8.87) | Qxe5+ Ne7 (9.12) | Qxh7 (9.35) | offers: Qxe5+ (8.2) | unsure 6 | network 64 squares 1018 ms | grid -15,773 976,712 684,275 139,270 | image f00590_offer.jpg
+   384.7s f00591 TRACKING Seeing Qxe5+ (1/3) | top: Qxe5+ (6.25) | Qxe5+ Be7 (7.39) | Qxe5+ Qe7 (7.64) | Qxe5+ Ne7 (7.77) | offers: Qxe5+ (8.2) | unsure 4 | network 17 squares 261 ms | grid -15,773 977,712 684,275 139,270
+   385.0s f00592 TRACKING Seeing Qxe5+ (2/3) | top: Qxe5+ (5.91) | Qxe5+ Be7 (7.20) | Qxe5+ Qe7 (7.33) | Qxh7 (7.49) | offers: Qxe5+ (8.2) | unsure 5 | network 4 squares 62 ms | grid -15,773 977,712 684,275 139,270
+   385.2s f00593 MOVE_PLAYED Played Qxe5+ | top: Qxe5+ (5.81) | Qxe5+ Be7 (7.16) | Qxe5+ Qe7 (7.25) | Qxh7 (7.40) | unsure 5 | network 4 squares 90 ms | grid -14,773 977,712 685,275 139,270 | image f00593_played.jpg
+   385.5s f00594 TRACKING Tracking | top: no move (4.38) | Qe7 (6.18) | Kf7 (6.43) | Be7 (6.46) | unsure 5 | network 4 squares 88 ms | grid -15,773 977,712 684,275 139,270
+   385.7s f00595 TRACKING Tracking | top: no move (4.41) | Qe7 (6.20) | Kf7 (6.46) | Be7 (6.50) | unsure 5 | network 4 squares 70 ms | grid -15,774 976,711 684,275 139,270
+   385.9s f00596 TRACKING Tracking | top: no move (4.49) | Qe7 (6.29) | Kf7 (6.55) | Be7 (6.59) | unsure 5 | network 4 squares 71 ms | grid -16,774 976,711 684,276 139,270
+   386.2s f00597 TRACKING Tracking | top: no move (4.54) | Qe7 (6.34) | Kf7 (6.58) | Be7 (6.61) | unsure 5 | network 4 squares 68 ms | grid -16,774 976,711 684,276 139,270
+   386.4s f00598 TRACKING Tracking | top: no move (4.59) | Qe7 (6.39) | Kf7 (6.62) | Be7 (6.66) | unsure 5 | network 4 squares 64 ms | grid -16,774 976,711 684,275 139,270
+   386.6s f00599 TRACKING Tracking | top: no move (4.45) | Qe7 (6.25) | Kf7 (6.50) | Be7 (6.54) | unsure 5 | network 4 squares 64 ms | grid -16,774 976,711 684,276 139,270
+   386.8s f00600 TRACKING Tracking | top: no move (4.44) | Qe7 (6.24) | Kf7 (6.48) | Be7 (6.51) | unsure 5 | network 4 squares 81 ms | grid -16,774 976,711 684,276 139,270 | image f00600_sample.jpg
+   387.1s f00601 TRACKING Tracking | top: no move (4.64) | Qe7 (6.43) | Kf7 (6.67) | Be7 (6.70) | unsure 5 | network 4 squares 70 ms | grid -16,775 976,711 684,276 139,270
+   387.3s f00602 TRACKING Tracking | top: no move (4.69) | Qe7 (6.48) | Kf7 (6.73) | Be7 (6.77) | unsure 4 | network 4 squares 74 ms | grid -16,774 976,711 684,275 139,270
+   387.5s f00603 TRACKING Tracking | top: no move (4.62) | Qe7 (6.42) | Kf7 (6.68) | Be7 (6.72) | unsure 4 | network 4 squares 65 ms | grid -15,774 976,711 684,275 139,270
+   387.7s f00604 TRACKING Tracking | top: no move (4.68) | Qe7 (6.48) | Kf7 (6.73) | Be7 (6.78) | unsure 4 | network 4 squares 62 ms | grid -16,774 976,711 684,275 139,270
+   388.0s f00605 TRACKING Tracking | top: no move (4.66) | Qe7 (6.45) | Kf7 (6.74) | Be7 (6.80) | unsure 4 | network 4 squares 64 ms | grid -15,774 976,711 684,275 139,270
+   388.2s f00606 TRACKING Tracking | top: no move (4.72) | Qe7 (6.52) | Kf7 (6.79) | Be7 (6.84) | unsure 4 | network 4 squares 72 ms | grid -16,774 976,711 684,275 139,270
+   388.4s f00607 TRACKING Tracking | top: no move (4.83) | Qe7 (6.62) | Kf7 (6.88) | Be7 (6.93) | unsure 4 | network 4 squares 64 ms | grid -16,774 975,711 684,275 139,270
+   388.6s f00608 TRACKING Tracking | top: no move (4.89) | Qe7 (6.67) | Kf7 (6.96) | Be7 (7.00) | unsure 4 | network 4 squares 70 ms | grid -16,774 975,711 684,276 139,270
+   388.8s f00609 TRACKING Tracking | top: no move (4.91) | Qe7 (6.69) | Kf7 (6.99) | Be7 (7.01) | unsure 4 | network 4 squares 60 ms | grid -16,775 975,711 684,276 139,270
+   389.1s f00610 TRACKING Tracking | top: no move (4.93) | Qe7 (6.71) | Kf7 (7.00) | Be7 (7.02) | unsure 4 | network 4 squares 68 ms | grid -17,775 975,711 684,276 139,270
+   389.3s f00611 TRACKING Tracking | top: no move (4.88) | Qe7 (6.66) | Kf7 (6.96) | Be7 (6.98) | unsure 4 | network 4 squares 70 ms | grid -17,775 976,710 684,276 139,270
+   389.5s f00612 TRACKING Tracking | top: no move (4.92) | Qe7 (6.69) | Kf7 (6.99) | Be7 (7.00) | unsure 4 | network 4 squares 69 ms | grid -16,774 976,711 684,276 139,270
+   389.7s f00613 TRACKING Tracking | top: no move (4.88) | Qe7 (6.66) | Kf7 (6.96) | Be7 (6.99) | unsure 4 | network 4 squares 83 ms | grid -16,774 976,711 684,275 139,270
+   390.0s f00614 TRACKING Tracking | top: no move (4.85) | Qe7 (6.63) | Kf7 (6.97) | Be7 (7.01) | unsure 4 | network 4 squares 72 ms | grid -16,774 976,711 684,275 139,270
+   390.2s f00615 TRACKING Tracking | top: no move (4.90) | Qe7 (6.68) | Kf7 (6.99) | Be7 (7.02) | unsure 4 | network 4 squares 66 ms | grid -16,774 976,711 684,276 139,270
+   390.4s f00616 TRACKING Tracking | top: no move (4.99) | Qe7 (6.77) | Kf7 (7.06) | Be7 (7.08) | unsure 4 | network 4 squares 77 ms | grid -16,775 976,711 684,276 139,270
+   390.6s f00617 TRACKING Tracking | top: no move (4.97) | Qe7 (6.74) | Kf7 (7.05) | Be7 (7.07) | unsure 4 | network 4 squares 67 ms | grid -16,774 976,711 684,275 139,270
+   390.8s f00618 TRACKING Tracking | top: no move (4.92) | Qe7 (6.70) | Kf7 (7.01) | Be7 (7.03) | unsure 4 | network 4 squares 63 ms | grid -16,774 976,711 684,275 139,270
+   391.0s f00619 TRACKING Tracking | top: no move (5.04) | Qe7 (6.82) | Kf7 (7.16) | Be7 (7.21) | unsure 5 | network 4 squares 62 ms | grid -16,774 975,711 684,276 139,270
+   391.3s f00620 TRACKING Tracking | top: no move (5.19) | Qe7 (6.97) | Kf7 (7.29) | Be7 (7.33) | unsure 5 | network 4 squares 62 ms | grid -16,774 975,711 684,276 139,270 | image f00620_sample.jpg
+   391.5s f00621 TRACKING Tracking | top: no move (5.28) | Qe7 (7.05) | Kf7 (7.37) | Be7 (7.40) | unsure 5 | network 4 squares 71 ms | grid -16,774 975,711 684,276 139,270
+   391.8s f00622 TRACKING Tracking | top: no move (5.34) | Qe7 (7.12) | Kf7 (7.43) | Be7 (7.45) | unsure 5 | network 4 squares 84 ms | grid -16,774 975,711 684,276 139,270
+   392.0s f00623 TRACKING Tracking | top: no move (5.35) | Qe7 (7.14) | Kf7 (7.44) | Be7 (7.46) | unsure 5 | network 4 squares 72 ms | grid -16,774 975,711 684,276 139,270
+   392.2s f00624 TRACKING Tracking | top: no move (5.36) | Qe7 (7.15) | Be7 (7.45) | Kf7 (7.45) | unsure 5 | network 4 squares 61 ms | grid -16,775 975,711 684,276 139,270
+   392.4s f00625 TRACKING Tracking | top: no move (5.37) | Qe7 (7.17) | Be7 (7.46) | Kf7 (7.47) | unsure 5 | network 4 squares 61 ms | grid -17,775 975,711 684,276 139,270
+   392.6s f00626 TRACKING Tracking | top: no move (5.39) | Qe7 (7.18) | Be7 (7.48) | Kf7 (7.49) | unsure 5 | network 4 squares 72 ms | grid -17,775 975,711 684,276 139,270
+   392.9s f00627 TRACKING Tracking | top: no move (5.79) | Qe7 (7.58) | Kf7 (7.92) | Be7 (7.93) | unsure 5 | network 8 squares 117 ms | grid -17,775 975,711 684,276 139,270
+   393.1s f00628 TRACKING Tracking | top: no move (5.96) | Qe7 (7.76) | Kf7 (8.12) | Be7 (8.13) | unsure 6 | network 4 squares 69 ms | grid -16,774 975,711 685,275 139,270
+   393.4s f00629 TRACKING Tracking | top: no move (5.96) | Qe7 (7.75) | Kf7 (8.12) | Be7 (8.14) | unsure 6 | network 4 squares 75 ms | grid -16,774 975,711 685,275 139,270
+   393.6s f00630 TRACKING Tracking | top: no move (5.94) | Qe7 (7.73) | Kf7 (8.10) | Be7 (8.12) | unsure 6 | network 4 squares 67 ms | grid -16,774 975,711 685,275 139,270
+   393.8s f00631 TRACKING Tracking | top: no move (5.94) | Qe7 (7.74) | Kf7 (8.10) | Be7 (8.12) | unsure 6 | network 4 squares 66 ms | grid -16,774 975,711 685,275 139,270
+   394.0s f00632 TRACKING Tracking | top: no move (5.94) | Qe7 (7.74) | Kf7 (8.10) | Be7 (8.12) | unsure 6 | network 4 squares 65 ms | grid -16,774 975,711 685,275 139,270
+   394.3s f00633 TRACKING Tracking | top: no move (5.76) | Qe7 (7.55) | Kf7 (7.93) | Be7 (7.94) | unsure 7 | network 10 squares 156 ms | grid -15,774 976,711 685,275 139,270
+   394.5s f00634 TRACKING Tracking | top: no move (5.72) | Qe7 (7.51) | Kf7 (7.90) | Be7 (7.91) | unsure 7 | network 4 squares 69 ms | grid -15,774 975,711 685,275 139,270
+   394.7s f00635 TRACKING Tracking | top: no move (5.58) | Qe7 (7.37) | Kf7 (7.77) | Be7 (7.77) | unsure 7 | network 4 squares 67 ms | grid -15,774 976,711 685,275 139,270
+   395.0s f00636 TRACKING Tracking | top: no move (5.95) | Be7 (7.50) | Qe7 (7.75) | Kf7 (8.13) | unsure 6 | network 10 squares 159 ms | grid -14,773 975,711 686,274 139,270
+   395.4s f00637 TRACKING Tracking | top: no move (7.64) | Be7 (8.10) | Be7 Qxh8 (8.84) | Be7 Qxe7+ (8.91) | unsure 6 | network 15 squares 227 ms | grid -15,773 975,711 685,275 139,270
+   395.8s f00638 TRACKING Seeing Be7 (1/3) | top: Be7 (8.92) | Be7 Qxe7+ (9.50) | Be7 Qxh8 (9.62) | no move (9.77) | unsure 8 | network 16 squares 249 ms | grid -15,774 975,711 685,275 139,270
+   396.3s f00639 TRACKING Seeing Be7 (2/3) | top: Be7 (8.37) | Be7 Qxe7+ (8.86) | Be7 Qxh8 (9.02) | Be7 Qe6 (9.41) | unsure 6 | network 20 squares 331 ms | grid -15,774 975,711 685,275 139,270
+   396.6s f00640 MOVE_PLAYED Played Be7 | top: Be7 (6.34) | Be7 Qxe7+ (6.79) | Be7 Qe6 (7.37) | Be7 a4 (7.52) | unsure 5 | network 11 squares 174 ms | grid -15,774 976,711 685,275 139,270 | image f00640_played.jpg
+   397.3s f00641 TRACKING Tracking | top: no move (5.78) | Qxe7+ Kxe7 (6.20) | Qxe7+ (6.22) | Qe6 (6.80) | unsure 4 | network 4 squares 161 ms | grid -16,774 976,711 685,275 139,270
+   397.8s f00642 TRACKING Tracking | top: no move (5.67) | Qxe7+ Kxe7 (6.06) | Qxe7+ (6.09) | Qe6 (6.68) | unsure 4 | network 4 squares 175 ms | grid -16,774 976,711 685,275 139,270
+   398.3s f00643 TRACKING Tracking | top: no move (5.59) | Qxe7+ Kxe7 (5.97) | Qxe7+ (6.02) | Qe6 (6.61) | unsure 4 | network 4 squares 166 ms | grid -16,774 976,711 685,275 139,270
+   398.7s f00644 TRACKING Tracking | top: no move (5.61) | Qxe7+ Kxe7 (5.99) | Qxe7+ (6.06) | Qe6 (6.63) | unsure 4 | network 4 squares 67 ms | grid -16,774 976,711 684,275 139,270
+   399.0s f00645 TRACKING Tracking | top: no move (5.65) | Qxe7+ Kxe7 (6.03) | Qxe7+ (6.09) | Qe6 (6.67) | unsure 4 | network 4 squares 66 ms | grid -16,774 976,711 684,275 139,270
+   399.2s f00646 TRACKING Tracking | top: no move (5.67) | Qxe7+ Kxe7 (6.05) | Qxe7+ (6.11) | Qe6 (6.69) | unsure 4 | network 4 squares 64 ms | grid -16,774 976,711 684,275 139,270
+   399.4s f00647 TRACKING Tracking | top: no move (5.62) | Qxe7+ Kxe7 (6.00) | Qxe7+ (6.07) | Qe6 (6.64) | unsure 4 | network 4 squares 65 ms | grid -16,774 976,711 684,275 139,270
+   399.6s f00648 TRACKING Tracking | top: no move (5.54) | Qxe7+ Kxe7 (5.92) | Qxe7+ (5.97) | Qe6 (6.56) | unsure 4 | network 4 squares 63 ms | grid -16,774 976,711 684,275 139,270
+   399.9s f00649 TRACKING Tracking | top: no move (5.54) | Qxe7+ Kxe7 (5.92) | Qxe7+ (5.97) | Qe6 (6.56) | unsure 4 | network 4 squares 116 ms | grid -16,774 976,711 684,275 139,270
+   400.1s f00650 TRACKING Tracking | top: no move (5.63) | Qxe7+ Kxe7 (6.01) | Qxe7+ (6.07) | Qe6 (6.65) | unsure 4 | network 4 squares 70 ms | grid -16,774 976,711 684,275 139,270
+   400.3s f00651 TRACKING Tracking | top: no move (5.55) | Qxe7+ Kxe7 (5.93) | Qxe7+ (5.99) | Qe6 (6.57) | unsure 4 | network 4 squares 67 ms | grid -15,774 976,711 684,275 139,270
+   400.7s f00652 TRACKING Tracking | top: no move (6.47) | Qxe7+ Kxe7 (6.86) | Qxe7+ (6.92) | Qe6 (7.54) | unsure 4 | network 14 squares 208 ms | grid -15,774 976,711 684,275 139,270
+   401.3s f00653 TRACKING Tracking | top: no move (10.22) | Qxe7+ (10.70) | Qxe7+ Nxe7 (10.77) | Qxe7+ Kxe7 (10.82) | unsure 7 | network 26 squares 406 ms | grid -15,774 976,711 684,275 139,270
+   402.3s f00654 TRACKING Tracking | top: Qxe7+ (6.86) | Qf6 Bxf6 (7.14) | Qxe7+ Kxe7 (7.18) | Qf6 (7.21) | unsure 4 | network 64 squares 904 ms | grid -15,774 976,711 684,275 139,270
+   402.6s f00655 TRACKING Maybe Qxh8 Bf6 (6.45) or Qxh8 (6.49); unchanged 7.58 [margin 0.05] | top: Qxh8 Bf6 (6.45) | Qxh8 (6.49) | Qf6 Bxf6 (6.75) | Qf6 (6.92) | unsure 3 | network 6 squares 95 ms | grid -14,774 976,711 684,275 139,270
+   402.9s f00656 TRACKING Maybe Qxh8 Bf6 (5.80) or Qxh8 (5.97); unchanged 7.41 [margin 0.17] | top: Qxh8 Bf6 (5.80) | Qxh8 (5.97) | Qf6 Bxf6 (6.32) | Qf6 (6.52) | unsure 3 | network 8 squares 128 ms | grid -15,774 977,711 684,275 139,270
+   403.1s f00657 TRACKING Maybe Qxh8 Bf6 (5.61) or Qxh8 (5.83); unchanged 7.42 [margin 0.22] | top: Qxh8 Bf6 (5.61) | Qxh8 (5.83) | Qf6 Bxf6 (6.21) | Qf6 (6.43) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 79 ms | grid -15,774 976,711 684,275 139,270 | image f00657_offer.jpg
+   403.4s f00658 TRACKING Maybe Qxh8 Bf6 (5.53) or Qxh8 (5.77); unchanged 7.44 [margin 0.24] | top: Qxh8 Bf6 (5.53) | Qxh8 (5.77) | Qf6 Bxf6 (6.19) | Qf6 (6.41) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 69 ms | grid -15,774 977,711 684,275 139,270
+   403.6s f00659 TRACKING Maybe Qxh8 Bf6 (5.44) or Qxh8 (5.69); unchanged 7.40 [margin 0.25] | top: Qxh8 Bf6 (5.44) | Qxh8 (5.69) | Qf6 Bxf6 (6.13) | Qf6 (6.36) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 66 ms | grid -15,774 977,711 684,275 139,270
+   403.9s f00660 TRACKING Maybe Qxh8 Bf6 (5.40) or Qxh8 (5.66); unchanged 7.38 [margin 0.25] | top: Qxh8 Bf6 (5.40) | Qxh8 (5.66) | Qf6 Bxf6 (6.10) | Qf6 (6.34) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 65 ms | grid -15,774 976,711 684,275 139,270 | image f00660_sample.jpg
+   404.1s f00661 TRACKING Maybe Qxh8 Bf6 (5.49) or Qxh8 (5.74); unchanged 7.47 [margin 0.25] | top: Qxh8 Bf6 (5.49) | Qxh8 (5.74) | Qf6 Bxf6 (6.19) | Qf6 (6.42) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 69 ms | grid -15,774 976,711 684,275 139,270
+   404.4s f00662 TRACKING Maybe Qxh8 Bf6 (5.50) or Qxh8 (5.76); unchanged 7.48 [margin 0.25] | top: Qxh8 Bf6 (5.50) | Qxh8 (5.76) | Qf6 Bxf6 (6.20) | Qf6 (6.44) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 71 ms | grid -15,775 976,711 684,275 139,270
+   404.6s f00663 TRACKING Maybe Qxh8 Bf6 (5.50) or Qxh8 (5.76); unchanged 7.48 [margin 0.26] | top: Qxh8 Bf6 (5.50) | Qxh8 (5.76) | Qf6 Bxf6 (6.20) | Qf6 (6.44) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 72 ms | grid -15,774 977,711 684,275 139,270
+   404.8s f00664 TRACKING Maybe Qxh8 Bf6 (5.52) or Qxh8 (5.78); unchanged 7.50 [margin 0.25] | top: Qxh8 Bf6 (5.52) | Qxh8 (5.78) | Qf6 Bxf6 (6.23) | Qf6 (6.46) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 66 ms | grid -16,775 977,711 684,275 139,270
+   405.1s f00665 TRACKING Maybe Qxh8 Bf6 (5.53) or Qxh8 (5.78); unchanged 7.51 [margin 0.26] | top: Qxh8 Bf6 (5.53) | Qxh8 (5.78) | Qf6 Bxf6 (6.23) | Qf6 (6.46) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 61 ms | grid -16,775 977,711 684,275 139,270
+   405.3s f00666 TRACKING Maybe Qxh8 Bf6 (5.49) or Qxh8 (5.75); unchanged 7.48 [margin 0.26] | top: Qxh8 Bf6 (5.49) | Qxh8 (5.75) | Qf6 Bxf6 (6.20) | Qf6 (6.43) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 70 ms | grid -16,775 977,711 684,275 139,270
+   405.5s f00667 TRACKING Maybe Qxh8 Bf6 (5.48) or Qxh8 (5.73); unchanged 7.47 [margin 0.26] | top: Qxh8 Bf6 (5.48) | Qxh8 (5.73) | Qf6 Bxf6 (6.18) | Qf6 (6.41) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 69 ms | grid -16,775 977,711 684,275 139,270
+   405.8s f00668 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (5.48) | Qxh8 (5.74) | Qf6 Bxf6 (6.18) | Qf6 (6.41) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 67 ms | grid -16,775 977,711 684,275 139,270 | image f00668_asked.jpg
+   406.0s f00669 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (5.44) | Qxh8 (5.72) | Qf6 Bxf6 (6.14) | Qf6 (6.38) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 70 ms | grid -16,775 977,710 684,275 139,270
+   406.2s f00670 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (5.44) | Qxh8 (5.73) | Qf6 Bxf6 (6.15) | Qf6 (6.39) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 64 ms | grid -16,775 977,710 684,275 139,270
+   406.5s f00671 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (5.43) | Qxh8 (5.73) | Qf6 Bxf6 (6.14) | Qf6 (6.39) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 66 ms | grid -17,775 977,710 684,275 139,270
+   406.7s f00672 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (5.59) | Qxh8 (5.88) | Qf6 Bxf6 (6.29) | Qf6 (6.54) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 1 | network 4 squares 66 ms | grid -16,775 976,710 684,275 139,270
+   406.9s f00673 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (5.67) | Qxh8 (5.97) | Qf6 Bxf6 (6.37) | Qf6 (6.62) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 3 | network 4 squares 63 ms | grid -16,775 977,711 684,275 139,270
+   407.1s f00674 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (5.66) | Qxh8 (5.95) | Qf6 Bxf6 (6.36) | Qf6 (6.61) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 3 | network 4 squares 64 ms | grid -16,775 977,711 684,275 139,270
+   407.4s f00675 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (5.65) | Qxh8 (5.95) | Qf6 Bxf6 (6.35) | Qf6 (6.59) | offers: Qxh8 (5.6) | Qf6 (6.2) | unsure 3 | network 4 squares 67 ms | grid -16,775 977,711 684,275 139,270
+   409.3s f00676 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (6.47) | Qxh8 (6.76) | Qf6 Bxf6 (6.79) | Qf6 (7.03) | offers: Qxh8 (5.6) | Qf6 (6.2) | Qg7 (6.8) | Qd6 (7.1) | unsure 4 | network 10 squares 159 ms | grid -16,775 977,711 684,275 139,270 | image f00676_offer.jpg
+   409.7s f00677 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (7.07) | Qxh8 (7.15) | Qf6 Bxf6 (7.35) | Qf6 (7.50) | offers: Qxh8 (5.6) | Qf6 (6.2) | Qg7 (6.8) | Qd6 (7.1) | unsure 3 | network 15 squares 231 ms | grid -16,775 977,711 684,275 139,270
+   409.9s f00678 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (7.23) | Qxh8 (7.24) | Qf6 Bxf6 (7.53) | Qf6 (7.64) | offers: Qxh8 (5.6) | Qf6 (6.2) | Qg7 (6.8) | Qd6 (7.1) | unsure 3 | network 4 squares 69 ms | grid -17,775 977,710 684,275 139,270
+   410.4s f00679 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (7.29) | Qf6 Bxf6 (7.55) | Qxh8 (7.68) | Qxe7+ (7.98) | offers: Qxh8 (5.6) | Qf6 (6.2) | Qg7 (6.8) | Qd6 (7.1) | Qxe7+ (8.0) | unsure 4 | network 19 squares 303 ms | grid -17,775 977,710 684,275 139,270 | image f00679_offer.jpg
+   412.6s f00680 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (7.21) | Qf6 Bxf6 (7.37) | Qa5 Bf6 (7.94) | Qg7 Bf6 (7.95) | offers: Qxh8 (5.6) | Qf6 (6.2) | Qg7 (6.8) | Qd6 (7.1) | Qxe7+ (8.0) | Qa5 (7.9) | unsure 4 | network 23 squares 368 ms | grid -17,775 977,710 684,275 139,270 | image f00680_offer.jpg
+   413.6s f00681 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (5.31) | Qf6 Bxf6 (5.72) | Qa5 Bf6 (6.04) | Qd6 Bf6 (6.53) | offers: Qxh8 (5.6) | Qf6 (6.2) | Qg7 (6.8) | Qd6 (7.1) | Qxe7+ (8.0) | Qa5 (7.9) | unsure 3 | network 64 squares 873 ms | grid -16,775 977,710 684,275 139,270
+   413.9s f00682 AMBIGUOUS Not sure what was played. Tap the right one, or type it. | top: Qxh8 Bf6 (5.17) | Qf6 Bxf6 (5.75) | Qa5 Bf6 (5.97) | Qd6 Bf6 (6.59) | offers: Qxh8 (5.6) | Qf6 (6.2) | Qg7 (6.8) | Qd6 (7.1) | Qxe7+ (8.0) | Qa5 (7.9) | unsure 2 | network 4 squares 63 ms | grid -16,774 977,710 684,275 139,270
+   414.1s f00683 MOVE_PLAYED Played Qxh8 Bf6 | top: Qxh8 Bf6 (5.11) | Qf6 Bxf6 (5.77) | Qa5 Bf6 (5.92) | Qd6 Bf6 (6.63) | unsure 1 | network 4 squares 75 ms | grid -16,774 977,711 684,275 139,270 | image f00683_played.jpg
+   414.7s f00684 TRACKING Tracking | top: no move (3.58) | a4 (4.72) | a3 (4.94) | Qxh7 (4.98) | unsure 1 | network 4 squares 149 ms | grid -15,774 977,711 684,275 139,270
+   415.3s f00685 TRACKING Tracking | top: no move (3.59) | a4 (4.73) | a3 (4.95) | Qxh7 (5.00) | unsure 1 | network 4 squares 190 ms | grid -16,774 977,711 684,275 139,270
+   415.8s f00686 TRACKING Tracking | top: no move (3.58) | a4 (4.73) | a3 (4.96) | Qxh7 (5.00) | unsure 1 | network 4 squares 163 ms | grid -15,774 977,711 684,275 139,270
+   416.2s f00687 TRACKING Tracking | top: no move (3.63) | a4 (4.79) | a3 (5.02) | Qxh7 (5.05) | unsure 1 | network 4 squares 82 ms | grid -16,774 977,711 684,275 139,270
+   416.4s f00688 TRACKING Tracking | top: no move (3.58) | a4 (4.72) | a3 (4.95) | Qxh7 (5.00) | unsure 1 | network 4 squares 68 ms | grid -15,774 977,711 684,275 139,270
+   416.7s f00689 TRACKING Tracking | top: no move (3.64) | a4 (4.79) | a3 (5.02) | Qxh7 (5.06) | unsure 1 | network 4 squares 77 ms | grid -15,774 977,711 685,275 139,270
+   416.9s f00690 TRACKING Tracking | top: no move (3.60) | a4 (4.76) | a3 (4.99) | Qxh7 (5.03) | unsure 0 | network 4 squares 61 ms | grid -16,775 977,711 685,275 139,270
+   417.1s f00691 TRACKING Tracking | top: no move (3.66) | a4 (4.80) | a3 (5.03) | Qxh7 (5.08) | unsure 0 | network 4 squares 75 ms | grid -16,775 977,710 684,275 139,270
+   417.4s f00692 TRACKING Tracking | top: no move (3.66) | a4 (4.81) | a3 (5.04) | Qxh7 (5.07) | unsure 0 | network 4 squares 67 ms | grid -16,775 977,710 685,275 139,270
+   417.7s f00693 TRACKING Tracking | top: no move (3.84) | a4 (4.96) | Qxh7 (5.08) | a3 (5.19) | unsure 0 | network 8 squares 131 ms | grid -16,775 977,710 685,274 139,270
+   418.0s f00694 TRACKING Tracking | top: Qxg8+ (4.78) | no move (5.25) | Qxf6 Nxf6 (5.31) | Qg7 (5.36) | unsure 1 | network 13 squares 184 ms | grid -16,775 977,710 685,274 139,270
+   418.4s f00695 TRACKING Seeing Qxg8+ (1/3) | top: Qxg8+ (5.22) | Qg7 (5.62) | Qxf6 Nxf6 (5.68) | Qxf6 Qxf6 (5.76) | unsure 1 | network 12 squares 179 ms | grid -16,775 977,710 685,274 139,270
+   418.7s f00696 TRACKING Maybe Qxf6 Nxf6 (5.19) or Qxg8+ (5.34); unchanged 6.33 [margin 0.15] | top: Qxf6 Nxf6 (5.19) | Qxg8+ (5.34) | Qg7 (6.06) | Qxf6 Qxf6 (6.14) | unsure 1 | network 12 squares 193 ms | grid -16,775 977,710 685,274 139,270
+   419.2s f00697 TRACKING Maybe Qxg8+ (4.67) or Qxf6 Nxf6 (4.90); unchanged 5.85 [margin 0.22] | top: Qxg8+ (4.67) | Qxf6 Nxf6 (4.90) | Qg7 (5.42) | Qxf6 Qxf6 (5.63) | offers: Qxg8+ (4.7) | Qxf6 (4.9) | Qg7 (5.4) | unsure 1 | network 12 squares 205 ms | grid -16,775 977,710 685,274 139,270 | image f00697_offer.jpg
+   419.4s f00698 TRACKING Seeing Qxg8+ (2/3) | top: Qxg8+ (4.48) | Qxf6 Nxf6 (4.98) | Qg7 (5.37) | Qxf6 Qxf6 (5.76) | offers: Qxg8+ (4.7) | Qxf6 (4.9) | Qg7 (5.4) | unsure 1 | network 4 squares 70 ms | grid -16,775 977,710 685,274 139,270
+   419.6s f00699 MOVE_PLAYED Played Qxg8+ | top: Qxg8+ (4.43) | Qxf6 Nxf6 (5.06) | Qg7 (5.41) | Qxf6 Qxf6 (5.87) | unsure 1 | network 4 squares 78 ms | grid -16,775 977,710 685,274 139,270 | image f00699_played.jpg
+   419.8s f00700 TRACKING Tracking | top: no move (4.13) | Ke7 (5.75) | Ke7 Qe8+ (6.42) | Ke7 Qg7+ (6.65) | unsure 0 | network 4 squares 74 ms | grid -16,775 977,710 685,274 139,270 | image f00700_sample.jpg
+   420.0s f00701 TRACKING Tracking | top: no move (4.11) | Ke7 (5.73) | Ke7 Qe8+ (6.41) | Ke7 Qg7+ (6.64) | unsure 0 | network 4 squares 62 ms | grid -16,775 977,710 685,274 139,270
+   420.3s f00702 TRACKING Tracking | top: no move (4.10) | Ke7 (5.71) | Ke7 Qe8+ (6.42) | Ke7 Qg7+ (6.64) | unsure 0 | network 4 squares 75 ms | grid -16,775 977,710 684,275 139,270
+   420.4s f00703 TRACKING Tracking | top: no move (4.07) | Ke7 (5.69) | Ke7 Qe8+ (6.39) | Ke7 Qg7+ (6.61) | unsure 0 | network 4 squares 62 ms | grid -16,775 977,710 685,275 139,270
+   420.7s f00704 TRACKING Tracking | top: no move (4.09) | Ke7 (5.70) | Ke7 Qe8+ (6.41) | Ke7 Qg7+ (6.60) | unsure 0 | network 4 squares 72 ms | grid -16,775 977,710 684,275 139,270
+   420.9s f00705 TRACKING Tracking | top: no move (4.01) | Ke7 (5.63) | Ke7 Qe8+ (6.33) | Ke7 Qg7+ (6.51) | unsure 0 | network 4 squares 66 ms | grid -16,774 977,710 684,275 139,270
+   421.1s f00706 TRACKING Tracking | top: no move (3.95) | Ke7 (5.57) | Ke7 Qe8+ (6.34) | Ke7 Qg7+ (6.48) | unsure 0 | network 4 squares 66 ms | grid -15,774 977,710 684,275 139,270
+   421.3s f00707 TRACKING Tracking | top: no move (3.90) | Ke7 (5.52) | Ke7 Qe8+ (6.31) | Ke7 Qg7+ (6.45) | unsure 0 | network 4 squares 60 ms | grid -15,774 977,710 684,275 139,270
+   421.5s f00708 TRACKING Tracking | top: no move (3.86) | Ke7 (5.48) | Ke7 Qe8+ (6.28) | Ke7 Qg7+ (6.42) | unsure 0 | network 4 squares 66 ms | grid -15,774 977,711 685,275 139,270
+   421.7s f00709 TRACKING Tracking | top: no move (3.83) | Ke7 (5.45) | Ke7 Qe8+ (6.25) | Ke7 Qg7+ (6.38) | unsure 0 | network 4 squares 70 ms | grid -15,774 977,711 685,275 139,270
+   422.0s f00710 TRACKING Tracking | top: no move (3.93) | Ke7 (5.55) | Ke7 Qe8+ (6.27) | Ke7 Qg7+ (6.40) | unsure 1 | network 4 squares 73 ms | grid -15,774 977,711 684,275 139,270
+   422.2s f00711 TRACKING Tracking | top: no move (4.08) | Ke7 (5.70) | Ke7 Qe8+ (6.32) | Ke7 Qg7+ (6.45) | unsure 1 | network 4 squares 73 ms | grid -16,774 977,711 684,275 139,270
+   422.4s f00712 TRACKING Tracking | top: no move (4.17) | Ke7 (5.79) | Ke7 Qe8+ (6.32) | Ke7 Qg7+ (6.46) | unsure 1 | network 4 squares 62 ms | grid -15,774 977,711 684,275 139,270
+   422.6s f00713 TRACKING Tracking | top: no move (4.20) | Ke7 (5.82) | Ke7 Qe8+ (6.33) | Ke7 Qg7+ (6.47) | unsure 1 | network 4 squares 64 ms | grid -15,774 977,711 685,275 139,270
+   422.8s f00714 TRACKING Tracking | top: no move (4.20) | Ke7 (5.82) | Ke7 Qe8+ (6.32) | Ke7 Qg7+ (6.46) | unsure 1 | network 4 squares 62 ms | grid -15,774 977,711 685,274 139,270
+   423.0s f00715 TRACKING Tracking | top: no move (4.01) | Ke7 (5.63) | Ke7 Qe8+ (6.17) | Ke7 Qg7+ (6.30) | unsure 2 | network 4 squares 53 ms | grid -16,775 977,710 685,275 139,270
+   423.3s f00716 TRACKING Tracking | top: no move (3.89) | Ke7 (5.50) | Ke7 Qe8+ (6.02) | Ke7 Qg7+ (6.15) | unsure 2 | network 4 squares 69 ms | grid -15,774 977,711 685,275 139,270
+   423.5s f00717 TRACKING Tracking | top: no move (3.99) | Ke7 (5.61) | Ke7 Qe8+ (6.11) | Ke7 Qg7+ (6.24) | unsure 2 | network 4 squares 65 ms | grid -16,774 977,711 685,274 139,270
+   423.8s f00718 TRACKING Tracking | top: no move (3.93) | Ke7 (5.55) | Ke7 Qe8+ (6.09) | Ke7 Qg7+ (6.22) | unsure 2 | network 4 squares 63 ms | grid -16,774 977,710 685,274 139,270
+   424.0s f00719 TRACKING Tracking | top: no move (4.07) | Ke7 (5.69) | Ke7 Qe8+ (6.11) | Ke7 Qg7+ (6.24) | unsure 1 | network 4 squares 61 ms | grid -15,774 977,711 685,274 139,270
+   424.2s f00720 TRACKING Tracking | top: no move (4.07) | Ke7 (5.68) | Ke7 Qe8+ (6.16) | Ke7 Qg7+ (6.17) | unsure 3 | network 4 squares 68 ms | grid -15,774 977,711 685,274 139,270 | image f00720_sample.jpg
+   424.5s f00721 TRACKING Tracking | top: no move (4.18) | Ke7 (5.80) | Ke7 Qg7+ (6.21) | Ke7 Qe8+ (6.24) | unsure 4 | network 4 squares 64 ms | grid -15,774 977,711 685,274 139,270
+   424.7s f00722 TRACKING Tracking | top: no move (4.22) | Ke7 (5.84) | Ke7 Qg7+ (6.29) | Ke7 Qe8+ (6.32) | unsure 4 | network 4 squares 58 ms | grid -15,774 977,710 685,274 139,270
+   425.0s f00723 TRACKING Tracking | top: no move (4.27) | Ke7 (5.89) | Ke7 Qg7+ (6.27) | Ke7 Qe8+ (6.32) | unsure 4 | network 10 squares 166 ms | grid -15,774 977,711 685,274 139,270
+   425.2s f00724 TRACKING Tracking | top: no move (4.05) | Ke7 (5.66) | Ke7 Qg7+ (6.23) | Ke7 Qe8+ (6.27) | unsure 4 | network 4 squares 76 ms | grid -15,774 977,711 685,274 139,270
+   425.4s f00725 TRACKING Tracking | top: no move (3.95) | Ke7 (5.57) | Ke7 Qg7+ (6.22) | Ke7 Qe8+ (6.26) | unsure 4 | network 4 squares 73 ms | grid -16,775 977,710 685,275 139,270
+   425.6s f00726 TRACKING Tracking | top: no move (3.95) | Ke7 (5.57) | Ke7 Qg7+ (6.25) | Ke7 Qe8+ (6.30) | unsure 3 | network 4 squares 68 ms | grid -16,774 977,711 685,275 139,270
+   425.8s f00727 TRACKING Tracking | top: no move (3.96) | Ke7 (5.58) | Ke7 Qg7+ (6.27) | Ke7 Qe8+ (6.32) | unsure 3 | network 4 squares 66 ms | grid -15,774 977,711 684,275 139,270
+   426.0s f00728 TRACKING Tracking | top: no move (3.93) | Ke7 (5.55) | Ke7 Qg7+ (6.23) | Ke7 Qe8+ (6.29) | unsure 3 | network 4 squares 75 ms | grid -15,774 977,711 684,275 139,270
+   426.2s f00729 TRACKING Tracking | top: no move (3.92) | Ke7 (5.54) | Ke7 Qg7+ (6.22) | Ke7 Qe8+ (6.28) | unsure 3 | network 4 squares 71 ms | grid -15,774 977,711 684,275 139,270
+   426.5s f00730 TRACKING Tracking | top: no move (3.91) | Ke7 (5.53) | Ke7 Qg7+ (6.21) | Ke7 Qe8+ (6.27) | unsure 3 | network 4 squares 78 ms | grid -15,774 977,711 685,275 139,270
+   426.6s f00731 TRACKING Tracking | top: no move (4.03) | Ke7 (5.65) | Ke7 Qg7+ (6.33) | Ke7 Qe8+ (6.39) | unsure 3 | network 4 squares 70 ms | grid -15,774 977,711 685,275 139,270
+   426.9s f00732 TRACKING Tracking | top: no move (4.06) | Ke7 (5.68) | Ke7 Qg7+ (6.36) | Ke7 Qe8+ (6.42) | unsure 3 | network 4 squares 68 ms | grid -15,774 977,711 685,275 139,270
+   427.1s f00733 TRACKING Tracking | top: no move (4.03) | Ke7 (5.65) | Ke7 Qg7+ (6.33) | Ke7 Qe8+ (6.39) | unsure 3 | network 4 squares 68 ms | grid -15,774 977,711 685,275 139,270
+   427.3s f00734 TRACKING Tracking | top: no move (4.02) | Ke7 (5.64) | Ke7 Qg7+ (6.32) | Ke7 Qe8+ (6.38) | unsure 3 | network 4 squares 61 ms | grid -15,774 977,711 685,275 139,270
+   427.5s f00735 TRACKING Tracking | top: no move (4.04) | Ke7 (5.66) | Ke7 Qg7+ (6.35) | Ke7 Qe8+ (6.41) | unsure 3 | network 4 squares 72 ms | grid -15,774 977,711 684,275 139,270
+   427.7s f00736 TRACKING Tracking | top: no move (4.11) | Ke7 (5.72) | Ke7 Qg7+ (6.32) | Ke7 Qe8+ (6.47) | unsure 3 | network 4 squares 68 ms | grid -15,773 977,711 685,275 139,270
+   428.0s f00737 TRACKING Tracking | top: no move (4.06) | Ke7 (5.68) | Ke7 Qg7+ (6.25) | Ke7 Qe8+ (6.42) | unsure 3 | network 4 squares 94 ms | grid -15,773 977,711 685,275 139,270
+   440.2s BUNDLE shared; game so far: 1. e4 e5 2. Nf3 f6 3. Nxe5 fxe5 4. Qh5+ g6 5. Qxe5+ Be7 6. Qxh8 Bf6 7. Qxg8+

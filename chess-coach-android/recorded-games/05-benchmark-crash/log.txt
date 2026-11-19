@@ -1,0 +1,14 @@
+# Chess Coach debug log, Wed Oct 21 19:20:53 GMT+02:00 2026, Google Pixel 8 Pro, Android 17, app 0.1
+     0.0s APP started
+     0.4s CNN loaded: XNNPACK, 4 threads
+     3.4s f00001 NO_BOARD Looking for the board
+     7.8s CNN every square on
+    98.9s DEPTH BENCH failed: Software caused connection abort
+   414.0s DEPTH BENCH Google Pixel 8 Pro, Google Tensor G3, 9 cores | Frame 960x1280, no board found, whole frame, prepared in 93 ms | Depth Anything V2 Small: |   CPU, 4 threads: 1773 ms median, 1739 ms fastest of 5 runs (first run 1719 ms, setup 435 ms) |   XNNPACK, 4 threads: 1994 ms median, 1968 ms fastest of 5 runs (first run 2060 ms, setup 443 ms), agrees 1.000 |   NNAPI: 12870 ms median, 12725 ms fastest of 5 runs (first run 12905 ms, setup 619 ms) |   NNAPI, half precision: failed, no answer after 120 s; restart the app to free the driver |   NNAPI, half precision, accelerator only: failed, skipped, an earlier accelerator setup never finished | Chesscog occupancy network: needs the board found in the frame
+# Chess Coach debug log, Wed Oct 21 19:27:58 GMT+02:00 2026, Google Pixel 8 Pro, Android 17, app 0.1
+     0.0s APP started
+     2.7s CNN loaded: XNNPACK, 4 threads
+# Chess Coach debug log, Wed Oct 21 19:28:06 GMT+02:00 2026, Google Pixel 8 Pro, Android 17, app 0.1
+     0.0s APP started
+     0.6s CNN loaded: XNNPACK, 4 threads
+    10.3s BUNDLE shared; game so far: 

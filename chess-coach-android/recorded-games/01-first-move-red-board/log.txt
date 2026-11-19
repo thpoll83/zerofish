@@ -1,0 +1,258 @@
+# Chess Coach debug log, Tue Oct 20 18:25:08 GMT+02:00 2026, Google Pixel 8 Pro, Android 17, app 0.1
+     0.0s APP started
+     3.2s f00001 NO_BOARD Looking for the board
+     3.5s f00002 NO_BOARD Looking for the board
+     3.8s f00003 NO_BOARD Looking for the board
+     4.2s f00004 NO_BOARD Looking for the board
+     4.5s f00005 NO_BOARD Looking for the board
+     4.8s f00006 NO_BOARD Looking for the board
+     5.2s f00007 NO_BOARD Looking for the board
+     5.6s f00008 NO_BOARD Looking for the board
+     5.9s f00009 NO_BOARD Looking for the board
+     6.3s f00010 NO_BOARD Looking for the board
+     6.6s f00011 NO_BOARD Looking for the board
+     7.0s f00012 NO_BOARD Looking for the board
+     7.3s f00013 NO_BOARD Looking for the board
+     7.6s f00014 NO_BOARD Looking for the board
+     7.9s f00015 NO_BOARD Looking for the board
+     8.3s f00016 NO_BOARD Looking for the board
+     8.6s f00017 NO_BOARD Looking for the board
+     9.0s f00018 NO_BOARD Looking for the board
+     9.3s f00019 NO_BOARD Looking for the board
+     9.7s f00020 NO_BOARD Looking for the board | image f00020_sample.jpg
+    10.0s f00021 NO_BOARD Looking for the board
+    10.2s f00022 NO_BOARD Looking for the board
+    10.6s f00023 NO_BOARD Looking for the board
+    11.0s f00024 NO_BOARD Looking for the board
+    11.4s f00025 NO_BOARD Looking for the board
+    11.5s f00026 NO_BOARD Looking for the board
+    11.9s f00027 NO_BOARD Looking for the board
+    12.4s f00028 NO_BOARD Looking for the board
+    12.7s f00029 NO_BOARD Looking for the board
+    13.0s f00030 NO_BOARD Looking for the board
+    13.4s f00031 NO_BOARD Looking for the board
+    13.8s f00032 NO_BOARD Looking for the board
+    14.2s f00033 NO_BOARD Looking for the board
+    14.5s f00034 NO_BOARD Looking for the board
+    14.9s f00035 NO_BOARD Looking for the board
+    15.3s f00036 NO_BOARD Looking for the board
+    15.6s f00037 NO_BOARD Looking for the board
+    16.0s f00038 NO_BOARD Looking for the board
+    16.4s f00039 NO_BOARD Looking for the board
+    16.7s f00040 NO_BOARD Looking for the board | image f00040_sample.jpg
+    17.1s f00041 NO_BOARD Looking for the board
+    17.5s f00042 NO_BOARD Looking for the board
+    17.8s f00043 NO_BOARD Looking for the board
+    18.2s f00044 NO_BOARD Looking for the board
+    18.6s f00045 NO_BOARD Looking for the board
+    18.9s f00046 NO_BOARD Looking for the board
+    19.3s f00047 NO_BOARD Looking for the board
+    19.7s f00048 NO_BOARD Looking for the board
+    21.5s f00049 NO_BOARD Looking for the board
+    21.9s f00050 NO_BOARD Looking for the board
+    22.3s f00051 NO_BOARD Looking for the board
+    22.6s f00052 NO_BOARD Looking for the board
+    23.1s f00053 NO_BOARD Looking for the board
+    23.4s f00054 NO_BOARD Looking for the board
+    23.8s f00055 NO_BOARD Looking for the board
+  3187.8s f00056 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.32: Pieces hard to tell from empty squares: more light from above] | unsure 1 | grid 29,742 1093,386 601,-7 -95,130
+  3188.3s f00057 NO_BOARD Looking for the board
+  3189.3s f00058 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.33: Pieces hard to tell from empty squares: more light from above] | unsure 2 | grid 57,745 1140,405 637,-3 -55,125
+  3189.8s f00059 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.31: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 69,909 1292,491 690,6 -65,152
+  3190.8s f00060 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.31: Pieces hard to tell from empty squares: more light from above] | unsure 4 | grid 168,876 1220,508 671,77 4,206 | image f00060_sample.jpg
+  3191.3s f00061 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.31: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 182,866 1181,520 660,109 31,231
+  3191.8s f00062 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.33: Pieces hard to tell from empty squares: more light from above] | unsure 9 | grid 258,865 1117,557 662,198 126,304
+  3192.6s f00063 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.32: Pieces hard to tell from empty squares: more light from above] | unsure 3 | grid 314,958 1190,627 703,232 160,347
+  3193.3s f00064 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.31: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 230,1013 1062,573 578,236 32,377
+  3193.7s f00065 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.39: Pieces hard to tell from empty squares: more light from above] | unsure 5 | grid 216,995 1042,569 563,226 17,377
+  3194.2s f00066 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.32: Pieces hard to tell from empty squares: more light from above] | unsure 7 | grid 217,1006 1042,568 562,231 17,379
+  3194.7s f00067 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.33: Pieces hard to tell from empty squares: more light from above] | unsure 2 | grid 160,1055 1108,548 587,134 -98,317
+  3195.4s f00068 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.29: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 160,1100 1167,545 572,145 -92,323
+  3195.9s f00069 NO_BOARD Looking for the board
+  3196.5s f00070 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.34: Pieces hard to tell from empty squares: more light from above] | unsure 3 | grid 182,1008 1030,566 540,215 -24,371
+  3197.0s f00071 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.28: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 257,946 957,577 549,290 85,415
+  3197.4s f00072 NO_BOARD Looking for the board
+  3198.0s f00073 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.34: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 266,924 923,578 551,308 109,428
+  3198.8s f00074 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.27: Pieces hard to tell from empty squares: more light from above] | unsure 8 | grid 267,932 926,580 548,310 110,428
+  3199.5s f00075 NO_BOARD Looking for the board
+  3200.5s f00076 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.28: Pieces hard to tell from empty squares: more light from above] | unsure 5 | grid 220,905 948,613 580,313 143,406
+  3201.2s f00077 LEARNING Learning your pieces (1/3) [quality 0.68: Board edges unclear: light the board evenly, avoid glare] | unsure 7 | grid 198,921 922,619 572,316 121,413
+  3201.7s f00078 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.32: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 178,932 903,618 553,316 99,421
+  3202.8s f00079 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.32: Pieces hard to tell from empty squares: more light from above] | unsure 8 | grid 171,938 905,621 548,317 96,422
+  3203.3s f00080 NO_BOARD Looking for the board | image f00080_sample.jpg
+  3203.7s f00081 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.33: Pieces hard to tell from empty squares: more light from above] | unsure 8 | grid 169,938 908,623 561,319 104,420
+  3204.9s f00082 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.33: Pieces hard to tell from empty squares: more light from above] | unsure 9 | grid 172,942 910,626 553,319 100,421
+  3205.2s f00083 NO_BOARD Looking for the board
+  3206.2s f00084 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.33: Pieces hard to tell from empty squares: more light from above] | unsure 9 | grid 166,947 910,626 551,319 97,422
+  3206.6s f00085 NO_BOARD Looking for the board
+  3207.3s f00086 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.26: Pieces hard to tell from empty squares: more light from above] | unsure 8 | grid 169,946 916,629 550,318 98,422
+  3208.1s f00087 NO_BOARD Looking for the board
+  3209.1s f00088 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.33: Pieces hard to tell from empty squares: more light from above] | unsure 8 | grid 164,942 902,622 553,318 94,423
+  3209.8s f00089 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.29: Pieces hard to tell from empty squares: more light from above] | unsure 8 | grid 167,946 914,628 551,319 99,422
+  3210.4s f00090 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.26: Pieces hard to tell from empty squares: more light from above] | unsure 7 | grid 166,946 913,628 551,319 99,422
+  3211.1s f00091 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.31: Pieces hard to tell from empty squares: more light from above] | unsure 9 | grid 168,943 910,626 551,319 98,422
+  3211.6s f00092 NO_BOARD Looking for the board
+  3212.6s f00093 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.35: Pieces hard to tell from empty squares: more light from above] | unsure 8 | grid 170,937 909,626 553,317 97,422
+  3213.0s f00094 NO_BOARD Looking for the board
+  3213.3s f00095 NO_BOARD Looking for the board
+  3213.8s f00096 NO_BOARD Looking for the board
+  3214.1s f00097 NO_BOARD Looking for the board
+  3214.7s f00098 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.30: Pieces hard to tell from empty squares: more light from above] | unsure 11 | grid 164,951 914,628 550,319 98,422
+  3215.3s f00099 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.31: Pieces hard to tell from empty squares: more light from above] | unsure 9 | grid 164,951 916,628 550,320 99,422
+  3215.9s f00100 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.31: Pieces hard to tell from empty squares: more light from above] | unsure 9 | grid 164,951 916,628 550,320 99,422 | image f00100_sample.jpg
+  3216.6s f00101 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.29: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 179,909 940,641 586,318 138,406
+  3217.1s f00102 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.28: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 172,878 932,648 608,318 156,395
+  3217.7s f00103 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.26: Pieces hard to tell from empty squares: more light from above] | unsure 7 | grid 168,884 929,646 603,319 153,396
+  3218.4s f00104 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.27: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 162,887 929,647 596,318 147,396
+  3219.1s f00105 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.31: Pieces hard to tell from empty squares: more light from above] | unsure 8 | grid 149,886 917,647 589,317 139,397
+  3219.6s f00106 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.32: Pieces hard to tell from empty squares: more light from above] | unsure 4 | grid 135,911 907,648 574,319 120,406
+  3220.6s f00107 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.29: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 142,937 876,620 536,318 78,421
+  3221.5s f00108 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.32: Pieces hard to tell from empty squares: more light from above] | unsure 8 | grid 146,939 876,614 531,317 77,422
+  3221.9s f00109 NO_BOARD Looking for the board
+  3222.4s f00110 NO_BOARD Looking for the board
+  3222.8s f00111 NO_BOARD Looking for the board
+  3223.2s f00112 NO_BOARD Looking for the board
+  3223.6s f00113 NO_BOARD Looking for the board
+  3224.0s f00114 NO_BOARD Looking for the board
+  3224.3s f00115 NO_BOARD Looking for the board
+  3224.7s f00116 NO_BOARD Looking for the board
+  3225.1s f00117 NO_BOARD Looking for the board
+  3225.5s f00118 NO_BOARD Looking for the board
+  3225.8s f00119 NO_BOARD Looking for the board
+  3226.2s f00120 NO_BOARD Looking for the board | image f00120_sample.jpg
+  3227.3s f00121 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.31: Pieces hard to tell from empty squares: more light from above] | unsure 8 | grid 151,933 874,612 529,315 72,423
+  3227.7s f00122 NO_BOARD Looking for the board
+  3228.0s f00123 NO_BOARD Looking for the board
+  3228.5s f00124 NO_BOARD Looking for the board
+  3228.9s f00125 NO_BOARD Looking for the board
+  3229.3s f00126 NO_BOARD Looking for the board
+  3229.6s f00127 NO_BOARD Looking for the board
+  3230.1s f00128 NO_BOARD Looking for the board
+  3230.5s f00129 NO_BOARD Looking for the board
+  3230.8s f00130 NO_BOARD Looking for the board
+  3231.2s f00131 NO_BOARD Looking for the board
+  3232.3s f00132 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.33: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 144,937 872,609 529,315 72,425
+  3232.7s f00133 NO_BOARD Looking for the board
+  3233.0s f00134 NO_BOARD Looking for the board
+  3233.4s f00135 NO_BOARD Looking for the board
+  3233.8s f00136 NO_BOARD Looking for the board
+  3234.5s f00137 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.24: Board edges unclear: light the board evenly, avoid glare] | unsure 4 | grid 202,901 959,644 605,319 158,402
+  3234.9s f00138 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.32: Pieces hard to tell from empty squares: more light from above] | unsure 5 | grid 183,836 947,642 632,314 189,379
+  3235.6s f00139 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.30: Pieces hard to tell from empty squares: more light from above] | unsure 10 | grid 166,797 922,637 637,310 196,364
+  3236.1s f00140 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.31: Pieces hard to tell from empty squares: more light from above] | unsure 9 | grid 151,803 911,638 627,312 185,367 | image f00140_sample.jpg
+  3236.7s f00141 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.29: Pieces hard to tell from empty squares: more light from above] | unsure 8 | grid 146,809 904,635 620,311 177,369
+  3237.3s f00142 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.29: Pieces hard to tell from empty squares: more light from above] | unsure 10 | grid 143,822 916,637 613,314 178,369
+  3237.9s CONFIRM START by the user | board rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+  3238.0s f00143 WAITING_FOR_START Board found. Set up the starting position with White's pieces nearest to you or facing the camera. [quality 0.29: Pieces hard to tell from empty squares: more light from above] | unsure 9 | grid 146,814 907,638 617,311 178,369
+  3238.7s f00144 LEARNING Learning your pieces (1/3) [quality 0.27: Pieces hard to tell from empty squares: more light from above] | unsure 6 | grid 141,823 916,637 613,314 177,369
+  3239.5s f00145 LEARNING Learning your pieces (2/3) [quality 0.28: Pieces hard to tell from empty squares: more light from above] | unsure 9 | grid 142,822 916,637 613,314 177,369
+  3239.6s CONFIRM START by the user | board rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+  3240.1s f00146 LEARNED Ready. Play on the board. [quality 0.28: Pieces hard to tell from empty squares: more light from above] [colour shift: none, plain luma; WARN occupancy (texture) on dark squares overlaps: 0.97 vs 0.86 | backup cues on dark squares: tone no (0.97 vs 0.86, separation 2.6), edge no (0.16 vs 0.04, separation 1.3), chroma no (0.06 vs 0.00, separation 1.5) | OK piece colour (brightness) on dark squares: -0.93 vs -0.02 | WARN occupancy (texture) on light squares overlaps: 1.00 vs 0.23 | backup cues on light squares: tone no (1.00 vs 0.23, separation 2.2), edge no (0.08 vs 0.01, separation 2.0), chroma no (0.31 vs 0.00, separation 1.4) | OK piece colour (brightness) on light squares: -0.91 vs 0.10] | unsure 5 | grid 141,823 916,637 613,314 177,369 | image f00146_learned.jpg
+  3240.2s f00147 TRACKING Tracking | top: e3 (9.31) | f3 (9.57) | g3 (9.60) | no move (9.63) | unsure 3 | grid 142,821 917,639 613,313 178,369
+  3240.4s f00148 TRACKING Tracking | top: e3 (9.37) | f3 (9.58) | no move (9.64) | g3 (9.68) | unsure 4 | grid 144,818 913,639 614,312 177,369
+  3240.7s f00149 TRACKING Tracking | top: e3 (9.74) | f3 (9.90) | g3 (9.96) | no move (10.00) | unsure 4 | grid 145,816 909,639 615,312 177,369
+  3240.9s f00150 TRACKING Tracking | top: e3 (9.72) | f3 (9.88) | g3 (9.98) | no move (10.05) | unsure 4 | grid 146,815 912,641 615,312 178,369
+  3241.1s f00151 TRACKING Tracking | top: e3 (9.81) | f3 (9.96) | g3 (10.02) | no move (10.14) | unsure 4 | grid 147,815 914,642 615,311 178,369
+  3241.3s f00152 TRACKING Tracking | top: e3 (9.92) | f3 (10.08) | g3 (10.14) | no move (10.25) | unsure 4 | grid 148,812 909,641 617,311 178,369
+  3241.5s f00153 TRACKING Tracking | top: e3 (9.63) | f3 (9.77) | g3 (9.84) | no move (9.87) | unsure 4 | grid 148,811 907,641 617,310 178,368
+  3242.4s f00154 TRACKING Tracking | top: e3 (9.66) | f3 (9.81) | g3 (9.90) | no move (9.95) | unsure 5 | grid 147,814 909,640 616,311 177,369
+  3242.6s f00155 TRACKING Maybe f3 g6 (12.55) or f3 (12.58); unchanged 13.36 | top: f3 g6 (12.55) | f3 (12.58) | Nf3 g6 (12.63) | Nf3 (12.66) | unsure 12 | grid 147,813 908,639 616,311 177,369
+  3242.8s f00156 TRACKING Seeing Nf3 g6 (0/3) | top: Nf3 g6 (14.49) | f3 g6 (14.95) | Nh3 g6 (15.18) | Nf3 g5 (15.44) | unsure 19 | grid 148,812 908,640 617,311 177,369
+  3243.0s f00157 UNSTABLE Hold still, cannot read the board | top: Nf3 g6 (20.62) | Nh3 g6 (20.76) | f3 g6 (20.89) | e4 g6 (21.00) | unsure 21 | grid 148,812 909,640 617,311 178,369
+  3243.2s f00158 TRACKING Maybe Nh3 g6 (18.87) or Nf3 g6 (18.97); unchanged 20.33 | top: Nh3 g6 (18.87) | Nf3 g6 (18.97) | Nf3 h5 (19.27) | Nh3 h5 (19.28) | offers: Nh3 (18.9) | Nf3 (19.0) | unsure 16 | grid 148,811 908,640 617,311 177,369 | image f00158_offer.jpg
+  3243.5s f00159 UNSTABLE Hold still, cannot read the board | top: Nh3 f5 (20.06) | Nf3 h5 (20.10) | Nh3 h5 (20.10) | Nh3 g6 (20.21) | unsure 15 | grid 148,812 910,639 617,310 177,369
+  3243.8s f00160 TRACKING Maybe Nh3 f5 (19.89) or Nh3 f6 (19.90); unchanged 20.94 | top: Nh3 f5 (19.89) | Nh3 f6 (19.90) | Nh3 h5 (19.99) | Nh3 Nf6 (20.02) | offers: Nh3 (18.9) | Nf3 (19.0) | unsure 14 | grid 148,812 905,636 617,311 177,369 | image f00160_offer.jpg
+  3243.9s f00161 TRACKING Maybe Nh3 f6 (19.95) or Nh3 f5 (20.00); unchanged 21.05 | top: Nh3 f6 (19.95) | Nh3 f5 (20.00) | g4 f6 (20.06) | Nh3 Nf6 (20.09) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 14 | grid 148,811 908,638 618,310 177,369 | image f00161_offer.jpg
+  3244.1s f00162 TRACKING Maybe Nh3 f5 (18.75) or g4 h5 (18.75); unchanged 19.96 | top: Nh3 f5 (18.75) | g4 h5 (18.75) | Nf3 h5 (18.77) | Nh3 h5 (18.81) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 15 | grid 148,812 903,636 617,311 177,369
+  3244.4s f00163 TRACKING Reading the move... | top: f4 (15.27) | g4 (15.32) | f3 (15.44) | g3 (15.57) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 18 | grid 148,812 907,638 616,311 177,369
+  3244.6s f00164 TRACKING Reading the move... | top: g3 (11.55) | f3 (11.56) | f4 (11.60) | no move (11.66) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 7 | grid 149,811 910,640 616,311 178,369
+  3244.8s f00165 TRACKING Reading the move... | top: f3 (10.10) | e3 (10.16) | no move (10.17) | g3 (10.19) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 5 | grid 149,811 908,639 617,310 178,369
+  3245.0s f00166 TRACKING Reading the move... | top: f3 (9.54) | e3 (9.60) | no move (9.61) | g3 (9.68) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 5 | grid 149,810 906,639 617,310 177,369
+  3245.6s f00167 TRACKING Reading the move... | top: f3 (9.24) | no move (9.31) | e3 (9.32) | Nf3 (9.39) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 1 | grid 149,809 905,639 617,310 178,369
+  3245.8s f00168 TRACKING Tracking | top: f3 (9.05) | no move (9.11) | e3 (9.12) | g3 (9.18) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 2 | grid 150,809 903,638 618,310 177,369
+  3246.0s f00169 TRACKING Tracking | top: f3 (9.22) | no move (9.27) | e3 (9.28) | g3 (9.34) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 901,638 618,309 177,368
+  3246.2s f00170 TRACKING Tracking | top: f3 (9.37) | no move (9.42) | e3 (9.44) | g3 (9.45) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 901,638 618,309 177,368
+  3246.4s f00171 TRACKING Tracking | top: f3 (9.08) | no move (9.13) | e3 (9.14) | g3 (9.22) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 149,810 901,637 618,309 177,368
+  3246.6s f00172 TRACKING Tracking | top: f3 (9.15) | no move (9.21) | e3 (9.23) | g3 (9.28) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 1 | grid 150,809 899,637 618,309 177,368
+  3246.9s f00173 TRACKING Tracking | top: f3 (9.10) | no move (9.15) | e3 (9.18) | g3 (9.22) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 4 | grid 149,809 900,637 618,309 177,368
+  3247.1s f00174 TRACKING Tracking | top: f3 (8.88) | no move (8.94) | e3 (8.96) | g3 (9.01) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 2 | grid 149,809 901,637 618,309 177,368
+  3247.4s f00175 TRACKING Tracking | top: f3 (9.18) | no move (9.23) | e3 (9.24) | g3 (9.29) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 899,637 618,309 177,368
+  3247.6s f00176 TRACKING Tracking | top: f3 (9.21) | no move (9.27) | e3 (9.27) | g3 (9.32) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 4 | grid 149,810 899,637 618,309 177,368
+  3247.8s f00177 TRACKING Tracking | top: f3 (9.14) | no move (9.19) | e3 (9.22) | g3 (9.23) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 898,637 618,309 177,368
+  3248.0s f00178 TRACKING Tracking | top: f3 (9.09) | no move (9.15) | e3 (9.17) | Nf3 (9.20) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 2 | grid 149,809 899,637 618,309 177,368
+  3248.3s f00179 TRACKING Tracking | top: f3 (9.15) | no move (9.21) | e3 (9.23) | g3 (9.26) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 2 | grid 149,809 898,637 618,309 177,368
+  3248.5s f00180 TRACKING Tracking | top: f3 (9.11) | no move (9.17) | e3 (9.20) | g3 (9.22) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 4 | grid 149,810 898,636 618,309 177,368 | image f00180_sample.jpg
+  3248.7s f00181 TRACKING Tracking | top: f3 (9.12) | no move (9.18) | e3 (9.20) | g3 (9.23) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 5 | grid 149,810 899,637 618,309 177,368
+  3248.9s f00182 TRACKING Tracking | top: f3 (9.16) | no move (9.22) | g3 (9.26) | e3 (9.26) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 4 | grid 149,810 898,637 618,309 177,368
+  3249.1s f00183 TRACKING Tracking | top: f3 (9.11) | no move (9.17) | g3 (9.22) | e3 (9.22) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 4 | grid 149,810 897,636 618,309 177,368
+  3249.4s f00184 TRACKING Tracking | top: f3 (9.18) | no move (9.25) | g3 (9.29) | Nf3 (9.30) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,810 896,636 618,309 177,368
+  3249.6s f00185 TRACKING Tracking | top: f3 (9.21) | no move (9.27) | Nf3 (9.28) | g3 (9.31) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 896,636 619,309 177,368
+  3249.9s f00186 TRACKING Tracking | top: f3 (9.29) | no move (9.34) | g3 (9.35) | Nf3 (9.40) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 897,637 618,309 177,368
+  3250.1s f00187 TRACKING Tracking | top: f3 (9.12) | no move (9.18) | e3 (9.22) | g3 (9.23) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 149,810 898,637 618,309 177,368
+  3250.2s f00188 TRACKING Tracking | top: f3 (9.28) | no move (9.34) | g3 (9.34) | e3 (9.39) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 149,809 897,637 618,309 177,368
+  3250.5s f00189 TRACKING Tracking | top: f3 (9.10) | no move (9.15) | g3 (9.16) | e3 (9.19) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 149,810 898,637 618,309 177,368
+  3250.7s f00190 TRACKING Tracking | top: f3 (8.94) | no move (8.99) | g3 (9.02) | e3 (9.03) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 149,810 898,637 618,309 177,368
+  3250.8s f00191 TRACKING Tracking | top: f3 (9.31) | no move (9.37) | g3 (9.37) | e3 (9.43) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 149,810 898,636 618,309 177,368
+  3251.1s f00192 TRACKING Tracking | top: f3 (9.21) | no move (9.28) | g3 (9.32) | e3 (9.33) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,810 897,636 618,309 177,368
+  3251.3s f00193 TRACKING Tracking | top: f3 (9.15) | no move (9.23) | e3 (9.27) | Nf3 (9.28) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,810 896,636 618,309 177,368
+  3251.5s f00194 TRACKING Tracking | top: f3 (9.22) | no move (9.31) | e3 (9.37) | Nf3 (9.37) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 2 | grid 150,810 895,636 618,309 177,368
+  3251.8s f00195 TRACKING Tracking | top: f3 (9.34) | no move (9.44) | g3 (9.49) | e3 (9.49) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 2 | grid 150,809 895,636 619,309 177,368
+  3252.0s f00196 TRACKING Tracking | top: f3 (9.13) | no move (9.21) | e3 (9.25) | Nf3 (9.27) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 2 | grid 150,809 895,636 619,309 177,368
+  3252.2s f00197 TRACKING Tracking | top: f3 (9.12) | no move (9.20) | e3 (9.25) | Nf3 (9.26) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 2 | grid 150,809 895,636 619,309 177,368
+  3252.5s f00198 TRACKING Tracking | top: f3 (9.74) | g3 (9.82) | no move (9.83) | e3 (9.88) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 898,637 618,309 177,368
+  3252.7s f00199 TRACKING Tracking | top: f3 (9.64) | g3 (9.72) | no move (9.73) | e3 (9.79) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,810 898,637 618,310 177,368
+  3252.9s f00200 TRACKING Tracking | top: f3 (9.34) | no move (9.39) | g3 (9.42) | e3 (9.45) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 898,637 618,310 177,368 | image f00200_sample.jpg
+  3253.1s f00201 TRACKING Tracking | top: f3 (9.42) | g3 (9.46) | no move (9.47) | e3 (9.51) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 897,637 618,309 176,368
+  3253.3s f00202 TRACKING Tracking | top: f3 (9.28) | no move (9.33) | g3 (9.34) | e3 (9.40) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 898,636 618,310 177,369
+  3253.6s f00203 TRACKING Tracking | top: f3 (9.37) | no move (9.42) | g3 (9.42) | e3 (9.46) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 897,636 618,310 176,369
+  3253.8s f00204 TRACKING Tracking | top: f3 (9.32) | no move (9.36) | g3 (9.38) | e3 (9.43) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,810 898,636 618,310 176,369
+  3254.0s f00205 TRACKING Tracking | top: f3 (9.43) | no move (9.49) | g3 (9.51) | e3 (9.54) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 897,636 618,310 176,369
+  3254.2s f00206 TRACKING Tracking | top: f3 (9.31) | no move (9.36) | e3 (9.39) | g3 (9.40) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 897,636 618,310 176,369
+  3254.5s f00207 TRACKING Tracking | top: f3 (9.23) | no move (9.28) | e3 (9.32) | g3 (9.32) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 898,636 618,310 176,369
+  3254.6s f00208 TRACKING Tracking | top: f3 (9.30) | no move (9.35) | e3 (9.37) | g3 (9.39) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 897,636 618,310 176,369
+  3254.9s f00209 TRACKING Tracking | top: f3 (9.44) | no move (9.53) | g3 (9.54) | e3 (9.56) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,810 898,636 617,310 176,370
+  3255.1s f00210 TRACKING Tracking | top: f3 (9.51) | g3 (9.56) | no move (9.58) | e3 (9.62) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 898,636 618,310 176,369
+  3255.3s f00211 TRACKING Tracking | top: f3 (9.76) | g3 (9.81) | no move (9.84) | e3 (9.89) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 897,636 618,310 176,369
+  3255.5s f00212 TRACKING Tracking | top: f3 (9.50) | g3 (9.59) | no move (9.59) | e3 (9.62) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,810 898,635 617,310 176,370
+  3255.7s f00213 TRACKING Tracking | top: f3 (9.70) | g3 (9.75) | no move (9.79) | e3 (9.84) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 897,636 618,310 176,370
+  3255.9s f00214 TRACKING Tracking | top: f3 (9.80) | g3 (9.84) | no move (9.88) | e3 (9.93) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 897,636 618,310 176,369
+  3256.1s f00215 TRACKING Tracking | top: f3 (9.64) | g3 (9.69) | no move (9.72) | e3 (9.78) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 898,635 618,310 176,370
+  3256.3s f00216 TRACKING Tracking | top: f3 (9.64) | g3 (9.69) | no move (9.72) | e3 (9.78) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 897,636 618,310 176,370
+  3256.5s f00217 TRACKING Tracking | top: f3 (9.47) | g3 (9.53) | no move (9.54) | e3 (9.59) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 898,635 618,310 176,370
+  3256.8s f00218 TRACKING Tracking | top: f3 (9.40) | g3 (9.44) | no move (9.46) | e3 (9.50) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 150,809 897,636 618,310 176,370
+  3257.0s f00219 TRACKING Tracking | top: f3 (9.23) | no move (9.29) | e3 (9.30) | Nf3 (9.32) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 4 | grid 150,808 897,636 618,310 176,369
+  3257.2s f00220 TRACKING Tracking | top: f3 (9.09) | no move (9.15) | e3 (9.16) | Nf3 (9.21) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 2 | grid 150,809 898,635 618,310 176,370 | image f00220_sample.jpg
+  3257.7s f00221 TRACKING Tracking | top: f3 (9.36) | no move (9.41) | g3 (9.45) | e3 (9.46) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 149,810 899,636 617,310 176,370
+  3257.8s f00222 TRACKING Tracking | top: f3 (9.34) | no move (9.41) | e3 (9.45) | Nf3 (9.46) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 3 | grid 149,810 899,636 617,310 176,370
+  3258.0s f00223 TRACKING Tracking | top: f3 (9.12) | no move (9.18) | Nf3 (9.20) | e3 (9.22) | offers: Nh3 (18.9) | Nf3 (19.0) | g4 (20.1) | unsure 2 | grid 149,810 900,635 617,310 176,370
+  3258.9s f00224 UNSTABLE Hold still, cannot read the board | top: f3 (27.43) | f3 c5 (27.45) | Nf3 (27.45) | f4 (27.46) | unsure 54 | grid 149,810 900,635 617,310 176,370
+  3259.3s f00225 UNSTABLE Hold still, cannot read the board | top: g4 e5 (32.02) | a4 e5 (32.11) | g4 e6 (32.19) | Nf3 e5 (32.23) | unsure 22 | grid 149,810 900,635 617,310 176,370
+  3259.9s f00226 UNSTABLE Hold still, cannot read the board | top: a4 e5 (32.68) | a4 e6 (32.75) | g4 e5 (32.84) | g4 e6 (32.91) | unsure 15 | grid 149,810 900,635 617,310 176,370
+  3260.3s f00227 UNSTABLE Hold still, cannot read the board | top: e4 g5 (37.81) | f4 g5 (37.82) | e4 h5 (37.86) | f4 h5 (37.87) | unsure 24 | grid 149,810 900,635 617,310 176,370
+  3260.8s f00228 UNSTABLE Hold still, cannot read the board | top: e4 g5 (34.08) | e4 h5 (34.18) | d4 g5 (34.26) | e4 e5 (34.35) | unsure 10 | grid 149,810 900,635 617,310 176,370
+  3261.4s f00229 UNSTABLE Hold still, cannot read the board | top: f4 g5 (34.24) | f4 h5 (34.24) | f4 e5 (34.43) | f4 c5 (34.44) | unsure 10 | grid 149,810 900,635 617,310 176,370
+  3261.8s f00230 UNSTABLE Hold still, cannot read the board | top: f4 e5 (34.35) | f4 e6 (34.57) | b4 e5 (34.61) | f3 e5 (34.66) | unsure 19 | grid 149,810 900,635 617,310 176,370
+  3262.3s f00231 UNSTABLE Hold still, cannot read the board | top: f4 c5 (37.36) | a4 c5 (37.39) | g4 c5 (37.47) | d4 c5 (37.55) | unsure 16 | grid 149,810 900,635 617,310 176,370
+  3262.9s f00232 NO_BOARD Looking for the board
+  3263.3s f00233 NO_BOARD Looking for the board
+  3263.7s f00234 NO_BOARD Looking for the board
+  3264.2s f00235 NO_BOARD Looking for the board
+  3267.7s f00236 NO_BOARD Looking for the board
+  4753.5s f00237 NO_BOARD Looking for the board
+  4753.6s f00238 NO_BOARD Looking for the board
+  4753.8s f00239 NO_BOARD Looking for the board
+  4754.3s f00240 NO_BOARD Looking for the board | image f00240_sample.jpg
+  4754.5s f00241 NO_BOARD Looking for the board
+  4754.7s f00242 NO_BOARD Looking for the board
+  4755.0s f00243 NO_BOARD Looking for the board
+  4755.3s f00244 NO_BOARD Looking for the board
+  4755.6s f00245 NO_BOARD Looking for the board
+  4755.9s f00246 NO_BOARD Looking for the board
+  4756.1s f00247 NO_BOARD Looking for the board
+  4756.3s f00248 NO_BOARD Looking for the board
+  4756.6s f00249 NO_BOARD Looking for the board
+  4756.8s f00250 NO_BOARD Looking for the board
+  4757.1s f00251 NO_BOARD Looking for the board
+  4757.3s f00252 NO_BOARD Looking for the board
+  4757.6s f00253 NO_BOARD Looking for the board
+  4760.2s BUNDLE shared; game so far: 
