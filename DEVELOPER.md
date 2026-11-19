@@ -4,11 +4,12 @@
 
 ## Hardware
 
-| Part | Detail |
-|------|--------|
-| Raspberry Pi Zero 2 W | Host board |
-| WaveShare 2.13" Touch e-Paper HAT V4 | 122 × 250 px B/W, SPI display + GT1151 I2C touch |
-| Standard chess board | Any physical board |
+| Part | Detail | Where to buy |
+|------|--------|--------------|
+| Raspberry Pi Zero 2 W | Host board | [Amazon](https://amzn.eu/d/0armY7FJ) |
+| WaveShare 2.13" Touch e-Paper HAT V4 | 122 × 250 px B/W, SPI display + GT1151 I2C touch | [Amazon](https://amzn.eu/d/086WPCji) |
+| Micro USB cable + USB power supply or power bank | Powers the Pi Zero via its micro USB port | — |
+| Standard chess board | Any physical board | — |
 
 The display attaches to the GPIO header. No additional wiring is needed beyond the HAT.
 
